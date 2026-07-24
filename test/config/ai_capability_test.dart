@@ -29,18 +29,21 @@ void main() {
     },
   );
 
-  test('a device below the 2.5 GiB threshold is denied with a GiB reason', () async {
-    final cap = await _capFor((
-      totalMem: 2 * 1024 * 1024 * 1024,
-      availMem: 1 * 1024 * 1024 * 1024,
-      lowRam: false,
-    ));
-    expect(cap.samAllowed, isFalse);
-    expect(cap.reason, isNotNull);
-    expect(cap.reason, contains('GiB'));
-    expect(cap.reason, contains('2.0 GiB'));
-    expect(cap.reason, contains('needs 2.5 GiB'));
-  });
+  test(
+    'a device below the 2.5 GiB threshold is denied with a GiB reason',
+    () async {
+      final cap = await _capFor((
+        totalMem: 2 * 1024 * 1024 * 1024,
+        availMem: 1 * 1024 * 1024 * 1024,
+        lowRam: false,
+      ));
+      expect(cap.samAllowed, isFalse);
+      expect(cap.reason, isNotNull);
+      expect(cap.reason, contains('GiB'));
+      expect(cap.reason, contains('2.0 GiB'));
+      expect(cap.reason, contains('needs 2.5 GiB'));
+    },
+  );
 
   test(
     'total RAM exactly at the threshold is allowed; one byte under is denied',
