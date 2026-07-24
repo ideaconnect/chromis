@@ -71,7 +71,7 @@
       </ul>
 
       <h2>2. Data collected by the App</h2>
-      <p>The App itself does not maintain user accounts or a server. However, it includes two Google services that process limited data:</p>
+      <p>The App itself does not maintain user accounts or a server. It is distributed through the <strong>Google Play Store</strong> and uses <strong>Google Play services</strong> together with Google’s SDKs — <strong>Google AdMob</strong> (ads) and <strong>Google Play Billing</strong> (purchases). Through these, limited data is processed as described below.</p>
 
       <h3>2.1 Advertising (Google AdMob)</h3>
       <p>The App is free and supported by ads served through the Google Mobile Ads (AdMob) SDK. To show and measure ads, the SDK may collect and share:</p>
@@ -87,10 +87,14 @@
       <p>This data is handled by Google, not by us, and is sent over encrypted (HTTPS) connections. For users in the EEA, UK and Switzerland, the App shows Google’s <strong>consent (UMP)</strong> form on first launch so you can accept or decline personalized ads. You can reset ad personalization at any time via your device’s Google settings. See <a href="https://policies.google.com/technologies/ads" rel="noopener">Google’s advertising policies</a> and <a href="https://support.google.com/admob/answer/6128543" rel="noopener">AdMob &amp; privacy</a>.</p>
       <p><strong>Removing ads:</strong> A one-time in-app purchase (“Go Pro”) removes all ads. Once active, the AdMob SDK no longer requests ads.</p>
 
-      <h3>2.2 Purchases (Google Play Billing)</h3>
-      <p>If you buy the ad-removal upgrade, the transaction is processed by <strong>Google Play Billing</strong>. We receive a purchase token that tells the App whether the upgrade is active; we do <strong>not</strong> receive your name, card, or payment details. Google processes payment information under its own privacy policy.</p>
+      <h3>2.2 Google Play Store &amp; purchases</h3>
+      <p>The App is distributed through the <strong>Google Play Store</strong>. When you download or update the App, or make a purchase, Google Play processes data (such as your Google account, device information and purchase history) under <a href="https://policies.google.com/privacy" rel="noopener">Google’s Privacy Policy</a> and the Google Play Terms of Service.</p>
+      <p>If you buy the ad-removal upgrade, the transaction is processed by <strong>Google Play Billing</strong>. We receive only a purchase token that tells the App whether the upgrade is active; we do <strong>not</strong> receive your name, card, or payment details.</p>
 
-      <h3>2.3 Permissions</h3>
+      <h3>2.3 Google Play services (Google Services)</h3>
+      <p>The App uses <strong>Google Play services</strong> — Google’s system framework on Android — to deliver Google ML Kit’s on-device subject-segmentation model and to run the AdMob, Play Billing and consent (UMP) components described here. The ML Kit segmentation runs <strong>on your device</strong> and does not send your images to Google. Google Play services may collect standard device and diagnostic data under Google’s own policies.</p>
+
+      <h3>2.4 Permissions</h3>
       <ul>
         <li><strong>Photos / media</strong> — used only so you can pick an image to edit and save results back. Selection uses the Android system photo picker where available.</li>
         <li><strong>Internet &amp; advertising ID</strong> — used by AdMob and Play Billing as described above. No other network use.</li>
@@ -106,7 +110,7 @@
       <h2>4. Third-party services</h2>
       <p>We rely on these providers, each with its own privacy policy:</p>
       <ul>
-        <li><strong>Google</strong> — AdMob (ads), Play Billing (purchases), Analytics (website), and on-device ML Kit (no image data leaves your device). <a href="https://policies.google.com/privacy" rel="noopener">Policy</a>.</li>
+        <li><strong>Google</strong> — the <strong>Google Play Store</strong> (app distribution &amp; updates), <strong>Google Play services</strong> and <strong>Google Play Billing</strong> (purchases), <strong>Google AdMob</strong> (ads + UMP consent), Google Analytics (website), and on-device Google ML Kit (no image data leaves your device). <a href="https://policies.google.com/privacy" rel="noopener">Policy</a>.</li>
         <li><strong>Web3Forms</strong> — contact-form delivery. <a href="https://web3forms.com/privacy-policy" rel="noopener">Policy</a>.</li>
       </ul>
 
