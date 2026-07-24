@@ -59,6 +59,14 @@ bundled model (`assets/models/u2netp.onnx`) using the same recipe the app uses
 (squash-resize 320², ImageNet normalize, min-max normalize, bilinear upscale to
 a soft alpha). Regenerate with `tool/gen_effects.py` (see repo).
 
+## Cache-busting
+
+GitHub Pages serves CSS and images with a long cache (`Cache-Control: max-age=14400`
+= 4 h). After you change `styles.css` or an image, **bump the `?v=N` query** on
+its `<link>` / `<img>` reference (currently `?v=2`) so browsers fetch the new
+file instead of a stale cached copy. The HTML pages revalidate quickly, so the
+new versioned URLs propagate on the next visit.
+
 ## Deploy
 
 Any static host works (the site is served at `idct.tech/photo-editor-ai`,
