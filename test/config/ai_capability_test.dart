@@ -1,7 +1,7 @@
+import 'package:chromis/core/platform/platform_services.dart';
+import 'package:chromis/features/segmentation/ai_capability.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:photo_editor_ai/core/platform/platform_services.dart';
-import 'package:photo_editor_ai/features/segmentation/ai_capability.dart';
 
 /// Guards the once-per-run device gate for the heavy MobileSAM tier: deny only
 /// on a *positive* too-small signal (`isLowRamDevice`, or total RAM under

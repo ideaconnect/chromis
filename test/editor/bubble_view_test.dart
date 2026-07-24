@@ -1,8 +1,8 @@
 import 'dart:ui';
 
+import 'package:chromis/core/models/layer.dart';
+import 'package:chromis/features/editor/widgets/bubble_view.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:photo_editor_ai/core/models/layer.dart';
-import 'package:photo_editor_ai/features/editor/widgets/bubble_view.dart';
 
 /// Guards the bubble geometry + caption-fitting helpers shared by the live
 /// [BubbleView] and the export renderer (WYSIWYG, #78/#79). The tail-tip and

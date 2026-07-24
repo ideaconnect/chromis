@@ -1,4 +1,4 @@
-package tech.idct.photo_editor
+package tech.idct.chromis
 
 import android.app.ActivityManager
 import android.content.ContentValues
@@ -106,7 +106,7 @@ class MainActivity : FlutterActivity() {
 
     /**
      * Inserts [bytes] as a new image in the Pictures gallery
-     * (`Pictures/Photo Editor AI`) via MediaStore on Android 10+ — no runtime
+     * (`Pictures/Chromis`) via MediaStore on Android 10+ — no runtime
      * permission needed. Pre-Q falls back to the Downloads collection.
      */
     private fun saveImageToGallery(
@@ -125,7 +125,7 @@ class MainActivity : FlutterActivity() {
                 put(MediaStore.Images.Media.MIME_TYPE, mime)
                 put(
                     MediaStore.Images.Media.RELATIVE_PATH,
-                    "${Environment.DIRECTORY_PICTURES}/Photo Editor AI",
+                    "${Environment.DIRECTORY_PICTURES}/Chromis",
                 )
                 put(MediaStore.Images.Media.IS_PENDING, 1)
             }
@@ -139,13 +139,13 @@ class MainActivity : FlutterActivity() {
             values.clear()
             values.put(MediaStore.Images.Media.IS_PENDING, 0)
             resolver.update(uri, values, null, null)
-            result.success("Pictures/Photo Editor AI/$name")
+            result.success("Pictures/Chromis/$name")
         } catch (e: Exception) {
             result.error("save_failed", e.message, null)
         }
     }
 
     companion object {
-        private const val PLATFORM_CHANNEL = "photo_editor/platform"
+        private const val PLATFORM_CHANNEL = "chromis/platform"
     }
 }

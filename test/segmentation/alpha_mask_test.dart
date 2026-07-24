@@ -1,7 +1,7 @@
 import 'dart:typed_data';
 
+import 'package:chromis/features/segmentation/alpha_mask.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:photo_editor_ai/features/segmentation/alpha_mask.dart';
 
 /// Exercises the AlphaMask value type: its dimension/length invariants, the
 /// filled/empty factories, row-major indexing, coverage fractions, copyWith,

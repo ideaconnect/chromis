@@ -1,5 +1,5 @@
+import 'package:chromis/features/segmentation/engines/inpaint/inpaint_engine.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:photo_editor_ai/features/segmentation/engines/inpaint/inpaint_engine.dart';
 
 /// Guards the MI-GAN letterbox geometry: a non-square photo must map into the
 /// square 512 field fit-contain (undistorted), and _postprocess crops the fill

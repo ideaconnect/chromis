@@ -1,4 +1,4 @@
-# Ship checklist — Photo Editor AI
+# Ship checklist — Chromis
 
 All **code** is done and builds green (debug + release APK). What remains needs
 your phone and your Google consoles. Work top to bottom.
@@ -32,7 +32,7 @@ Install the debug build and walk every feature. It's already built:
 
 **Export**
 - [ ] PNG (transparent) / JPG (flattened) / WebP at 100/75/50/25 %
-- [ ] Save to gallery (check the "Photo Editor AI" album) + Share sheet
+- [ ] Save to gallery (check the "Chromis" album) + Share sheet
 
 **Ads (test ads — they render "Test Ad")**
 - [ ] Home banner shows at the bottom
@@ -70,7 +70,7 @@ Install the debug build and walk every feature. It's already built:
 
 ## C. Play Console
 
-1. Create the app; package name **`tech.idct.photoeditor`**.
+1. Create the app; package name **`tech.idct.chromis`**.
 2. **Monetize → In-app products**: create `pro_remove_ads`, type **Managed
    product** (one-time / non-consumable), set price, **Activate** it.
    (IAP only returns a product on a signed build uploaded to a track — internal

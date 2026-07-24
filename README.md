@@ -1,4 +1,4 @@
-# Photo Editor AI — BG Removal
+# Chromis — BG Removal
 
 A free, ad-supported Flutter **Android** photo editor with on-device AI. Cut out
 backgrounds, remove objects, add text & speech bubbles, adjust colors, and
@@ -60,6 +60,6 @@ dart run flutter_launcher_icons
 dart run flutter_native_splash:create
 ```
 
-- **applicationId:** `tech.idct.photoeditor` · **namespace:** `tech.idct.photo_editor` · **minSdk:** 26
+- **applicationId:** `tech.idct.chromis` · **namespace:** `tech.idct.chromis` · **minSdk:** 26
 
 © 2026 IDCT · Bartosz Pachołek · [idct.tech](https://idct.tech)

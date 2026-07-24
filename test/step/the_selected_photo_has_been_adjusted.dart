@@ -1,5 +1,5 @@
+import 'package:chromis/core/models/image_adjustments.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:photo_editor_ai/core/models/image_adjustments.dart';
 
 import '_e2e_support.dart';
 

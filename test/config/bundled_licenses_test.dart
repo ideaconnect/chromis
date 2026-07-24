@@ -1,9 +1,9 @@
 import 'dart:convert';
 
+import 'package:chromis/features/about/bundled_licenses.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:photo_editor_ai/features/about/bundled_licenses.dart';
 
 /// Guards that [registerBundledLicenses] streams exactly one
 /// [LicenseEntryWithLineBreaks] per bundled asset (the six OFL/Apache fonts plus

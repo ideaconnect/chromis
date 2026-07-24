@@ -1,5 +1,5 @@
+import 'package:chromis/config/ads_config.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:photo_editor_ai/config/ads_config.dart';
 
 /// Guards the ad-unit id selection: while [AdsConfig.useTestAds] is true (the
 /// shipped default until real ids are filled in), every getter must resolve to

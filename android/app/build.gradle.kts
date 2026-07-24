@@ -18,7 +18,7 @@ if (keystorePropertiesFile.exists()) {
 }
 
 android {
-    namespace = "tech.idct.photo_editor"
+    namespace = "tech.idct.chromis"
     // file_picker's flutter_plugin_android_lifecycle requires compileSdk 36.
     // (Only affects which APIs compile; minSdk 26 / targetSdk are unchanged.)
     compileSdk = 36
@@ -30,8 +30,8 @@ android {
     }
 
     defaultConfig {
-        // Play Store identity. Kept distinct from `namespace` (the code package) on purpose.
-        applicationId = "tech.idct.photoeditor"
+        // Play Store identity — matches the code package `namespace`.
+        applicationId = "tech.idct.chromis"
         minSdk = 26
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode

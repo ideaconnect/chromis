@@ -1,6 +1,6 @@
 {
   "@@locale": "en",
-  "appTitle": "Photo Editor AI",
+  "appTitle": "Chromis",
   "@appTitle": {
     "description": "The application name, shown as the OS task title."
   }

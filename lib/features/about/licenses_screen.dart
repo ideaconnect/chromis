@@ -23,7 +23,7 @@ class LicensesScreen extends StatelessWidget {
                 padding: const EdgeInsets.fromLTRB(20, 4, 20, 28),
                 children: [
                   const Text(
-                    'Photo Editor AI is built on wonderful open‑source work. '
+                    'Chromis is built on wonderful open‑source work. '
                     'Thank you to everyone who made it.',
                     style: TextStyle(
                       fontFamily: AppFonts.ui,

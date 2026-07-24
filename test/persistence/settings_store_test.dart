@@ -1,7 +1,7 @@
 import 'dart:io';
 
+import 'package:chromis/core/settings/settings_store.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:photo_editor_ai/core/settings/settings_store.dart';
 
 /// Contract for [SettingsStore]: booleans default false and string prefs null
 /// until written, writes persist across store instances (re-read from disk),

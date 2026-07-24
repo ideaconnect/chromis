@@ -1,15 +1,15 @@
 import 'dart:ui' show Offset, Rect, Color;
 
+import 'package:chromis/core/models/frame.dart';
+import 'package:chromis/core/models/image_adjustments.dart';
+import 'package:chromis/core/models/layer.dart';
+import 'package:chromis/core/models/layer_transform.dart';
+import 'package:chromis/core/models/project.dart';
+import 'package:chromis/features/editor/state/editor_controller.dart';
+import 'package:chromis/features/editor/state/editor_state.dart';
+import 'package:chromis/features/editor/state/editor_tool.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:photo_editor_ai/core/models/frame.dart';
-import 'package:photo_editor_ai/core/models/image_adjustments.dart';
-import 'package:photo_editor_ai/core/models/layer.dart';
-import 'package:photo_editor_ai/core/models/layer_transform.dart';
-import 'package:photo_editor_ai/core/models/project.dart';
-import 'package:photo_editor_ai/features/editor/state/editor_controller.dart';
-import 'package:photo_editor_ai/features/editor/state/editor_state.dart';
-import 'package:photo_editor_ai/features/editor/state/editor_tool.dart';
 
 /// Exhaustive behavioral coverage for [EditorController] — the document owner
 /// that funnels every mutation through the coalescing undo/redo history (#20).

@@ -92,8 +92,7 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
     try {
       final bytes = await _render();
       final f = _fmtInfo;
-      final name =
-          'PhotoEditor_${DateTime.now().millisecondsSinceEpoch}.${f.ext}';
+      final name = 'Chromis_${DateTime.now().millisecondsSinceEpoch}.${f.ext}';
       final loc = await ref
           .read(platformServicesProvider)
           .saveToGallery(name, f.mime, bytes);
@@ -114,7 +113,7 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
       final f = _fmtInfo;
       final dir = await getTemporaryDirectory();
       final file = File(
-        '${dir.path}/PhotoEditor_${DateTime.now().millisecondsSinceEpoch}'
+        '${dir.path}/Chromis_${DateTime.now().millisecondsSinceEpoch}'
         '.${f.ext}',
       );
       await file.writeAsBytes(bytes);
@@ -122,7 +121,7 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
       await SharePlus.instance.share(
         ShareParams(
           files: [XFile(file.path, mimeType: f.mime)],
-          subject: 'Photo Editor AI',
+          subject: 'Chromis',
         ),
       );
     } catch (_) {

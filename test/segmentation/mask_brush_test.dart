@@ -1,6 +1,6 @@
+import 'package:chromis/features/segmentation/alpha_mask.dart';
+import 'package:chromis/features/segmentation/mask_brush.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:photo_editor_ai/features/segmentation/alpha_mask.dart';
-import 'package:photo_editor_ai/features/segmentation/mask_brush.dart';
 
 /// Exercises MaskBrush.paint: the no-op guards (empty stroke / non-positive
 /// radius), hard vs. soft dab behaviour, monotonic (never-regressing) overlap

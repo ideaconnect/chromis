@@ -1,4 +1,4 @@
-# CLAUDE.md — Photo Editor AI
+# CLAUDE.md — Chromis
 
 Guidance for AI coding sessions on this repo.
 
@@ -48,4 +48,4 @@ dart format .          # CI enforces formatting
 flutter build apk --debug
 ```
 
-Identity: applicationId `tech.idct.photoeditor`, namespace `tech.idct.photo_editor`, minSdk 26.
+Identity: applicationId `tech.idct.chromis`, namespace `tech.idct.chromis`, minSdk 26.

@@ -1,8 +1,8 @@
 import 'dart:math' as math;
 import 'dart:typed_data';
 
+import 'package:chromis/features/segmentation/engines/bundled/mask_tensor.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:photo_editor_ai/features/segmentation/engines/bundled/mask_tensor.dart';
 
 /// Pure tensor <-> mask conversions around the native inference seam: guards the
 /// NCHW planar pack recipe (`((px/255) - mean) / std`, R then G then B), the

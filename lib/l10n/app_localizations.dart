@@ -97,7 +97,7 @@ abstract class AppLocalizations {
   /// The application name, shown as the OS task title.
   ///
   /// In en, this message translates to:
-  /// **'Photo Editor AI'**
+  /// **'Chromis'**
   String get appTitle;
 }
 

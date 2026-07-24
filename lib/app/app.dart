@@ -13,8 +13,8 @@ import 'router.dart';
 /// Root shell. Resolves the first-run flag, then hosts a [MaterialApp.router]
 /// starting on onboarding (first run) or Home. Holds the native splash colour
 /// while the flag loads; fails open to Home if it can't be read.
-class PhotoEditorApp extends ConsumerWidget {
-  const PhotoEditorApp({super.key});
+class ChromisApp extends ConsumerWidget {
+  const ChromisApp({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

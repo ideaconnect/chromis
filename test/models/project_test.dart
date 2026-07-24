@@ -1,12 +1,12 @@
 import 'dart:convert';
 import 'dart:ui';
 
+import 'package:chromis/core/models/frame.dart';
+import 'package:chromis/core/models/image_adjustments.dart';
+import 'package:chromis/core/models/layer.dart';
+import 'package:chromis/core/models/layer_transform.dart';
+import 'package:chromis/core/models/project.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:photo_editor_ai/core/models/frame.dart';
-import 'package:photo_editor_ai/core/models/image_adjustments.dart';
-import 'package:photo_editor_ai/core/models/layer.dart';
-import 'package:photo_editor_ai/core/models/layer_transform.dart';
-import 'package:photo_editor_ai/core/models/project.dart';
 
 /// Guards the [Project] document model: canvas-size clamping, derived geometry,
 /// per-field copyWith, the versioned JSON manifest round-trip (mixed layer

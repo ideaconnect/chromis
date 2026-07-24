@@ -2,9 +2,9 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
+import 'package:chromis/features/segmentation/alpha_mask.dart';
+import 'package:chromis/features/segmentation/mask_store.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:photo_editor_ai/features/segmentation/alpha_mask.dart';
-import 'package:photo_editor_ai/features/segmentation/mask_store.dart';
 
 /// Mask persistence + GC: the PNG round-trip that carries coverage in the alpha
 /// channel (RGB left white) and the SupersededMaskCollector's undo/redo-aware

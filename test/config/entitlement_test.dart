@@ -1,8 +1,8 @@
+import 'package:chromis/core/settings/settings_store.dart';
+import 'package:chromis/features/go_pro/iap.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
-import 'package:photo_editor_ai/core/settings/settings_store.dart';
-import 'package:photo_editor_ai/features/go_pro/iap.dart';
 
 /// Guards the Go Pro entitlement + product-load contract with fakes (no plugin
 /// / store): the controller surfaces the cached flag at build, `grant()` is

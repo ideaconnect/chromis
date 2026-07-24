@@ -1,6 +1,6 @@
+import 'package:chromis/core/widgets/labeled_slider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:photo_editor_ai/core/widgets/labeled_slider.dart';
 
 import '_e2e_support.dart';
 

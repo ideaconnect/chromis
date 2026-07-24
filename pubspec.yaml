@@ -1,5 +1,5 @@
-name: photo_editor_ai
-description: "Photo Editor AI BG Removal — cut out backgrounds, remove objects, add text & speech bubbles, all on-device."
+name: chromis
+description: "Chromis BG Removal — cut out backgrounds, remove objects, add text & speech bubbles, all on-device."
 # Prevents accidental publication to pub.dev (this is a private app package).
 publish_to: 'none'
 

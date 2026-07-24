@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Launcher / recents / Settings label. Kept untranslated (a proper noun). -->
-    <string name="app_name">Photo Editor AI</string>
+    <string name="app_name">Chromis</string>
 </resources>

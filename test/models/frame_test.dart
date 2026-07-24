@@ -1,11 +1,11 @@
 import 'dart:convert';
 import 'dart:ui';
 
+import 'package:chromis/core/models/frame.dart';
+import 'package:chromis/core/models/image_adjustments.dart';
+import 'package:chromis/core/models/layer.dart';
+import 'package:chromis/core/models/layer_transform.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:photo_editor_ai/core/models/frame.dart';
-import 'package:photo_editor_ai/core/models/image_adjustments.dart';
-import 'package:photo_editor_ai/core/models/layer.dart';
-import 'package:photo_editor_ai/core/models/layer_transform.dart';
 
 /// Guards [Frame]'s value semantics: copyWith field-swaps, a JSON round-trip
 /// over a mix of layer variants, and the order-sensitive == / hashCode that

@@ -1,5 +1,5 @@
+import 'package:chromis/features/segmentation/seg_model.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:photo_editor_ai/features/segmentation/seg_model.dart';
 
 /// Guards the [SegModel] enum data + its id/engineId resolvers: the picker and
 /// the registry read straight from these, so the stable ids, engine ids and the

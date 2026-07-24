@@ -10,7 +10,7 @@ Pairs with [monetization-setup.md](monetization-setup.md) (AdMob + IAP).
 Generate an upload key, keeping the `.jks` **outside** the repo:
 
 ```bat
-keytool -genkey -v -keystore %USERPROFILE%\photo-editor-upload.jks ^
+keytool -genkey -v -keystore %USERPROFILE%\chromis-upload.jks ^
   -storetype JKS -keyalg RSA -keysize 2048 -validity 10000 -alias upload
 ```
 

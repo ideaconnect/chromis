@@ -1,5 +1,5 @@
+import 'package:chromis/features/about/about_data.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:photo_editor_ai/features/about/about_data.dart';
 
 /// Complements the license/identity smoke checks in `smoke_test.dart`: this
 /// file guards the *shape* of the About data — the remaining [AboutInfo]

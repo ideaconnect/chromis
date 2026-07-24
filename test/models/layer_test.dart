@@ -1,9 +1,9 @@
 import 'dart:ui';
 
+import 'package:chromis/core/models/image_adjustments.dart';
+import 'package:chromis/core/models/layer.dart';
+import 'package:chromis/core/models/layer_transform.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:photo_editor_ai/core/models/image_adjustments.dart';
-import 'package:photo_editor_ai/core/models/layer.dart';
-import 'package:photo_editor_ai/core/models/layer_transform.dart';
 
 /// Value-semantics + JSON contract for the [Layer] hierarchy. These are the
 /// serialization guarantees the editor's undo stack and project save/load rely

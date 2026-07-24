@@ -1,8 +1,8 @@
 import 'dart:math' as math;
 import 'dart:ui';
 
+import 'package:chromis/features/editor/mask_mapper.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:photo_editor_ai/features/editor/mask_mapper.dart';
 
 /// Guards the per-layer-crop fix: the inverse mapper must invert the SAME
 /// cropped source rect the renderer draws, so Erase / object-removal taps land

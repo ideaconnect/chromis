@@ -4,10 +4,10 @@
 #    commit real keys).
 # 2. Generate an upload keystore (once), keeping the .jks OUTSIDE the repo:
 #
-#      keytool -genkey -v -keystore %USERPROFILE%\photo-editor-upload.jks \
+#      keytool -genkey -v -keystore %USERPROFILE%\chromis-upload.jks \
 #        -storetype JKS -keyalg RSA -keysize 2048 -validity 10000 -alias upload
 #
-#    (macOS/Linux: use ~/photo-editor-upload.jks and forward slashes.)
+#    (macOS/Linux: use ~/chromis-upload.jks and forward slashes.)
 # 3. Fill the four values below and point storeFile at that .jks.
 #
 # storeFile accepts an absolute path (recommended) or a path relative to
@@ -17,4 +17,4 @@
 storePassword=CHANGE_ME
 keyPassword=CHANGE_ME
 keyAlias=upload
-storeFile=C:\\Users\\you\\photo-editor-upload.jks
+storeFile=C:\\Users\\you\\chromis-upload.jks

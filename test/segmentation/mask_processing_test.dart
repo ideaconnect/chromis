@@ -1,8 +1,8 @@
 import 'dart:typed_data';
 
+import 'package:chromis/features/segmentation/alpha_mask.dart';
+import 'package:chromis/features/segmentation/mask_processing.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:photo_editor_ai/features/segmentation/alpha_mask.dart';
-import 'package:photo_editor_ai/features/segmentation/mask_processing.dart';
 
 /// Exercises every path of the pure mask post-processing chain: threshold,
 /// separable feather, keep-largest-component, subtract, tap-to-remove, and the

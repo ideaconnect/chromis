@@ -24,7 +24,7 @@ class AppLogo extends StatelessWidget {
   Widget build(BuildContext context) {
     return Semantics(
       container: true,
-      label: 'Photo Editor AI logo',
+      label: 'Chromis logo',
       image: true,
       child: Container(
         width: size,

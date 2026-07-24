@@ -14,7 +14,7 @@ import '../../editor/state/editor_controller.dart';
 import '../../editor/widgets/canvas_size_sheet.dart';
 import '../../go_pro/iap.dart';
 
-/// The app-wide side menu (net-new for Photo Editor). Matches the mockup:
+/// The app-wide side menu (net-new for Chromis). Matches the mockup:
 /// brand header, primary destinations, a "Go Pro · remove ads" gradient CTA,
 /// and the IDCT footer.
 class AppDrawer extends ConsumerWidget {
@@ -70,7 +70,7 @@ class AppDrawer extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Photo Editor AI',
+                        'Chromis',
                         style: TextStyle(
                           fontFamily: AppFonts.display,
                           fontWeight: FontWeight.w700,

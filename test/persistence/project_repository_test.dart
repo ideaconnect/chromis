@@ -1,11 +1,11 @@
 import 'dart:io';
 
+import 'package:chromis/core/models/frame.dart';
+import 'package:chromis/core/models/layer.dart';
+import 'package:chromis/core/models/layer_transform.dart';
+import 'package:chromis/core/models/project.dart';
+import 'package:chromis/features/home/project_repository.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:photo_editor_ai/core/models/frame.dart';
-import 'package:photo_editor_ai/core/models/layer.dart';
-import 'package:photo_editor_ai/core/models/layer_transform.dart';
-import 'package:photo_editor_ai/core/models/project.dart';
-import 'package:photo_editor_ai/features/home/project_repository.dart';
 
 /// Persistence contract for [ProjectRepository]: manifests round-trip through
 /// disk, corrupt manifests are quarantined rather than crashing the list, a

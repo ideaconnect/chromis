@@ -1,16 +1,16 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:chromis/core/models/layer.dart';
+import 'package:chromis/features/editor/services/image_import.dart';
+import 'package:chromis/features/editor/state/editor_controller.dart';
+import 'package:chromis/features/editor/state/editor_state.dart';
+import 'package:chromis/main.dart' as app;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:photo_editor_ai/core/models/layer.dart';
-import 'package:photo_editor_ai/features/editor/services/image_import.dart';
-import 'package:photo_editor_ai/features/editor/state/editor_controller.dart';
-import 'package:photo_editor_ai/features/editor/state/editor_state.dart';
-import 'package:photo_editor_ai/main.dart' as app;
 
 /// Shared helpers for the BDD step definitions (not a step itself — the leading
 /// underscore keeps it out of bdd_widget_test's way).

@@ -4,14 +4,14 @@
 abstract final class AboutInfo {
   AboutInfo._();
 
-  static const appName = 'Photo Editor AI';
+  static const appName = 'Chromis';
   static const appVersion = '1.0.0';
   static const publisher = 'IDCT · Bartosz Pachołek';
   static const contactEmail = 'bartosz@idct.tech';
 
-  /// Canonical hosted privacy policy. Keep identical to the URL entered in
-  /// Play Console and served from `docs/legal/privacy-policy.md`.
-  static const privacyUrl = 'https://idct.tech/photo-editor/privacy';
+  /// Canonical hosted privacy policy — the live page served from
+  /// `website/privacy.html`. Keep identical to the URL entered in Play Console.
+  static const privacyUrl = 'https://idct.tech/chromis/privacy.html';
 
   /// Community Discord invite — opened from the Home header button.
   static const discordUrl = 'https://discord.gg/uYsuaa8HNm';

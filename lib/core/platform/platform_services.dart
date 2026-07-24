@@ -5,14 +5,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 /// the system's own low-RAM classification (`isLowRamDevice`).
 typedef MemoryInfo = ({int totalMem, int availMem, bool lowRam});
 
-/// Small Android platform helpers behind `photo_editor/platform`: a device RAM
+/// Small Android platform helpers behind `chromis/platform`: a device RAM
 /// query (for AI-capability checks) and saving exported images into the gallery
 /// (MediaStore). [channel] is injectable so tests mock the method channel.
 class PlatformServices {
   PlatformServices({MethodChannel? channel})
     : _channel = channel ?? const MethodChannel(channelName);
 
-  static const channelName = 'photo_editor/platform';
+  static const channelName = 'chromis/platform';
 
   final MethodChannel _channel;
 
@@ -39,7 +39,7 @@ class PlatformServices {
 
   /// Saves [bytes] as [fileName] into the Pictures gallery (Android 10+ uses
   /// MediaStore with no runtime permission). Returns the user-visible location
-  /// (e.g. `Pictures/Photo Editor AI/…`), or null on failure.
+  /// (e.g. `Pictures/Chromis/…`), or null on failure.
   Future<String?> saveToGallery(
     String fileName,
     String mimeType,

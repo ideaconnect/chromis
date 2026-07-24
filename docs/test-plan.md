@@ -1,4 +1,4 @@
-# Test Plan — Photo Editor AI
+# Test Plan — Chromis
 
 Extensive coverage across **all features and all paths**, derived from a full
 codebase survey. Organized into three tiers by how a test must run.

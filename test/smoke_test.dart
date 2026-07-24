@@ -1,14 +1,14 @@
+import 'package:chromis/features/about/about_data.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:photo_editor_ai/features/about/about_data.dart';
 
 /// M0 smoke tests — pure-data assertions that guard the reskin from the
-/// Photo Editor base. The full unit/widget/golden harness lands with the
+/// Chromis base. The full unit/widget/golden harness lands with the
 /// "Test harness & determinism strategy" issue.
 void main() {
   group('About / identity', () {
-    test('app identity is Photo Editor AI', () {
-      expect(AboutInfo.appName, 'Photo Editor AI');
-      expect(AboutInfo.privacyUrl, contains('photo-editor'));
+    test('app identity is Chromis', () {
+      expect(AboutInfo.appName, 'Chromis');
+      expect(AboutInfo.privacyUrl, contains('chromis'));
       expect(AboutInfo.contactEmail, 'bartosz@idct.tech');
     });
 

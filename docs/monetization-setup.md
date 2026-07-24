@@ -28,7 +28,7 @@ Wired in **M8** via `in_app_purchase`. One-time, non-consumable; removes all ads
 includes a **Restore** button.
 
 1. **Play Console** account with a **payments/merchant profile** (required to sell).
-2. Create the app in Play Console with applicationId **`tech.idct.photoeditor`**,
+2. Create the app in Play Console with applicationId **`tech.idct.chromis`**,
    and upload a signed build to at least **Internal testing** (products don't
    return until a matching signed build is on a track).
 3. **Monetize → Products → In-app products:** create id **`pro_remove_ads`**,
@@ -41,7 +41,7 @@ includes a **Restore** button.
 
 | Thing | Value / where |
 |-------|---------------|
-| applicationId | `tech.idct.photoeditor` |
+| applicationId | `tech.idct.chromis` |
 | AdMob App ID | AndroidManifest meta-data (test id → real at release) |
 | Ad unit IDs | `lib/config/ads_config.dart` (M7) |
 | IAP product | `pro_remove_ads` (one-time, non-consumable) |

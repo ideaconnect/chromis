@@ -27,5 +27,5 @@ void main() {
       systemNavigationBarIconBrightness: Brightness.light,
     ),
   );
-  runApp(const ProviderScope(child: PhotoEditorApp()));
+  runApp(const ProviderScope(child: ChromisApp()));
 }

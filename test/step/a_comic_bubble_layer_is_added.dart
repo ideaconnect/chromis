@@ -1,8 +1,8 @@
+import 'package:chromis/core/models/layer.dart';
+import 'package:chromis/features/editor/editor_screen.dart';
+import 'package:chromis/features/editor/state/editor_controller.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:photo_editor_ai/core/models/layer.dart';
-import 'package:photo_editor_ai/features/editor/editor_screen.dart';
-import 'package:photo_editor_ai/features/editor/state/editor_controller.dart';
 
 /// Usage: a comic bubble layer is added
 ///

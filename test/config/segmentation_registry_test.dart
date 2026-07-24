@@ -1,7 +1,7 @@
+import 'package:chromis/features/segmentation/alpha_mask.dart';
+import 'package:chromis/features/segmentation/segmentation_engine.dart';
+import 'package:chromis/features/segmentation/segmentation_registry.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:photo_editor_ai/features/segmentation/alpha_mask.dart';
-import 'package:photo_editor_ai/features/segmentation/segmentation_engine.dart';
-import 'package:photo_editor_ai/features/segmentation/segmentation_registry.dart';
 
 /// Guards the [SegmentationRegistry] resolution + fall-through contract with
 /// fake engines (no device / plugins): the preferred engine is a *preference*

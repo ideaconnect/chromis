@@ -1,7 +1,7 @@
 import 'dart:convert';
 
+import 'package:chromis/core/models/image_adjustments.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:photo_editor_ai/core/models/image_adjustments.dart';
 
 /// Guards [ImageAdjustments]: the identity value (all multipliers 1.0, hue 0),
 /// the isIdentity flag, per-field copyWith invariants, the JSON round-trip and

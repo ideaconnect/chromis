@@ -1,6 +1,6 @@
+import 'package:chromis/core/models/image_adjustments.dart';
+import 'package:chromis/core/rendering/color_matrix.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:photo_editor_ai/core/models/image_adjustments.dart';
-import 'package:photo_editor_ai/core/rendering/color_matrix.dart';
 
 /// Guards the Adjust tool's colour maths: the individual 4×5 factories must
 /// reduce to the identity at their neutral value, use the documented contrast

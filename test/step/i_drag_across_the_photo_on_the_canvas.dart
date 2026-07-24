@@ -1,5 +1,5 @@
+import 'package:chromis/features/editor/widgets/editor_canvas.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:photo_editor_ai/features/editor/widgets/editor_canvas.dart';
 
 import '_e2e_support.dart';
 

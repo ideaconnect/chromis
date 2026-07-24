@@ -6,13 +6,13 @@
 //
 // One file, multiple tests, so a single on-device build runs the whole suite.
 // Run: flutter test integration_test/app_smoke_test.dart -d <deviceId>
+import 'package:chromis/core/models/layer.dart';
+import 'package:chromis/features/editor/editor_screen.dart';
+import 'package:chromis/features/editor/state/editor_controller.dart';
+import 'package:chromis/main.dart' as app;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
-import 'package:photo_editor_ai/core/models/layer.dart';
-import 'package:photo_editor_ai/features/editor/editor_screen.dart';
-import 'package:photo_editor_ai/features/editor/state/editor_controller.dart';
-import 'package:photo_editor_ai/main.dart' as app;
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();

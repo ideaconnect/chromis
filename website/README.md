@@ -1,6 +1,6 @@
-# Photo Editor AI — website
+# Chromis — website
 
-Static marketing site for the Photo Editor AI Android app. Plain HTML/CSS +
+Static marketing site for the Chromis Android app. Plain HTML/CSS +
 a little vanilla JS, no build step. Matches the app's dark theme and palette
 (`lib/core/theme/app_colors.dart`).
 
@@ -16,29 +16,23 @@ website/
     └── screens/        # real app screenshots
 ```
 
-## Placeholders to fill before going live
+## Analytics & contact form
 
-Both are intentionally left as obvious placeholders:
+Both are **configured** (values live in the HTML, which is fine — a GA4
+Measurement ID and a Web3Forms access key are public, client-side identifiers):
 
-| Placeholder | Where | Replace with |
+| Service | Where | Value |
 |---|---|---|
-| `G-XXXXXXXXXX` | `<head>` of every `.html` | Your **Google Analytics 4** Measurement ID |
-| `YOUR_WEB3FORMS_ACCESS_KEY` | `index.html` contact form (`access_key`) | Your **Web3Forms** access key from [web3forms.com](https://web3forms.com) |
+| **Google Analytics 4** | `window.PE_GA_ID` in the `<head>` of every `.html` | `G-WE6KSP5S15` |
+| **Web3Forms** | `index.html` contact form (`access_key`) | set |
 
-Quick find/replace, e.g.:
-
-```bash
-grep -rl "G-XXXXXXXXXX" website | xargs sed -i 's/G-XXXXXXXXXX/G-YOURID/g'
-sed -i 's/YOUR_WEB3FORMS_ACCESS_KEY/your-real-key/' website/index.html
-```
-
-Both placeholders are **self-guarding**:
+Guards that remain in place:
 
 - **Google Analytics** loads only after the visitor accepts the cookie-consent
-  banner *and* the ID is a real one — while it's still `G-XXXXXXXXXX` the
-  analytics loader stays inert, so no requests are sent.
-- Until the **Web3Forms** key is set, the contact form does not post to the API —
-  it shows a friendly "email us instead" message.
+  banner (and never while the ID is a placeholder), so nothing is sent without
+  consent.
+- The contact form posts to Web3Forms; if the key were ever reset to the
+  `YOUR_WEB3FORMS_ACCESS_KEY` sentinel it falls back to an "email us" message.
 
 ## Notes
 
@@ -47,7 +41,7 @@ Both placeholders are **self-guarding**:
   slider images at 3:4 so the reveal stays pixel-aligned.
 - The download CTAs use a **Google Play badge** (`.store-badge`, matching
   idct.tech/sticker-maker). Its `href` is a placeholder Play URL for this app id
-  (`play.google.com/store/apps/details?id=tech.idct.photoeditor`). When the final
+  (`play.google.com/store/apps/details?id=tech.idct.chromis`). When the final
   store link is provided, replace that URL on every `.store-badge` — header, hero,
   CTA band, and the nav on both legal pages. A "Coming soon to Google Play" note
   sits under the hero badge until launch.
@@ -64,11 +58,11 @@ a soft alpha). Regenerate with `tool/gen_effects.py` (see repo).
 GitHub Pages serves CSS and images with a long cache (`Cache-Control: max-age=14400`
 = 4 h). After you change `styles.css` or an image, **bump the `?v=N` query** on
 its `<link>` / `<img>` reference (currently `?v=2`) so browsers fetch the new
-file instead of a stale cached copy. The HTML pages revalidate quickly, so the
-new versioned URLs propagate on the next visit.
+file instead of a stale cached copy (currently `?v=3`). The HTML pages revalidate
+quickly, so the new versioned URLs propagate on the next visit.
 
 ## Deploy
 
-Any static host works (the site is served at `idct.tech/photo-editor-ai`,
+Any static host works (the site is served at `idct.tech/chromis`,
 alongside Sticker Maker). Upload the `website/` contents; no server code needed.
 External requests are only to Google Fonts, Google Analytics, and Web3Forms.

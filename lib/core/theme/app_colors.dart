@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 /// Raw color tokens taken directly from the approved design
-/// (`Photo Editor AI BG Removal.dc.html`). This is a dark-only app with no
+/// (`Chromis BG Removal.dc.html`). This is a dark-only app with no
 /// theme switching, so widgets may reference these semantic constants directly.
 /// Gradients, radii, per-tool accents and any value that could vary with a
 /// future theme are exposed through [AppTokens]; read those from the [Theme].

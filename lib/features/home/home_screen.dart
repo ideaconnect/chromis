@@ -242,7 +242,7 @@ class _Header extends StatelessWidget {
               ),
               const SizedBox(height: 3),
               const Text(
-                'Photo Editor AI · Background Removal',
+                'Chromis · Photo editor with AI cutout',
                 style: TextStyle(
                   fontFamily: AppFonts.ui,
                   fontSize: 11.5,
