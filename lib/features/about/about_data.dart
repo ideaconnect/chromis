@@ -13,6 +13,9 @@ abstract final class AboutInfo {
   /// Play Console and served from `docs/legal/privacy-policy.md`.
   static const privacyUrl = 'https://idct.tech/photo-editor/privacy';
 
+  /// Community Discord invite — opened from the Home header button.
+  static const discordUrl = 'https://discord.gg/uYsuaa8HNm';
+
   /// The plain‑language privacy promises shown on the in‑app privacy screen.
   static const privacyHighlights = <String>[
     'Your photos are edited entirely on your device — nothing is uploaded.',

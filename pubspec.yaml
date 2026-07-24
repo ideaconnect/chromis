@@ -37,6 +37,11 @@ dependencies:
   # and one-time non-consumable "Go Pro — remove ads" purchase.
   google_mobile_ads: ^9.0.0
   in_app_purchase: ^3.3.0
+  # Open external links (the community Discord) in the browser / Discord app.
+  # BSD-3-Clause.
+  url_launcher: ^6.3.1
+  # Render the Discord brand mark for the Home community button. MIT.
+  flutter_svg: ^2.0.10
 dev_dependencies:
   flutter_test:
     sdk: flutter
