@@ -1,0 +1,45 @@
+name: Deploy website to GitHub Pages
+
+# Publishes the static marketing site in website/ to GitHub Pages. The site is
+# plain HTML/CSS/JS (no Jekyll build needed), so we upload the folder directly.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "website/**"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+# Grant the token permission to publish to Pages via OIDC.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One concurrent deploy; let an in-progress deploy finish rather than cancel it.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v7
+
+      # Best-effort: enable Pages (source = GitHub Actions) if it isn't already.
+      # If org policy blocks auto-enablement, enable it once in
+      # Settings → Pages → Build and deployment → Source: GitHub Actions.
+      - uses: actions/configure-pages@v6
+        with:
+          enablement: true
+
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: website
+
+      - id: deployment
+        uses: actions/deploy-pages@v5
