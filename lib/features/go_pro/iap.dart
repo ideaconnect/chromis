@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
 
@@ -18,6 +20,14 @@ class EntitlementController extends AsyncNotifier<bool> {
     if (state.asData?.value == true) return;
     state = const AsyncData(true);
     await ref.read(settingsStoreProvider).setProEntitled(true);
+  }
+
+  /// Drops the entitlement (e.g. after a confirmed refund). Persisted so ads
+  /// stay back on the next launch too.
+  Future<void> revoke() async {
+    if (state.asData?.value == false) return;
+    state = const AsyncData(false);
+    await ref.read(settingsStoreProvider).setProEntitled(false);
   }
 }
 
@@ -71,7 +81,9 @@ final proProductProvider = FutureProvider<ProductDetails?>(
 
 /// App-wide purchase delivery: grants the entitlement on a purchased/restored
 /// Go Pro and acknowledges every purchase within Google's 3-day window (or it
-/// is auto-refunded). Activate once at app start (see app.dart). Idempotent.
+/// is auto-refunded). It also permissively reconciles the cached entitlement
+/// against live Play ownership at launch (see [reconcileEntitlement]). Activate
+/// once at app start (see app.dart). Idempotent.
 final purchaseDeliveryProvider = Provider<void>((ref) {
   final iap = ref.read(inAppPurchaseProvider);
   final sub = iap.purchaseStream.listen((purchases) async {
@@ -87,4 +99,66 @@ final purchaseDeliveryProvider = Provider<void>((ref) {
     }
   });
   ref.onDispose(sub.cancel);
+
+  // Catch refunds: re-check the cached Pro flag against Play, revoking only on
+  // a confirmed "not owned". Any uncertainty keeps Pro. Best-effort.
+  unawaited(
+    reconcileEntitlement(
+      iap: iap,
+      store: ref.read(settingsStoreProvider),
+      onRevoke: () => ref.read(proEntitledProvider.notifier).revoke(),
+    ),
+  );
 });
+
+/// Permissive launch-time re-check of the cached Pro flag against Google Play's
+/// live ownership. Calls [onRevoke] ONLY on a confirmed "not owned" - e.g. the
+/// user refunded the purchase. Every uncertain case keeps Pro intact: not
+/// currently entitled, billing unavailable, a query error / no internet
+/// ([InAppPurchase.restorePurchases] throws), or no answer within [timeout].
+///
+/// Relies on `restorePurchases` emitting Play's full current owned set (each
+/// item `restored`, or an empty list) and throwing on a failed query.
+Future<void> reconcileEntitlement({
+  required InAppPurchase iap,
+  required SettingsStore store,
+  required Future<void> Function() onRevoke,
+  Duration timeout = const Duration(seconds: 10),
+}) async {
+  if (!await store.proEntitled()) return; // not Pro -> nothing to revoke
+  bool available;
+  try {
+    available = await iap.isAvailable();
+  } catch (_) {
+    return; // can't reach billing -> keep
+  }
+  if (!available) return; // can't verify -> keep
+
+  // true = Pro owned, false = confirmed not owned, null = couldn't determine.
+  final answer = Completer<bool?>();
+  final sub = iap.purchaseStream.listen((purchases) {
+    // A restore result is Play's full current owned set: every item `restored`,
+    // or an empty list. Ignore fresh `purchased` events (delivered elsewhere).
+    final isRestore =
+        purchases.isEmpty ||
+        purchases.every((p) => p.status == PurchaseStatus.restored);
+    if (!isRestore || answer.isCompleted) return;
+    final ownsPro = purchases.any(
+      (p) =>
+          p.productID == kProProductId && p.status == PurchaseStatus.restored,
+    );
+    answer.complete(ownsPro);
+  });
+  final timer = Timer(timeout, () {
+    if (!answer.isCompleted) answer.complete(null); // no answer -> keep
+  });
+  try {
+    await iap.restorePurchases();
+  } catch (_) {
+    if (!answer.isCompleted) answer.complete(null); // error / offline -> keep
+  }
+  final owned = await answer.future;
+  await sub.cancel();
+  timer.cancel();
+  if (owned == false) await onRevoke(); // confirmed not owned -> revoke
+}
