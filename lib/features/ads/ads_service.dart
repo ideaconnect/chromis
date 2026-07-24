@@ -5,15 +5,14 @@ import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import '../../config/ads_config.dart';
 
-/// Central AdMob controller: one-time SDK init + UMP consent, and the
-/// interstitial (export) / rewarded (AI actions) helpers. Banner ads are built
-/// inline via [AdWidget] by their host widget. Callers gate on `isProProvider`
-/// before showing anything - Pro users see no ads.
+/// Central AdMob controller: one-time SDK init + UMP consent, and the rewarded
+/// ad helper (unlocks AI actions and gates exports for free users). Banner ads
+/// are built inline via [AdWidget] by their host widget. Callers gate on
+/// `isProProvider` before showing anything - Pro users see no ads.
 class AdsService {
   AdsService();
 
   bool _initialized = false;
-  InterstitialAd? _interstitial;
   RewardedAd? _rewarded;
 
   /// Initializes the Mobile Ads SDK and runs the UMP consent flow once, then
@@ -34,19 +33,7 @@ class AdsService {
       );
     } catch (_) {}
     await MobileAds.instance.initialize();
-    _preloadInterstitial();
     _preloadRewarded();
-  }
-
-  void _preloadInterstitial() {
-    InterstitialAd.load(
-      adUnitId: AdsConfig.interstitial,
-      request: const AdRequest(),
-      adLoadCallback: InterstitialAdLoadCallback(
-        onAdLoaded: (ad) => _interstitial = ad,
-        onAdFailedToLoad: (_) => _interstitial = null,
-      ),
-    );
   }
 
   void _preloadRewarded() {
@@ -58,28 +45,6 @@ class AdsService {
         onAdFailedToLoad: (_) => _rewarded = null,
       ),
     );
-  }
-
-  /// Shows a full-screen interstitial if one is ready (e.g. after export), then
-  /// preloads the next. No-op when none is loaded - never blocks the user.
-  Future<void> showInterstitial() async {
-    final ad = _interstitial;
-    if (ad == null) {
-      _preloadInterstitial();
-      return;
-    }
-    _interstitial = null;
-    ad.fullScreenContentCallback = FullScreenContentCallback(
-      onAdDismissedFullScreenContent: (ad) {
-        ad.dispose();
-        _preloadInterstitial();
-      },
-      onAdFailedToShowFullScreenContent: (ad, _) {
-        ad.dispose();
-        _preloadInterstitial();
-      },
-    );
-    await ad.show();
   }
 
   /// Shows a rewarded ad to unlock an AI action. Completes **true** when the
