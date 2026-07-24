@@ -29,11 +29,10 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
-        <!-- AdMob application id. TEST id for development; swap the real
-             ca-app-pub-XXXX~YYYY at release. Unit ids live in ads_config (M7). -->
+        <!-- AdMob application id (real). Ad unit ids live in ads_config.dart. -->
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
-            android:value="ca-app-pub-3940256099942544~3347511713" />
+            android:value="ca-app-pub-6904561240517963~5964201716" />
 
         <!-- Grants target apps (WhatsApp/Telegram) read access to exported
              image files for the share flow. -->

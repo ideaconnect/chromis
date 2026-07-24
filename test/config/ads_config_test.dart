@@ -1,37 +1,42 @@
 import 'package:chromis/config/ads_config.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// Guards the ad-unit id selection: while [AdsConfig.useTestAds] is true (the
-/// shipped default until real ids are filled in), every getter must resolve to
-/// Google's official Android **test** unit ids - never the prod placeholders.
+/// Guards ad-unit id selection: each getter returns the real prod id when one is
+/// set, and falls back to Google's official Android **test** unit id while the
+/// `_prod*` slot is still the all-zero placeholder.
 void main() {
-  // Google's documented Android test unit ids share this test publisher id.
   const testPublisher = 'ca-app-pub-3940256099942544';
+  const prodPublisher = 'ca-app-pub-6904561240517963';
+  const placeholderPublisher = 'ca-app-pub-0000000000000000';
 
-  test('useTestAds is currently true (test ids ship by default)', () {
-    expect(AdsConfig.useTestAds, isTrue);
+  test('useTestAds is off (real ids configured)', () {
+    expect(AdsConfig.useTestAds, isFalse);
   });
 
-  test('banner resolves to the Google test banner unit id', () {
-    expect(AdsConfig.banner, '$testPublisher/6300978111');
+  test('banner resolves to the real prod banner unit id', () {
+    expect(AdsConfig.banner, '$prodPublisher/7987729825');
   });
 
-  test('interstitial resolves to the Google test interstitial unit id', () {
+  test('interstitial falls back to the test unit until a real id is set', () {
     expect(AdsConfig.interstitial, '$testPublisher/1033173712');
   });
 
-  test('rewarded resolves to the Google test rewarded unit id', () {
+  test('rewarded falls back to the test unit until a real id is set', () {
     expect(AdsConfig.rewarded, '$testPublisher/5224354917');
   });
 
-  test('all three ids are the shared test publisher and are distinct', () {
+  test('every resolved id is a real, distinct (non-placeholder) unit', () {
     final ids = <String>[
       AdsConfig.banner,
       AdsConfig.interstitial,
       AdsConfig.rewarded,
     ];
     for (final id in ids) {
-      expect(id, startsWith('$testPublisher/'), reason: '$id is a test id');
+      expect(
+        id,
+        isNot(startsWith('$placeholderPublisher/')),
+        reason: '$id must not be the placeholder',
+      );
     }
     expect(ids.toSet(), hasLength(3), reason: 'ids must be distinct');
   });
