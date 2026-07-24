@@ -1,0 +1,20 @@
+# BDD end-to-end tests (bdd_widget_test).
+#
+# Generates a *_test.dart next to each Gherkin .feature under integration_test/
+# and step stubs under integration_test/bdd/step/. The generated tests run on a
+# real device via `flutter test integration_test/bdd -d <id>` (the integration
+# binding is wired by integration_test/bdd/flutter_test_config.dart).
+#
+# Regenerate after editing features:
+#   dart run build_runner build --delete-conflicting-outputs
+targets:
+  $default:
+    sources:
+      - integration_test/**
+      - lib/**
+      - test/**
+      - $package$
+    builders:
+      bdd_widget_test|featureBuilder:
+        options:
+          stepFolderName: step

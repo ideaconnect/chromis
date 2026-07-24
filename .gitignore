@@ -1,0 +1,63 @@
+# OS
+Thumbs.db
+.DS_Store
+Desktop.ini
+
+# IDE / tooling
+.idea/
+.vscode/
+*.iml
+*.log
+.claude/
+
+# Flutter / Dart
+.dart_tool/
+.packages
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+# Note: pubspec.lock IS committed (application package → reproducible builds).
+
+# Android
+android/.gradle/
+android/local.properties
+android/key.properties
+android/app/upload-keystore.jks
+android/.kotlin/
+*.keystore
+*.jks
+
+# iOS (added in M8)
+ios/Pods/
+ios/.symlinks/
+ios/Flutter/Flutter.framework
+ios/Flutter/Flutter.podspec
+
+# Secrets
+key.properties
+.env
+
+# Signing material. The whole directory is ignored, not just *.jks: it also
+# holds the certificate, the key passwords and key.properties, and an
+# extension-by-extension list would silently leak the first file type nobody
+# thought of. Losing the upload key is recoverable through Play support only
+# because Google holds the app signing key — leaking it is not recoverable.
+secrets/
+
+# Model conversion sources: the PyTorch checkpoints are large (u2net.pth is
+# 176 MB, over GitHub's 100 MB limit) and only inputs to the conversion. The
+# shipped artifact is assets/models/u2netp.onnx (committed). Re-fetch the .pth
+# per model_conversion/README.md and re-run convert_u2netp.py to reproduce.
+model_conversion/*.pth
+# MobileSAM checkpoint (40 MB) + fp32 export intermediates — only the shipped
+# fp16 .onnx artifacts in assets/models/ are committed (#84).
+assets/models/mobile_sam.pt
+model_conversion/out/
+
+# Python conversion tooling caches
+__pycache__/
+*.pyc
+
+# Local website source photos (large raw originals). Web-optimised "before"
+# images and the AI-derived cut-outs are committed under website/assets/img/.
+assets/branding/dog/

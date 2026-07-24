@@ -1,0 +1,129 @@
+name: photo_editor_ai
+description: "Photo Editor AI BG Removal — cut out backgrounds, remove objects, add text & speech bubbles, all on-device."
+# Prevents accidental publication to pub.dev (this is a private app package).
+publish_to: 'none'
+
+# version: <name>+<build>. build-name -> Android versionName, build-number -> versionCode.
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.12.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  intl: any
+
+  cupertino_icons: ^1.0.8
+  go_router: ^17.3.0
+  flutter_riverpod: ^3.3.2
+  image_picker: ^1.2.3
+  # Pick user .ttf/.otf font files for the Text tool's custom-font import (MIT).
+  file_picker: ^8.1.0
+  path_provider: ^2.1.6
+  pasteboard: ^0.5.0
+  # On-device AI: ML Kit subject segmentation (built-in) + ONNX Runtime for the
+  # bundled U²-Netp (background) and MobileSAM (object) models. Apache-2.0.
+  google_mlkit_subject_segmentation: ^0.1.0
+  flutter_onnxruntime: ^1.8.2
+  image: ^4.9.1
+  # Pinned to 12.x: 13.x needs win32 ^6 which conflicts with file_picker's
+  # win32 ^5 (both are Windows-only transitives, irrelevant to this Android app).
+  # The ShareParams/SharePlus.instance API used here is unchanged across 12↔13.
+  share_plus: ^12.0.2
+  # Monetization (free app): AdMob (banner/interstitial/rewarded + UMP consent)
+  # and one-time non-consumable "Go Pro — remove ads" purchase.
+  google_mobile_ads: ^9.0.0
+  in_app_purchase: ^3.3.0
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  integration_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.4
+  flutter_native_splash: ^2.4.8
+  bdd_widget_test: ^2.1.4
+  build_runner: ^2.15.1
+
+flutter:
+  uses-material-design: true
+
+  # Generate AppLocalizations from lib/l10n/*.arb (see l10n.yaml).
+  generate: true
+
+  assets:
+    # In-app mark (other assets/branding/* are build-time sources for the icon/
+    # splash generators and need not ship in the APK).
+    - assets/branding/logo.png
+    # On-device background removal fallback: bundled U²-Netp ONNX (Apache-2.0).
+    - assets/models/u2netp.onnx
+    # MobileSAM point-prompt object removal: encoder once per photo, decoder per
+    # tap. Apache-2.0, converted by model_conversion/convert_mobile_sam.py.
+    - assets/models/mobile_sam_encoder.onnx
+    - assets/models/mobile_sam_decoder.onnx
+    # OPTIONAL generative fill (object removal → "Fill"). Drop a permissively-
+    # licensed MI-GAN ONNX at assets/models/migan.onnx and uncomment the line
+    # below to enable it; absent, the "Fill" option is hidden. See
+    # docs/inpaint-setup.md.
+    # - assets/models/migan.onnx
+    # Bundled AI model licenses (MobileSAM + U²-Netp, Apache-2.0).
+    - assets/licenses/Apache-2.0-models.txt
+    # Bundled font license texts — registered into LicenseRegistry as SIL OFL /
+    # Apache-2.0 require. Reskinned to Space Grotesk + Manrope in M0; the full
+    # display-font set lands in M4. See about/bundled_licenses.dart.
+    - assets/fonts/OFL-SpaceGrotesk.txt
+    - assets/fonts/OFL-Manrope.txt
+    - assets/fonts/OFL-Bangers.txt
+    - assets/fonts/LICENSE-LuckiestGuy-Apache.txt
+    - assets/fonts/OFL-Pacifico.txt
+    - assets/fonts/OFL-Rubik.txt
+
+  # Bundled OFL/Apache fonts (offline; see assets/fonts/ for license files).
+  # NOTE: reskinned to the design's Space Grotesk (headings) + Manrope (body) in
+  # the M0 design-system issue; the 17-font Text-tool set is added in M4.
+  fonts:
+    - family: SpaceGrotesk
+      fonts:
+        - asset: assets/fonts/SpaceGrotesk-Variable.ttf
+    - family: Manrope
+      fonts:
+        - asset: assets/fonts/Manrope-Variable.ttf
+    - family: Bangers
+      fonts:
+        - asset: assets/fonts/Bangers-Regular.ttf
+    - family: LuckiestGuy
+      fonts:
+        - asset: assets/fonts/LuckiestGuy-Regular.ttf
+    - family: Pacifico
+      fonts:
+        - asset: assets/fonts/Pacifico-Regular.ttf
+    - family: Rubik
+      fonts:
+        - asset: assets/fonts/Rubik-Variable.ttf
+
+# Branding regeneration from assets/branding/appicon.png (rainbow camera badge).
+# Launcher legacy + adaptive foreground use the full badge; adaptive background
+# is white to match the icon's surround. The in-app logo + splash use the
+# transparent-corner badge produced by tool/gen_branding.py.
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: "assets/branding/appicon.png"
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: "assets/branding/appicon.png"
+  adaptive_icon_foreground_inset: 0
+  min_sdk_android: 26
+
+flutter_native_splash:
+  color: "#0a1826"
+  background_image: "assets/branding/splash_bg.png"
+  image: assets/branding/splash.png
+  android_12:
+    # Must match _Splash._base in lib/app/app.dart (the gradient's dark centre
+    # stop) so the native → in-app animated splash hands off with no colour cut.
+    color: "#0a1526"
+    image: assets/branding/splash_android12.png
+    icon_background_color: "#0a1526"

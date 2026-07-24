@@ -1,0 +1,20 @@
+# Release signing config for Play Store uploads.
+#
+# 1. Copy this file to android/key.properties (that path is git-ignored — never
+#    commit real keys).
+# 2. Generate an upload keystore (once), keeping the .jks OUTSIDE the repo:
+#
+#      keytool -genkey -v -keystore %USERPROFILE%\photo-editor-upload.jks \
+#        -storetype JKS -keyalg RSA -keysize 2048 -validity 10000 -alias upload
+#
+#    (macOS/Linux: use ~/photo-editor-upload.jks and forward slashes.)
+# 3. Fill the four values below and point storeFile at that .jks.
+#
+# storeFile accepts an absolute path (recommended) or a path relative to
+# android/app. Back up the keystore + passwords somewhere safe: losing the
+# upload key can only be recovered through Play Support.
+
+storePassword=CHANGE_ME
+keyPassword=CHANGE_ME
+keyAlias=upload
+storeFile=C:\\Users\\you\\photo-editor-upload.jks
