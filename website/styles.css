@@ -257,6 +257,17 @@ img { max-width: 100%; display: block; }
 .why-list h3 { font-size: 1.08rem; margin: 2px 0 3px; color: var(--text); }
 .why-list p { margin: 0; font-size: 0.97rem; }
 
+/* ---------- Screenshot gallery ---------- */
+.shots { display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px; max-width: 940px; margin: 0 auto; }
+.shot { margin: 0; text-align: center; }
+.shot .phone { max-width: 260px; margin: 0 auto 18px; }
+.shot figcaption h3 { margin: 0 0 3px; font-size: 1.05rem; color: var(--text); }
+.shot figcaption p { margin: 0; font-size: 0.92rem; color: var(--muted); }
+@media (max-width: 720px) {
+  .shots { grid-template-columns: 1fr; gap: 44px; }
+  .shot .phone { max-width: 250px; }
+}
+
 /* ---------- FAQ ---------- */
 .faq { max-width: 780px; margin: 0 auto; }
 .faq details {
