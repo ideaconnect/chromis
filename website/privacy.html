@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Privacy Policy — Photo Editor AI</title>
+  <meta name="description" content="How Photo Editor AI handles your data: photos are processed on-device and never uploaded. Full detail on ads, purchases and this website.">
+  <meta name="theme-color" content="#0a1826">
+  <link rel="icon" type="image/png" href="assets/img/logo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+
+  <!-- Analytics (GA4) — replace G-XXXXXXXXXX with your Measurement ID. Loads only
+       after the visitor accepts analytics cookies (opt-in banner). -->
+  <script>
+    window.PE_GA_ID = 'G-XXXXXXXXXX';
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){ dataLayer.push(arguments); }
+    window.peLoadGA = function () {
+      if (window.peGALoaded || !window.PE_GA_ID || window.PE_GA_ID.indexOf('XXXX') !== -1) return;
+      window.peGALoaded = true;
+      var s = document.createElement('script');
+      s.async = true; s.src = 'https://www.googletagmanager.com/gtag/js?id=' + window.PE_GA_ID;
+      document.head.appendChild(s);
+      gtag('js', new Date());
+      gtag('config', window.PE_GA_ID, { anonymize_ip: true });
+    };
+    try { if (localStorage.getItem('pe_consent') === 'granted') window.peLoadGA(); } catch (e) {}
+  </script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap nav">
+      <a class="brand" href="index.html">
+        <img src="assets/img/logo.png" alt="Photo Editor AI logo">
+        Photo&nbsp;Editor&nbsp;AI
+      </a>
+      <nav class="nav-links" id="navLinks">
+        <a href="index.html#features">Features</a>
+        <a href="index.html#faq">FAQ</a>
+        <a href="index.html#contact">Contact</a>
+        <a class="btn btn-primary nav-cta" href="index.html#get">Get the app</a>
+      </nav>
+      <button class="nav-toggle" id="navToggle" aria-label="Toggle menu" aria-controls="navLinks" aria-expanded="false">☰</button>
+    </div>
+  </header>
+
+  <main>
+    <article class="wrap legal">
+      <h1>Privacy Policy</h1>
+      <p class="updated">Last updated: 24 July 2026</p>
+
+      <p>This Privacy Policy explains how the <strong>Photo Editor AI</strong> Android app (the “App”) and the website at this domain (the “Site”) handle information. Both are operated by <strong>IDCT · Bartosz Pachołek</strong> (“we”, “us”). We built Photo Editor AI to be private by design.</p>
+
+      <div class="callout">
+        <p><strong>The short version:</strong> Your photos are edited entirely on your device and are never uploaded to us or anyone else. We don’t require an account and we don’t collect your photos. The only data collection comes from Google’s advertising and billing services inside the App, and standard analytics on this website.</p>
+      </div>
+
+      <h2>1. Your photos &amp; edits</h2>
+      <p>Background removal, object erase, adjustments, layers, text and every other edit run <strong>locally on your device</strong> using on-device AI models (Google ML Kit, and bundled U²-Netp / MobileSAM models). Specifically:</p>
+      <ul>
+        <li>When you open a photo, the App reads it from your device only to display and edit it.</li>
+        <li>Your images, and the edits you make, are <strong>never transmitted to us</strong> or to any third party.</li>
+        <li>A photo leaves your device only if <em>you</em> choose to save it to your gallery or share/export it to another app.</li>
+        <li>We do <strong>not</strong> collect, store, or have any access to your photos or media.</li>
+      </ul>
+
+      <h2>2. Data collected by the App</h2>
+      <p>The App itself does not maintain user accounts or a server. However, it includes two Google services that process limited data:</p>
+
+      <h3>2.1 Advertising (Google AdMob)</h3>
+      <p>The App is free and supported by ads served through the Google Mobile Ads (AdMob) SDK. To show and measure ads, the SDK may collect and share:</p>
+      <table>
+        <thead><tr><th>Data type</th><th>Purpose</th></tr></thead>
+        <tbody>
+          <tr><td>Advertising ID &amp; device identifiers</td><td>Serving and measuring ads, frequency capping, fraud prevention</td></tr>
+          <tr><td>App activity (ad interactions)</td><td>Advertising and analytics</td></tr>
+          <tr><td>Diagnostics (crash &amp; performance data)</td><td>App functionality and reliability</td></tr>
+          <tr><td>Approximate/coarse location (derived from IP)</td><td>Ad relevance and legal compliance</td></tr>
+        </tbody>
+      </table>
+      <p>This data is handled by Google, not by us, and is sent over encrypted (HTTPS) connections. For users in the EEA, UK and Switzerland, the App shows Google’s <strong>consent (UMP)</strong> form on first launch so you can accept or decline personalized ads. You can reset ad personalization at any time via your device’s Google settings. See <a href="https://policies.google.com/technologies/ads" rel="noopener">Google’s advertising policies</a> and <a href="https://support.google.com/admob/answer/6128543" rel="noopener">AdMob &amp; privacy</a>.</p>
+      <p><strong>Removing ads:</strong> A one-time in-app purchase (“Go Pro”) removes all ads. Once active, the AdMob SDK no longer requests ads.</p>
+
+      <h3>2.2 Purchases (Google Play Billing)</h3>
+      <p>If you buy the ad-removal upgrade, the transaction is processed by <strong>Google Play Billing</strong>. We receive a purchase token that tells the App whether the upgrade is active; we do <strong>not</strong> receive your name, card, or payment details. Google processes payment information under its own privacy policy.</p>
+
+      <h3>2.3 Permissions</h3>
+      <ul>
+        <li><strong>Photos / media</strong> — used only so you can pick an image to edit and save results back. Selection uses the Android system photo picker where available.</li>
+        <li><strong>Internet &amp; advertising ID</strong> — used by AdMob and Play Billing as described above. No other network use.</li>
+      </ul>
+
+      <h2>3. Data collected by this website</h2>
+      <h3>3.1 Analytics</h3>
+      <p>The Site uses <strong>Google Analytics 4</strong> to understand aggregate traffic (pages viewed, approximate region, device type, referrer). Analytics uses cookies and a persistent identifier, IP addresses are handled by Google Analytics per its configuration, and data is shared with Google — so it is <strong>not fully anonymous</strong>.</p>
+      <p>Analytics is <strong>off by default</strong>. We ask for your consent with a cookie banner and only load Google Analytics after you click <em>Accept</em>; for visitors in the EEA, UK and Switzerland this opt-in happens before any analytics cookie is set. You can change your choice at any time by clearing this site’s cookies / local storage, and you can also install the <a href="https://tools.google.com/dlpage/gaoptout" rel="noopener">Google Analytics opt-out add-on</a>. See <a href="https://policies.google.com/privacy" rel="noopener">Google’s Privacy Policy</a>.</p>
+      <h3>3.2 Contact form</h3>
+      <p>If you use the contact form, it is delivered through <strong>Web3Forms</strong>, which forwards the name, email address and message you enter to our inbox. We use this only to respond to you; we don’t use it for marketing or sell it. Web3Forms processes the submission on our behalf — see the <a href="https://web3forms.com/privacy-policy" rel="noopener">Web3Forms Privacy Policy</a>.</p>
+
+      <h2>4. Third-party services</h2>
+      <p>We rely on these providers, each with its own privacy policy:</p>
+      <ul>
+        <li><strong>Google</strong> — AdMob (ads), Play Billing (purchases), Analytics (website), and on-device ML Kit (no image data leaves your device). <a href="https://policies.google.com/privacy" rel="noopener">Policy</a>.</li>
+        <li><strong>Web3Forms</strong> — contact-form delivery. <a href="https://web3forms.com/privacy-policy" rel="noopener">Policy</a>.</li>
+      </ul>
+
+      <h2>5. Data retention &amp; your rights</h2>
+      <p>We do not keep a database of users, photos, or edits. The only personal data we directly receive is what you send us through the contact form, kept only as long as needed to reply. Data handled by Google and Web3Forms is retained under their respective policies.</p>
+      <p>Depending on where you live (e.g. the EEA/UK under GDPR, or California under CCPA/CPRA), you may have rights to access, correct, or delete personal data, and to object to certain processing. To make a request, contact us (below).</p>
+      <p><strong>“Do Not Sell or Share My Personal Information” (California):</strong> showing personalized ads through AdMob may count as “sharing” for cross-context behavioral advertising. To opt out, decline personalized ads in the App’s consent prompt and reset or delete your Advertising ID in your device’s Google settings; on this website, decline analytics in the cookie banner. We do not sell your personal information for money.</p>
+
+      <h2>6. Children</h2>
+      <p>Photo Editor AI is not directed to children under 13 (or the equivalent minimum age in your country). We do not knowingly collect personal data from children. Ads are configured for a general audience.</p>
+
+      <h2>7. Changes to this policy</h2>
+      <p>We may update this policy as the App and Site evolve. Material changes will be reflected here with a new “Last updated” date.</p>
+
+      <h2>8. Contact</h2>
+      <p>Questions about privacy? Use the <a href="index.html#contact">contact form</a> or email <a href="mailto:bartosz@idct.tech">bartosz@idct.tech</a>.<br>IDCT · Bartosz Pachołek · <a href="https://idct.tech" rel="noopener">idct.tech</a></p>
+
+      <a class="back" href="index.html">← Back to Photo Editor AI</a>
+    </article>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <div class="footer-bottom" style="border:0;margin:0;padding:0;">
+        <span>© 2026 IDCT · Bartosz Pachołek</span>
+        <span><a href="index.html">Home</a> · <a href="terms.html">Terms of Use</a></span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Cookie consent (opt-in) — analytics load only after Accept -->
+  <div class="consent" id="consent" role="dialog" aria-label="Cookie consent" hidden>
+    <p>We use cookies for analytics to improve the site. See our <a href="privacy.html">Privacy&nbsp;Policy</a>.</p>
+    <div class="consent-btns">
+      <button class="btn btn-ghost" id="consentDecline" type="button">Decline</button>
+      <button class="btn btn-primary" id="consentAccept" type="button">Accept</button>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var t = document.getElementById('navToggle'), l = document.getElementById('navLinks');
+      if (t && l) {
+        t.addEventListener('click', function () {
+          var open = l.classList.toggle('open'); t.setAttribute('aria-expanded', open ? 'true' : 'false');
+        });
+        l.addEventListener('click', function (e) { if (e.target.tagName === 'A') { l.classList.remove('open'); t.setAttribute('aria-expanded', 'false'); } });
+      }
+    })();
+    (function () {
+      var c = document.getElementById('consent');
+      if (!c) return;
+      var stored; try { stored = localStorage.getItem('pe_consent'); } catch (e) {}
+      if (!stored) c.hidden = false;
+      function choose(v) { try { localStorage.setItem('pe_consent', v); } catch (e) {} c.hidden = true; if (v === 'granted' && window.peLoadGA) window.peLoadGA(); }
+      document.getElementById('consentAccept').addEventListener('click', function () { choose('granted'); });
+      document.getElementById('consentDecline').addEventListener('click', function () { choose('denied'); });
+    })();
+  </script>
+</body>
+</html>

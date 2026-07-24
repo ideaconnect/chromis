@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Terms of Use — Photo Editor AI</title>
+  <meta name="description" content="The terms that apply when you use the Photo Editor AI app and website.">
+  <meta name="theme-color" content="#0a1826">
+  <link rel="icon" type="image/png" href="assets/img/logo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+
+  <!-- Analytics (GA4) — replace G-XXXXXXXXXX with your Measurement ID. Loads only
+       after the visitor accepts analytics cookies (opt-in banner). -->
+  <script>
+    window.PE_GA_ID = 'G-XXXXXXXXXX';
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){ dataLayer.push(arguments); }
+    window.peLoadGA = function () {
+      if (window.peGALoaded || !window.PE_GA_ID || window.PE_GA_ID.indexOf('XXXX') !== -1) return;
+      window.peGALoaded = true;
+      var s = document.createElement('script');
+      s.async = true; s.src = 'https://www.googletagmanager.com/gtag/js?id=' + window.PE_GA_ID;
+      document.head.appendChild(s);
+      gtag('js', new Date());
+      gtag('config', window.PE_GA_ID, { anonymize_ip: true });
+    };
+    try { if (localStorage.getItem('pe_consent') === 'granted') window.peLoadGA(); } catch (e) {}
+  </script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap nav">
+      <a class="brand" href="index.html">
+        <img src="assets/img/logo.png" alt="Photo Editor AI logo">
+        Photo&nbsp;Editor&nbsp;AI
+      </a>
+      <nav class="nav-links" id="navLinks">
+        <a href="index.html#features">Features</a>
+        <a href="index.html#faq">FAQ</a>
+        <a href="index.html#contact">Contact</a>
+        <a class="btn btn-primary nav-cta" href="index.html#get">Get the app</a>
+      </nav>
+      <button class="nav-toggle" id="navToggle" aria-label="Toggle menu" aria-controls="navLinks" aria-expanded="false">☰</button>
+    </div>
+  </header>
+
+  <main>
+    <article class="wrap legal">
+      <h1>Terms of Use</h1>
+      <p class="updated">Last updated: 24 July 2026</p>
+
+      <p>These terms apply to your use of the <strong>Photo Editor AI</strong> Android app (the “App”) and this website (the “Site”), provided by <strong>IDCT · Bartosz Pachołek</strong> (“we”, “us”). By using the App or Site you agree to these terms.</p>
+
+      <h2>1. License &amp; eligibility</h2>
+      <p>We grant you a personal, non-exclusive, non-transferable, revocable license to use the App on devices you own or control, for your personal or internal business use, subject to these terms and the Google Play Terms of Service.</p>
+      <p>You must be at least 13 years old, or the minimum age required to consent to online services in your country, to use the App and Site.</p>
+
+      <h2>2. Your content</h2>
+      <p>You keep all rights to the photos and content you edit. Because editing happens on your device, we never receive your content. You are responsible for having the rights to any image you edit, and for how you use the results — including respecting other people’s privacy, copyrights, and trademarks.</p>
+
+      <h2>3. Acceptable use</h2>
+      <p>You agree not to use the App or Site to create or share unlawful, infringing, harmful, or abusive content, and not to reverse engineer, resell, or misuse the software except as permitted by law.</p>
+
+      <h2>4. Ads &amp; purchases</h2>
+      <p>The App is free and ad-supported. An optional one-time in-app purchase removes ads. Purchases are handled by Google Play and are subject to Google’s terms and refund policies. Ad-free status is tied to the Google Play account used for the purchase (the App itself has no account) and may be restored on reinstall.</p>
+
+      <h2>5. No warranty</h2>
+      <p>The App and Site are provided “as is” and “as available”, without warranties of any kind. AI results (such as automatic cut-outs) may not be perfect and can vary by image and device. We do not guarantee that the App will be uninterrupted or error-free.</p>
+
+      <h2>6. Limitation of liability</h2>
+      <p>To the maximum extent permitted by law, we are not liable for any indirect, incidental, or consequential damages, or loss of data or content, arising from your use of the App or Site. Nothing in these terms limits rights that cannot be limited under applicable law.</p>
+
+      <h2>7. Governing law &amp; disputes</h2>
+      <p>These terms are governed by the laws of Poland and the European Union, without regard to conflict-of-law rules, and disputes are subject to the competent courts of Poland. If you are a consumer, this does not deprive you of the mandatory protections of the law of your country of residence, and you may be able to bring proceedings there where applicable law allows.</p>
+
+      <h2>8. Changes</h2>
+      <p>We may update the App, the Site, and these terms over time. Continued use after changes take effect means you accept the updated terms.</p>
+
+      <h2>9. Contact</h2>
+      <p>Questions? Use the <a href="index.html#contact">contact form</a> or email <a href="mailto:bartosz@idct.tech">bartosz@idct.tech</a>.<br>See also our <a href="privacy.html">Privacy Policy</a>.</p>
+
+      <a class="back" href="index.html">← Back to Photo Editor AI</a>
+    </article>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <div class="footer-bottom" style="border:0;margin:0;padding:0;">
+        <span>© 2026 IDCT · Bartosz Pachołek</span>
+        <span><a href="index.html">Home</a> · <a href="privacy.html">Privacy Policy</a></span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Cookie consent (opt-in) — analytics load only after Accept -->
+  <div class="consent" id="consent" role="dialog" aria-label="Cookie consent" hidden>
+    <p>We use cookies for analytics to improve the site. See our <a href="privacy.html">Privacy&nbsp;Policy</a>.</p>
+    <div class="consent-btns">
+      <button class="btn btn-ghost" id="consentDecline" type="button">Decline</button>
+      <button class="btn btn-primary" id="consentAccept" type="button">Accept</button>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var t = document.getElementById('navToggle'), l = document.getElementById('navLinks');
+      if (t && l) {
+        t.addEventListener('click', function () {
+          var open = l.classList.toggle('open'); t.setAttribute('aria-expanded', open ? 'true' : 'false');
+        });
+        l.addEventListener('click', function (e) { if (e.target.tagName === 'A') { l.classList.remove('open'); t.setAttribute('aria-expanded', 'false'); } });
+      }
+    })();
+    (function () {
+      var c = document.getElementById('consent');
+      if (!c) return;
+      var stored; try { stored = localStorage.getItem('pe_consent'); } catch (e) {}
+      if (!stored) c.hidden = false;
+      function choose(v) { try { localStorage.setItem('pe_consent', v); } catch (e) {} c.hidden = true; if (v === 'granted' && window.peLoadGA) window.peLoadGA(); }
+      document.getElementById('consentAccept').addEventListener('click', function () { choose('granted'); });
+      document.getElementById('consentDecline').addEventListener('click', function () { choose('denied'); });
+    })();
+  </script>
+</body>
+</html>
