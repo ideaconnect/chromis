@@ -355,48 +355,6 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                           : null,
                       onionFrame: _onionFrame(editor),
                     ),
-                    Positioned(
-                      left: 10,
-                      bottom: 10,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 5,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.pageBackground.withValues(
-                            alpha: 0.7,
-                          ),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: AppColors.border),
-                        ),
-                        child: const Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            SizedBox(
-                              width: 6,
-                              height: 6,
-                              child: DecoratedBox(
-                                decoration: BoxDecoration(
-                                  color: AppColors.green,
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                            ),
-                            SizedBox(width: 6),
-                            Text(
-                              'On-device AI · private',
-                              style: TextStyle(
-                                fontFamily: AppFonts.ui,
-                                fontSize: 10,
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.textSecondary,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
                     if (_hasCutout(editor)) const _CutBadge(),
                     if (_removingBg) const _RemovingOverlay(),
                     if (_samBusy || _inpainting)
