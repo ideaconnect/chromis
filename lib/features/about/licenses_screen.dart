@@ -5,7 +5,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_typography.dart';
 import 'about_data.dart';
 
-/// Curated third‑party attributions, grouped by category, with a link to
+/// Curated third-party attributions, grouped by category, with a link to
 /// Flutter's full aggregated license page (which also lists every pub package).
 class LicensesScreen extends StatelessWidget {
   const LicensesScreen({super.key});
@@ -17,13 +17,13 @@ class LicensesScreen extends StatelessWidget {
       body: SafeArea(
         child: Column(
           children: [
-            _topBar(context, 'Open‑source licenses'),
+            _topBar(context, 'Open-source licenses'),
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(20, 4, 20, 28),
                 children: [
                   const Text(
-                    'Chromis is built on wonderful open‑source work. '
+                    'Chromis is built on wonderful open-source work. '
                     'Thank you to everyone who made it.',
                     style: TextStyle(
                       fontFamily: AppFonts.ui,

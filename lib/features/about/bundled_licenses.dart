@@ -25,7 +25,7 @@ const bundledLicenses = <BundledLicense>[
   BundledLicense(['Pacifico'], 'assets/fonts/OFL-Pacifico.txt'),
   BundledLicense(['Rubik'], 'assets/fonts/OFL-Rubik.txt'),
   // Bundled on-device AI models: MobileSAM (tap-to-remove) and U²-Netp
-  // (background removal), both Apache-2.0 — attribution + license text ship
+  // (background removal), both Apache-2.0 - attribution + license text ship
   // in-app as the license requires.
   BundledLicense([
     'MobileSAM',
@@ -34,7 +34,7 @@ const bundledLicenses = <BundledLicense>[
 ];
 
 /// Registers the bundled font license texts into [LicenseRegistry] so they
-/// appear on Flutter's aggregated license page (reachable from the in‑app
+/// appear on Flutter's aggregated license page (reachable from the in-app
 /// Licenses screen). Call once at startup. Pass [bundle] in tests.
 void registerBundledLicenses([AssetBundle? bundle]) {
   final assets = bundle ?? rootBundle;

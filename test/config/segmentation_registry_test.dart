@@ -5,7 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 /// Guards the [SegmentationRegistry] resolution + fall-through contract with
 /// fake engines (no device / plugins): the preferred engine is a *preference*
-/// moved to the front — never a dead end — and both `resolve` and `segment`
+/// moved to the front - never a dead end - and both `resolve` and `segment`
 /// skip unavailable engines and fall through failures, returning null only when
 /// nothing can produce a mask.
 void main() {

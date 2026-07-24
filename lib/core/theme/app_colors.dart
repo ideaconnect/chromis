@@ -8,7 +8,7 @@ import 'package:flutter/material.dart';
 abstract final class AppColors {
   AppColors._();
 
-  // Surfaces (dark theme only) — deep navy from the mockup.
+  // Surfaces (dark theme only) - deep navy from the mockup.
   static const Color pageBackground = Color(0xFF060D16);
   static const Color background = Color(0xFF0A1826);
   static const Color panel = Color(0xFF0E1C2C);
@@ -24,7 +24,7 @@ abstract final class AppColors {
   static const Color textMuted = Color(0xFF7F93A8);
   static const Color textFaint = Color(0xFF5F7488);
 
-  // Accents — each editor tool owns one.
+  // Accents - each editor tool owns one.
   static const Color violet = Color(0xFF8FA0F5); // Layers
   static const Color cyan = Color(0xFF17B6D6); // Adjust / selection / primary
   static const Color pink = Color(0xFFE87896); // Text / object

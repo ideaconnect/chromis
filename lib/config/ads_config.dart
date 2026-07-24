@@ -1,5 +1,5 @@
 /// AdMob ad-unit ids. Google's official **test** ids ship until you create the
-/// real ones (AdMob console → your app → Ad units) — set [useTestAds] to false
+/// real ones (AdMob console → your app → Ad units) - set [useTestAds] to false
 /// and fill the `_prod*` constants. The AdMob **App ID** lives separately, in
 /// AndroidManifest.xml (`com.google.android.gms.ads.APPLICATION_ID`).
 ///

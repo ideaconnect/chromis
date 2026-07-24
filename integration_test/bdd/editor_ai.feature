@@ -3,7 +3,7 @@ Feature: AI background removal
 
   # @device: this scenario runs the real on-device segmentation model
   # (ML Kit / bundled U2-Netp ONNX). It only passes on physical hardware with
-  # the models available — skip it on emulators and in CI without a device.
+  # the models available - skip it on emulators and in CI without a device.
 
   Background:
     Given the app is launched as Pro

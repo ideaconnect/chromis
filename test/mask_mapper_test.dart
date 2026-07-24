@@ -8,9 +8,9 @@ import 'package:flutter_test/flutter_test.dart';
 /// cropped source rect the renderer draws, so Erase / object-removal taps land
 /// on the right source pixel on a cropped layer.
 ///
-/// The added cases exercise every branch of the geometry — rotation, scale, a
+/// The added cases exercise every branch of the geometry - rotation, scale, a
 /// non-square image, the dy (vertical) crop axis, a `boxSize` override and
-/// `radiusToMask` — plus a general round-trip against an independent forward
+/// `radiusToMask` - plus a general round-trip against an independent forward
 /// transform ([_maskToCanvas]) so no single case leans on a magic number.
 void main() {
   const size = Size(1000, 1000);
@@ -51,7 +51,7 @@ void main() {
       rotation: 0,
       cropRect: Rect.fromLTRB(0.5, 0, 1, 1),
     );
-    // Far left of the layer — off the (right-half) visible content.
+    // Far left of the layer - off the (right-half) visible content.
     expect(m.canvasToMask(centre - const Offset(400, 0)), isNull);
   });
 
@@ -105,7 +105,7 @@ void main() {
     expect(c!.dx, closeTo(600, 0.5)); // image centre x
     expect(c.dy, closeTo(400, 0.5)); // image centre y
     // Undistorted: equal canvas offsets on x and y do NOT map to equal source
-    // steps — a 1200-wide image spreads x over more source pixels than y.
+    // steps - a 1200-wide image spreads x over more source pixels than y.
     final px = m.canvasToMask(centre + const Offset(50, 0))!;
     final py = m.canvasToMask(centre + const Offset(0, 50))!;
     expect((px.dx - 600).abs(), closeTo((py.dy - 400).abs(), 0.5));

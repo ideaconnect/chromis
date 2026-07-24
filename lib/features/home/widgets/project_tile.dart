@@ -7,11 +7,11 @@ import '../../../core/widgets/checkerboard.dart';
 import '../../editor/widgets/project_canvas.dart';
 
 /// A saved-project card: live canvas preview, name + layer count. Tap to open;
-/// long‑press for a menu — Open / Rename / Duplicate / Delete. Shared by the
+/// long-press for a menu - Open / Rename / Duplicate / Delete. Shared by the
 /// Home "Recent" grid and the "All projects" screen.
 ///
 /// Delete confirmation is owner-handled via [onDelete] (see
-/// `confirmAndDeleteProject`), so the dialog can warn about pack membership —
+/// `confirmAndDeleteProject`), so the dialog can warn about pack membership -
 /// something this tile can't know.
 class ProjectTile extends StatelessWidget {
   const ProjectTile({
@@ -141,7 +141,7 @@ class ProjectTile extends StatelessWidget {
         onDuplicate();
       case 'delete':
         // The owner's handler shows the confirm dialog (with a pack-membership
-        // warning) and cascades — this tile must not confirm on its own.
+        // warning) and cascades - this tile must not confirm on its own.
         onDelete();
     }
   }

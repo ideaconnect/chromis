@@ -1,5 +1,5 @@
 // On-device smoke suite: boots the real app on the connected hardware and
-// exercises the flows that unit tests can't — real plugin/ONNX/font/asset init
+// exercises the flows that unit tests can't - real plugin/ONNX/font/asset init
 // for the device ABI, theme, routing, provider startup, and reaching the editor
 // with a live canvas. A device-only failure (missing asset, plugin init crash,
 // render error) surfaces here instead of in manual use.
@@ -31,7 +31,7 @@ void main() {
   }
 
   // Boot the real app and, if first-run onboarding is showing, tap through to
-  // Home. Idempotent — after the seen-flag is recorded, boot lands on Home and
+  // Home. Idempotent - after the seen-flag is recorded, boot lands on Home and
   // neither control is present.
   Future<void> bootToHome(WidgetTester tester) async {
     app.main();

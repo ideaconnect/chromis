@@ -34,7 +34,7 @@ Offset bubbleTailFromLocal(Offset local, Size size) {
   final body = bubbleBodyRect(size);
   final dx = (local.dx - body.center.dx) / (body.width / 2);
   final dy = (local.dy - body.bottom) / (size.height - body.bottom);
-  // The box clamps the tip anyway — mirror those limits in normalized space.
+  // The box clamps the tip anyway - mirror those limits in normalized space.
   final dxMax = (size.width - body.center.dx) / (body.width / 2);
   final dyMin = (0 - body.bottom) / (size.height - body.bottom);
   return Offset(dx.clamp(-dxMax, dxMax), dy.clamp(dyMin, 1.0));
@@ -42,7 +42,7 @@ Offset bubbleTailFromLocal(Offset local, Size size) {
 
 /// The largest font size ≤ [maxSize] at which [text] (width-wrapped) fits
 /// inside [bounds]. Shared by the live [BubbleView] and the export renderer so
-/// what the user sees is what the export ships — long captions used to clip
+/// what the user sees is what the export ships - long captions used to clip
 /// in preview but spill outside the bubble in export (#79).
 double bubbleFitFontSize({
   required String text,
@@ -122,7 +122,7 @@ class BubbleView extends StatelessWidget {
       bounds: captionRect.size,
     );
     // A caption too long to fit even at the floor size is capped to whole lines
-    // and ellipsized, then clipped to the body — so it can never paint over the
+    // and ellipsized, then clipped to the body - so it can never paint over the
     // outline/tail. Normal captions fit within maxLines and are unaffected.
     final maxLines = bubbleCaptionMaxLines(fontSize, captionRect.height);
     return SizedBox(
@@ -185,7 +185,7 @@ class BubblePainter extends CustomPainter {
       ..strokeJoin = StrokeJoin.round
       ..color = layer.strokeColor;
 
-    // Soft drop shadow for the comic feel — elevation scales with the box
+    // Soft drop shadow for the comic feel - elevation scales with the box
     // so preview and 512-px export keep the same proportion (#79).
     canvas.drawShadow(
       path,
@@ -273,7 +273,7 @@ class BubblePainter extends CustomPainter {
         : Path.combine(PathOperation.union, bodyPath, tail);
   }
 
-  /// Cloud-scalloped thought body — quadratic bumps around the body ellipse
+  /// Cloud-scalloped thought body - quadratic bumps around the body ellipse
   /// (replaces the old plain oval, which was the weakest-looking shape) (#80).
   Path _thought(Rect body, Size size) {
     const bumps = 9;
@@ -304,7 +304,7 @@ class BubblePainter extends CustomPainter {
     Paint stroke,
   ) {
     final tip = _tailTip(size);
-    // The chain starts where the tail leaves the body — following the tail's
+    // The chain starts where the tail leaves the body - following the tail's
     // direction instead of always hanging from bottom-center (#78).
     final start = _ellipseEdge(body, tip);
     for (var i = 0; i < 3; i++) {
@@ -338,7 +338,7 @@ class BubblePainter extends CustomPainter {
     }
     star.close();
 
-    // A jagged lightning-style tail — shout no longer ignores the tail (#78).
+    // A jagged lightning-style tail - shout no longer ignores the tail (#78).
     final tip = _tailTip(size);
     final edge = _ellipseEdge(body, tip);
     final d = tip - edge;

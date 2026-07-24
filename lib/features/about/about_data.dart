@@ -1,5 +1,5 @@
-/// Static "About" content: the privacy summary and the third‑party license
-/// notices shown in‑app. Pure data so it can be unit‑tested and kept in sync
+/// Static "About" content: the privacy summary and the third-party license
+/// notices shown in-app. Pure data so it can be unit-tested and kept in sync
 /// with `docs/legal/privacy-policy.md`.
 abstract final class AboutInfo {
   AboutInfo._();
@@ -9,26 +9,26 @@ abstract final class AboutInfo {
   static const publisher = 'IDCT · Bartosz Pachołek';
   static const contactEmail = 'bartosz@idct.tech';
 
-  /// Canonical hosted privacy policy — the live page served from
+  /// Canonical hosted privacy policy - the live page served from
   /// `website/privacy.html`. Keep identical to the URL entered in Play Console.
   static const privacyUrl = 'https://idct.tech/chromis/privacy.html';
 
-  /// Community Discord invite — opened from the Home header button.
+  /// Community Discord invite - opened from the Home header button.
   static const discordUrl = 'https://discord.gg/uYsuaa8HNm';
 
-  /// The plain‑language privacy promises shown on the in‑app privacy screen.
+  /// The plain-language privacy promises shown on the in-app privacy screen.
   static const privacyHighlights = <String>[
-    'Your photos are edited entirely on your device — nothing is uploaded.',
+    'Your photos are edited entirely on your device - nothing is uploaded.',
     'AI background & object removal run locally; photos never leave your phone.',
-    'No accounts, no sign‑in, no photo uploads.',
+    'No accounts, no sign-in, no photo uploads.',
     'The free app shows ads (Google AdMob), which use an advertising ID.',
     'Where required, a consent prompt (UMP) lets you choose personalised or '
-        'non‑personalised ads.',
-    'The one‑time Pro upgrade removes all ads — and the advertising ID with them.',
+        'non-personalised ads.',
+    'The one-time Pro upgrade removes all ads - and the advertising ID with them.',
   ];
 }
 
-/// One third‑party component we ship, with attribution and its SPDX license.
+/// One third-party component we ship, with attribution and its SPDX license.
 class LicenseNotice {
   const LicenseNotice({
     required this.category,
@@ -51,12 +51,12 @@ class LicenseNotice {
   final String use;
 }
 
-/// The curated in‑app notices. Flutter's aggregated license page (linked from
+/// The curated in-app notices. Flutter's aggregated license page (linked from
 /// the Licenses screen) additionally lists every pub package automatically;
 /// this list covers the bundled assets and headline components a reader cares
 /// about. `[planned]` items ship with the native encoders (#42).
 const licenseNotices = <LicenseNotice>[
-  // Fonts (bundled — see assets/fonts/*.txt).
+  // Fonts (bundled - see assets/fonts/*.txt).
   LicenseNotice(
     category: 'Fonts',
     name: 'Space Grotesk',
@@ -99,27 +99,27 @@ const licenseNotices = <LicenseNotice>[
     license: 'SIL OFL 1.1',
     use: 'Caption font',
   ),
-  // On‑device AI.
+  // On-device AI.
   LicenseNotice(
-    category: 'On‑device AI',
-    name: 'Google ML Kit — Subject Segmentation',
+    category: 'On-device AI',
+    name: 'Google ML Kit - Subject Segmentation',
     by: 'Google',
     license: 'Google ML Kit Terms',
     use: 'Background removal (Android)',
   ),
   LicenseNotice(
-    category: 'On‑device AI',
+    category: 'On-device AI',
     name: 'ONNX Runtime',
     by: 'Microsoft',
     license: 'MIT',
     use: 'Runs the bundled fallback model',
   ),
   LicenseNotice(
-    category: 'On‑device AI',
-    name: 'MobileSAM & U²‑Netp (bundled models)',
+    category: 'On-device AI',
+    name: 'MobileSAM & U²-Netp (bundled models)',
     by: 'Kyung Hee University · Xuebin Qin et al.',
     license: 'Apache-2.0',
-    use: 'On‑device object & background removal',
+    use: 'On-device object & background removal',
   ),
   // Media encoding.
   LicenseNotice(
@@ -142,7 +142,7 @@ const licenseNotices = <LicenseNotice>[
     name: 'in_app_purchase',
     by: 'Flutter team',
     license: 'BSD-3-Clause',
-    use: 'One‑time Go Pro (remove ads) purchase',
+    use: 'One-time Go Pro (remove ads) purchase',
   ),
   // Framework & packages.
   LicenseNotice(
@@ -175,7 +175,7 @@ const licenseNotices = <LicenseNotice>[
   ),
 ];
 
-/// Distinct categories in [licenseNotices], in first‑seen order.
+/// Distinct categories in [licenseNotices], in first-seen order.
 List<String> licenseCategories() {
   final seen = <String>[];
   for (final n in licenseNotices) {

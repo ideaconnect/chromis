@@ -40,7 +40,7 @@ class OrtSegmenter implements Segmenter {
       final flat = await out.asFlattenedList();
       await out.dispose();
       // Fast path: Android's flutter_onnxruntime already returns a real
-      // Float32List — skip the boxed element-by-element copy (mirrors
+      // Float32List - skip the boxed element-by-element copy (mirrors
       // `coerceFloat32` in engines/object/ort_graph.dart).
       if (flat is Float32List) return flat;
       return Float32List.fromList([

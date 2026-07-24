@@ -2,7 +2,7 @@ import 'package:flutter/foundation.dart';
 
 /// Per-image color adjustments driven by the Adjust tool. Multiplicative
 /// factors are expressed as `1.0 == 100%` (matching the design's sliders);
-/// [hue] is a rotation in degrees (−180…180).
+/// [hue] is a rotation in degrees (-180…180).
 @immutable
 class ImageAdjustments {
   const ImageAdjustments({

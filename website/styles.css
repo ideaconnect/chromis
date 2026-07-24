@@ -1,4 +1,4 @@
-/* Chromis — website styles.
+/* Chromis - website styles.
    Palette + type mirror the app (lib/core/theme/app_colors.dart):
    dark navy surfaces, cyan/pink/green accents, Space Grotesk + Manrope. */
 
@@ -120,7 +120,7 @@ img { max-width: 100%; display: block; }
 .btn .sub { font-family: var(--font-body); font-weight: 500; font-size: 0.72rem; opacity: 0.85; display: block; line-height: 1; margin-top: 2px; }
 .btn-store { padding: 0.7em 1.3em; text-align: left; }
 
-/* Google Play store badge — matches idct.tech/sticker-maker */
+/* Google Play store badge - matches idct.tech/sticker-maker */
 .store-badge {
   display: inline-flex; align-items: center; gap: 12px; min-width: 200px;
   padding: 10px 18px; border-radius: 14px;

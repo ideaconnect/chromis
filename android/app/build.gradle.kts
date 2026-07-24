@@ -30,7 +30,7 @@ android {
     }
 
     defaultConfig {
-        // Play Store identity — matches the code package `namespace`.
+        // Play Store identity - matches the code package `namespace`.
         applicationId = "tech.idct.chromis"
         minSdk = 26
         targetSdk = flutter.targetSdkVersion
@@ -74,7 +74,7 @@ android {
 }
 
 // Release builds ship only real-device ABIs (arm64-v8a, armeabi-v7a). Each ABI
-// carries ~60 MiB of native code (ONNX Runtime), and x86_64 is emulator-only —
+// carries ~60 MiB of native code (ONNX Runtime), and x86_64 is emulator-only -
 // shipping it fattens the universal APK. This uses the variant packaging API
 // because buildType-level ndk.abiFilters is silently clobbered under the Flutter
 // Gradle plugin. Scoped to release so debug keeps all ABIs (x86_64 emulators).

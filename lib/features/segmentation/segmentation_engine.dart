@@ -5,8 +5,8 @@ import 'alpha_mask.dart';
 /// A request to segment the foreground subject out of one image.
 ///
 /// The image is passed by [imagePath] (a file on disk) so engines can pick the
-/// most efficient path — ML Kit reads an `InputImage.fromFilePath`, the bundled
-/// model decodes and resizes itself — without the caller forcing a decode.
+/// most efficient path - ML Kit reads an `InputImage.fromFilePath`, the bundled
+/// model decodes and resizes itself - without the caller forcing a decode.
 @immutable
 class SegmentationRequest {
   const SegmentationRequest({required this.imagePath, this.width, this.height});
@@ -45,9 +45,9 @@ class SegmentationException implements Exception {
 /// Produces an 8-bit alpha mask of the foreground subject of an image, entirely
 /// on-device. Implementations are hot-swappable behind this interface:
 ///
-///  * `MlKitSegmentationEngine` — Google ML Kit Subject Segmentation (Android).
-///  * `VisionSegmentationEngine` — Apple Vision foreground mask (iOS 17+).
-///  * `BundledSegmentationEngine` — a bundled Apache-2.0 model (ISNet / U²-Net),
+///  * `MlKitSegmentationEngine` - Google ML Kit Subject Segmentation (Android).
+///  * `VisionSegmentationEngine` - Apple Vision foreground mask (iOS 17+).
+///  * `BundledSegmentationEngine` - a bundled Apache-2.0 model (ISNet / U²-Net),
 ///    the universal fallback for devices without the system engine.
 ///
 /// The [SegmentationRegistry] picks the highest-priority [isAvailable] engine.
@@ -61,7 +61,7 @@ abstract interface class SegmentationEngine {
 
   /// Whether this engine can run *right now* on this device: the platform
   /// supports it, any required model is present (or downloadable), etc.
-  /// Must not throw — return `false` on any uncertainty.
+  /// Must not throw - return `false` on any uncertainty.
   Future<bool> isAvailable();
 
   /// Segment the subject in [request]. Throws [SegmentationException] on

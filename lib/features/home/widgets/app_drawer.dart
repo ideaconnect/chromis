@@ -23,7 +23,7 @@ class AppDrawer extends ConsumerWidget {
   Future<void> _newProject(BuildContext context, WidgetRef ref) async {
     final navigator = Navigator.of(context);
     navigator.pop(); // close the drawer
-    // The drawer element is now gone — show the sheet on the stable nav context.
+    // The drawer element is now gone - show the sheet on the stable nav context.
     final ctx = navigator.context;
     final size = await showCanvasSizeSheet(ctx, title: 'New project');
     if (size == null || !ctx.mounted) return;
@@ -34,7 +34,7 @@ class AppDrawer extends ConsumerWidget {
       createdAt: DateTime.now(),
     );
     ref.read(editorControllerProvider.notifier).loadProject(project);
-    // Don't persist yet — the editor auto-saves on the first real edit, so an
+    // Don't persist yet - the editor auto-saves on the first real edit, so an
     // abandoned blank project never litters Recent.
     if (ctx.mounted) unawaited(ctx.pushNamed(Routes.editor));
   }
@@ -140,7 +140,7 @@ class AppDrawer extends ConsumerWidget {
               },
             ),
             const Spacer(),
-            // Pro users have already removed ads — don't keep selling it.
+            // Pro users have already removed ads - don't keep selling it.
             if (!ref.watch(isProProvider))
               Padding(
                 padding: const EdgeInsets.fromLTRB(14, 8, 14, 10),

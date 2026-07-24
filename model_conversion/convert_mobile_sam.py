@@ -2,9 +2,9 @@
 
 Point-prompt object segmentation (#84 / M11): a heavy image ENCODER that runs
 once per photo, and a light prompt DECODER that runs per tap. Both are exported
-from `assets/models/mobile_sam.pt` — downloaded by the maintainer from the
+from `assets/models/mobile_sam.pt` - downloaded by the maintainer from the
 official Apache-2.0 repo <https://github.com/ChaoningZhang/MobileSAM>
-(`weights/mobile_sam.pt`) — then converted to fp16 (weights only, fp32 I/O)
+(`weights/mobile_sam.pt`) - then converted to fp16 (weights only, fp32 I/O)
 and numerically validated against the fp32 export.
 
     pip install torch onnx onnxruntime onnxconverter-common samexporter
@@ -204,7 +204,7 @@ def main():
 
     os.makedirs(OUT_DIR, exist_ok=True)
     print(f"checkpoint {CKPT} ({os.path.getsize(CKPT)} bytes)")
-    # The traces take ~10 min — resume from existing fp32 exports when present
+    # The traces take ~10 min - resume from existing fp32 exports when present
     # (delete model_conversion/out/ to force a re-export).
     if os.path.exists(ENC_FP32):
         print(f"encoder fp32 exists, skipping export ({ENC_FP32})")
@@ -215,7 +215,7 @@ def main():
     else:
         export_decoder()
     # Encoder ships fp16 (halves the big asset, loads cleanly); the decoder
-    # ships fp32 — see to_fp16's docstring for why.
+    # ships fp32 - see to_fp16's docstring for why.
     to_fp16(ENC_FP32, ENC_OUT)
     shutil.copyfile(DEC_FP32, DEC_OUT)
     print(f"fp32 copy: {DEC_FP32} -> {DEC_OUT} ({os.path.getsize(DEC_OUT)} bytes)")

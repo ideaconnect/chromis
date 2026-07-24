@@ -12,7 +12,7 @@ import 'ort_segmenter.dart';
 import 'segmenter.dart';
 
 /// The bundled Apache-2.0 fallback engine (U²-Netp via ONNX Runtime). Used when
-/// the system engine (ML Kit / Vision) is unavailable — e.g. no Play services —
+/// the system engine (ML Kit / Vision) is unavailable - e.g. no Play services -
 /// and as a cross-platform consistency baseline. All inference is on-device.
 ///
 /// The heavy lifting (decode → squash-resize → normalize → NCHW, and the whole
@@ -39,7 +39,7 @@ class BundledSegmentationEngine implements SegmentationEngine {
   @override
   String get label => 'Bundled U²-Netp';
 
-  /// Available only when the model weights are actually bundled — until the
+  /// Available only when the model weights are actually bundled - until the
   /// `.onnx` asset ships, this returns false and the registry falls through.
   @override
   Future<bool> isAvailable() async {
@@ -57,7 +57,7 @@ class BundledSegmentationEngine implements SegmentationEngine {
       final bytes = await File(request.imagePath).readAsBytes();
       final config = this.config;
       // Pure-Dart pre-processing (decode → squash-resize → normalize → pack)
-      // runs off the UI isolate — a photo decode + NCHW pack froze the raster
+      // runs off the UI isolate - a photo decode + NCHW pack froze the raster
       // thread so badly the "Working…" spinner couldn't animate. Only the
       // native [Segmenter.infer] stays on the root isolate (plugins are
       // root-isolate only). Same pattern as mobile_sam_engine.dart.
@@ -72,7 +72,7 @@ class BundledSegmentationEngine implements SegmentationEngine {
         config.inputSize,
       ]);
       // Post-processing (min-max normalize + bilinear upscale to the full
-      // photo resolution) is the heaviest pure-Dart pass — also off the UI
+      // photo resolution) is the heaviest pure-Dart pass - also off the UI
       // isolate. Capture plain ints so the closure doesn't drag the input
       // tensor back across the isolate boundary.
       final inputSize = config.inputSize;
@@ -93,7 +93,7 @@ class BundledSegmentationEngine implements SegmentationEngine {
   }
 
   /// Pure-Dart pre-processing, run via [Isolate.run]: decode → squash resize
-  /// (both dims given — U²-Net was trained on squashed input) → RGB bytes →
+  /// (both dims given - U²-Net was trained on squashed input) → RGB bytes →
   /// NCHW pack. Static so the [Isolate.run] closure captures only plain
   /// sendable values ([bytes], [config]), never `this`.
   static ({Float32List tensor, int srcW, int srcH}) _prepareInput(

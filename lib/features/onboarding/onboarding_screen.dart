@@ -38,7 +38,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       title: 'Cut out the background',
       body:
           'Lift your subject off its background with one tap, or erase '
-          'objects — all on your device, so your photos never leave your phone.',
+          'objects - all on your device, so your photos never leave your phone.',
     ),
     _Page(
       icon: Icons.ios_share,

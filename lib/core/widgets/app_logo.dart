@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 /// The app's brand mark (the icon tile artwork), for in-app lockups.
 ///
 /// The artwork is itself a pre-rounded gradient tile, so it is drawn directly
-/// rather than inside another gradient chip. [radius] only clips — it never
-/// draws a fill — and is kept slightly wider than the artwork's own corners so
+/// rather than inside another gradient chip. [radius] only clips - it never
+/// draws a fill - and is kept slightly wider than the artwork's own corners so
 /// the two never fight; [shadow] carries the surrounding chip's depth.
 class AppLogo extends StatelessWidget {
   const AppLogo({

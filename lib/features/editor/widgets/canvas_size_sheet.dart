@@ -27,7 +27,7 @@ const _presets = <CanvasPreset>[
 /// The chosen size, plus whether existing layers should be resampled to fit.
 typedef CanvasSizeResult = ({int width, int height, bool scaleContent});
 
-/// Bottom sheet for choosing a canvas size — used both for a new project
+/// Bottom sheet for choosing a canvas size - used both for a new project
 /// (presets + custom) and for resizing an existing canvas ([allowScaleContent]
 /// adds the "Scale layers to fit" resample toggle). Returns null if dismissed.
 Future<CanvasSizeResult?> showCanvasSizeSheet(

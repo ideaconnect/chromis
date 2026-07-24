@@ -22,7 +22,7 @@ class BrushStroke {
   final bool soft;
 }
 
-/// Pure, dependency-free mask painting — the model half of the Erase/Restore
+/// Pure, dependency-free mask painting - the model half of the Erase/Restore
 /// tool. Stamps overlapping dabs along the stroke path so drags leave a
 /// continuous mark, independent of how fast the finger moved.
 abstract final class MaskBrush {

@@ -7,7 +7,7 @@ import 'package:flutter_onnxruntime/flutter_onnxruntime.dart';
 typedef GraphFeed = ({Float32List data, List<int> shape});
 
 /// Coerces a flattened ORT output to [Float32List]. Fast path: on Android,
-/// `flutter_onnxruntime` already hands back a real [Float32List] — return it
+/// `flutter_onnxruntime` already hands back a real [Float32List] - return it
 /// as-is instead of copying every element through boxed `num`s (a megapixel
 /// mask output is hundreds of thousands of boxed doubles on the UI isolate,
 /// see docs/reviews/2026-07-19-review.md). The boxed copy remains as the
@@ -18,13 +18,13 @@ Float32List coerceFloat32(List<dynamic> flat) {
   return Float32List.fromList([for (final v in flat) (v as num).toDouble()]);
 }
 
-/// A named-input / named-output ONNX graph — the injectable native seam for
+/// A named-input / named-output ONNX graph - the injectable native seam for
 /// the MobileSAM engine (#85), mirroring the single-input `Segmenter` seam of
 /// the bundled engine. Injecting a fake keeps the whole pre/post pipeline
 /// host-unit-testable.
 abstract interface class OrtGraph {
   /// Runs the graph and returns ONLY the outputs named in [outputs], each as
-  /// a flattened float list. Every other output is disposed unread — crossing
+  /// a flattened float list. Every other output is disposed unread - crossing
   /// the platform channel with megapixel float lists is the expensive part,
   /// so callers ask for the small tensors (e.g. SAM's 256² `low_res_masks`,
   /// never its full-size `masks`).

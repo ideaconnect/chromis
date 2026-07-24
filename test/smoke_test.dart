@@ -1,7 +1,7 @@
 import 'package:chromis/features/about/about_data.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// M0 smoke tests — pure-data assertions that guard the reskin from the
+/// M0 smoke tests - pure-data assertions that guard the reskin from the
 /// Chromis base. The full unit/widget/golden harness lands with the
 /// "Test harness & determinism strategy" issue.
 void main() {

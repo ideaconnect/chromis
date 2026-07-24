@@ -7,7 +7,7 @@ import '_e2e_support.dart';
 Future<void> iSee(WidgetTester tester, String param1) async {
   final f = find.text(param1);
   if (f.evaluate().isEmpty) {
-    // Might be below the fold in a lazy ListView (e.g. the Licenses screen) —
+    // Might be below the fold in a lazy ListView (e.g. the Licenses screen) -
     // scroll it into view before asserting.
     final scrollable = find.byType(Scrollable);
     if (scrollable.evaluate().isNotEmpty) {

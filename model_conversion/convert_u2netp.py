@@ -1,7 +1,7 @@
 """Convert the U²-Netp PyTorch checkpoint to the ONNX the app bundles.
 
 Reproducible, offline pipeline that turns `u2netp.pth` (this dir) into
-`assets/models/u2netp.onnx` — the weights `BundledSegmentationEngine` (#28)
+`assets/models/u2netp.onnx` - the weights `BundledSegmentationEngine` (#28)
 loads via `flutter_onnxruntime`.
 
     pip install torch onnx onnxruntime onnxscript

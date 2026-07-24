@@ -50,7 +50,7 @@ class ProjectRepository {
 
   /// All saved projects, most-recently-updated first. A manifest that fails to
   /// parse is quarantined (best-effort) to `<id>.json.corrupt` so it stops
-  /// shadowing its id — a later [save] of the same project recovers the slot —
+  /// shadowing its id - a later [save] of the same project recovers the slot -
   /// and stays on disk for inspection. `*.tmp` / `*.corrupt` files are never
   /// listed.
   Future<List<Project>> list() async {
@@ -68,7 +68,7 @@ class ProjectRepository {
         try {
           await entity.rename('${entity.path}.corrupt');
         } catch (_) {
-          // Best-effort — if the rename fails we still skip the file.
+          // Best-effort - if the rename fails we still skip the file.
         }
       }
     }
@@ -86,8 +86,8 @@ class ProjectRepository {
     return Project.fromJson(map);
   }
 
-  /// Saves a deep copy of project [id] under fresh ids — a new project id and
-  /// new ids for every frame and layer — named `<old> copy`. Image/mask files
+  /// Saves a deep copy of project [id] under fresh ids - a new project id and
+  /// new ids for every frame and layer - named `<old> copy`. Image/mask files
   /// are shared with the source, never re-copied: [sweepOrphanAssets]
   /// refcounts paths across all manifests, so a shared file survives until the
   /// last project referencing it is gone. Returns the copy, or null when the
@@ -97,7 +97,7 @@ class ProjectRepository {
     try {
       source = await load(id);
     } catch (_) {
-      return null; // unreadable manifest — nothing to duplicate
+      return null; // unreadable manifest - nothing to duplicate
     }
     if (source == null) return null;
     final at = now ?? DateTime.now();
@@ -134,7 +134,7 @@ class ProjectRepository {
     final dir = await _dir();
     final file = _file(dir, id);
     if (file.existsSync()) await file.delete();
-    // A deleted project's unshared images/masks are now orphans — sweep them.
+    // A deleted project's unshared images/masks are now orphans - sweep them.
     await sweepOrphanAssets();
   }
 
@@ -147,10 +147,10 @@ class ProjectRepository {
   /// - Call only when no editor session is active (project delete, cold
   ///   launch): in-memory undo stacks may point at mask files a saved
   ///   manifest no longer does.
-  /// - Files younger than [minAge] are always kept — an import may not have
+  /// - Files younger than [minAge] are always kept - an import may not have
   ///   reached a (debounce-saved) manifest yet.
-  /// - If ANY manifest fails to parse — including one already quarantined as
-  ///   `.json.corrupt` — the sweep aborts: a corrupt project's references
+  /// - If ANY manifest fails to parse - including one already quarantined as
+  ///   `.json.corrupt` - the sweep aborts: a corrupt project's references
   ///   must not be mistaken for orphans.
   ///
   /// The directory iteration + manifest parsing run inside [Isolate.run], so
@@ -165,7 +165,7 @@ class ProjectRepository {
     return Isolate.run(() => _sweepOrphanAssetsSync(dirPath, minAge));
   }
 
-  /// Synchronous sweep body — safe to run on a worker isolate (`dart:io`
+  /// Synchronous sweep body - safe to run on a worker isolate (`dart:io`
   /// only, no platform channels; the resolved base dir path is passed in).
   static int _sweepOrphanAssetsSync(String dirPath, Duration minAge) {
     final dir = Directory(dirPath);
@@ -176,13 +176,13 @@ class ProjectRepository {
     for (final entity in dir.listSync()) {
       if (entity is! File) continue;
       if (entity.path.endsWith('.corrupt')) {
-        return 0; // quarantined manifest — its references are invisible, abort
+        return 0; // quarantined manifest - its references are invisible, abort
       }
       if (!entity.path.endsWith('.json')) continue;
       try {
         _collectAssetRefs(jsonDecode(entity.readAsStringSync()), referenced);
       } catch (_) {
-        return 0; // corrupt manifest — its references are invisible, abort
+        return 0; // corrupt manifest - its references are invisible, abort
       }
     }
 
@@ -198,14 +198,14 @@ class ProjectRepository {
         entity.deleteSync();
         deleted++;
       } catch (_) {
-        // Locked or already-gone file — skip, next sweep retries.
+        // Locked or already-gone file - skip, next sweep retries.
       }
     }
     return deleted;
   }
 
   /// Recursively collects the basenames of every `assetPath` / `maskPath`
-  /// string in a decoded manifest — schema-agnostic on purpose, so future
+  /// string in a decoded manifest - schema-agnostic on purpose, so future
   /// layer types with image references stay covered as long as they use the
   /// same key names.
   static void _collectAssetRefs(Object? node, Set<String> out) {

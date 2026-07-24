@@ -2,7 +2,7 @@ import 'package:chromis/features/about/about_data.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// Complements the license/identity smoke checks in `smoke_test.dart`: this
-/// file guards the *shape* of the About data — the remaining [AboutInfo]
+/// file guards the *shape* of the About data - the remaining [AboutInfo]
 /// scalar fields, that every privacy highlight is a well-formed line covering
 /// the on-device / ads / Pro themes, and that every [LicenseNotice] row is
 /// fully populated with a permissive, SPDX-ish license. It deliberately does

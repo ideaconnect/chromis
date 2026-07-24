@@ -17,8 +17,8 @@ class PlatformServices {
   final MethodChannel _channel;
 
   /// Device RAM snapshot (ActivityManager.getMemoryInfo + isLowRamDevice).
-  /// Returns null when the platform side can't answer — an APK predating the
-  /// call, tests without a handler, or a non-Android host — so callers can
+  /// Returns null when the platform side can't answer - an APK predating the
+  /// call, tests without a handler, or a non-Android host - so callers can
   /// choose their own safe default instead of guessing here.
   Future<MemoryInfo?> memoryInfo() async {
     try {

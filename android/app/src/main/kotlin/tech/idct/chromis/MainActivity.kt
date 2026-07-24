@@ -89,7 +89,7 @@ class MainActivity : FlutterActivity() {
                 resolver.update(uri, values, null, null)
                 result.success("Downloads/$name")
             } else {
-                // API 26–28: legacy external Downloads dir (predates scoped storage).
+                // API 26-28: legacy external Downloads dir (predates scoped storage).
                 @Suppress("DEPRECATION")
                 val dir = Environment.getExternalStoragePublicDirectory(
                     Environment.DIRECTORY_DOWNLOADS,
@@ -106,7 +106,7 @@ class MainActivity : FlutterActivity() {
 
     /**
      * Inserts [bytes] as a new image in the Pictures gallery
-     * (`Pictures/Chromis`) via MediaStore on Android 10+ — no runtime
+     * (`Pictures/Chromis`) via MediaStore on Android 10+ - no runtime
      * permission needed. Pre-Q falls back to the Downloads collection.
      */
     private fun saveImageToGallery(

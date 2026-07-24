@@ -7,9 +7,9 @@ import '../../core/settings/settings_store.dart';
 /// registry can run the chosen engine first and fall back to the other.
 ///
 /// Kept as data (label/tagline/blurb) so the picker and the info sheet render
-/// straight from the enum — the same pattern as `EditorTool`.
+/// straight from the enum - the same pattern as `EditorTool`.
 enum SegModel {
-  /// The platform's built-in AI — ML Kit Subject Segmentation on Android.
+  /// The platform's built-in AI - ML Kit Subject Segmentation on Android.
   builtin(
     id: 'builtin',
     engineId: 'mlkit',
@@ -17,7 +17,7 @@ enum SegModel {
     tagline: 'On-device · fast & private',
     blurb:
         'Runs on-device for fast, private cut-outs. Great for pets and people '
-        'with clear edges — nothing leaves your phone.',
+        'with clear edges - nothing leaves your phone.',
   ),
 
   /// The bundled open-source U²-Netp model (#28), shipped inside the app.
@@ -29,7 +29,7 @@ enum SegModel {
     blurb:
         'An open-source salient-object model bundled with the app. Works fully '
         'offline and is often sharper on fine detail like fur, hair and '
-        'whiskers — a little slower to run.',
+        'whiskers - a little slower to run.',
   );
 
   const SegModel({

@@ -10,7 +10,7 @@ import 'segmentation_engine.dart';
 /// through it, transparently falling through to the next engine if one that
 /// claimed availability then fails.
 ///
-/// Engines are injected, so the set is hot-swappable — production wires the
+/// Engines are injected, so the set is hot-swappable - production wires the
 /// system engine ahead of the bundled fallback; tests pass fakes in any order.
 class SegmentationRegistry {
   const SegmentationRegistry(this.engines);
@@ -72,9 +72,9 @@ class SegmentationRegistry {
 
 /// The app's segmentation registry, highest-priority engine first:
 ///
-///  1. The platform's system engine — ML Kit on Android (#26); Apple Vision on
+///  1. The platform's system engine - ML Kit on Android (#26); Apple Vision on
 ///     iOS arrives in #58.
-///  2. The bundled Apache-2.0 fallback model (#28) — appended once it lands, so
+///  2. The bundled Apache-2.0 fallback model (#28) - appended once it lands, so
 ///     devices without Play services still cut out.
 ///
 /// Until the fallback exists, a non-Android device (or an Android device with

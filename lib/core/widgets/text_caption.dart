@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 
 /// The on-canvas text caption: fill text with a chunky contrasting outline
-/// and a drop shadow — the defining bold-caption look from the design
+/// and a drop shadow - the defining bold-caption look from the design
 /// (`WebkitTextStroke` + `paint-order: stroke fill`). Rendered as two stacked
 /// [Text] layers with identical layout so the glyphs register exactly.
 class TextCaption extends StatelessWidget {
@@ -27,7 +27,7 @@ class TextCaption extends StatelessWidget {
   final double strokeWidth;
 
   /// Canvas scale (`side / 512`) so the outline thickness, drop-shadow offset
-  /// and letter tracking stay proportional to [fontSize] — matching the 512-px
+  /// and letter tracking stay proportional to [fontSize] - matching the 512-px
   /// export drawn by `ProjectRenderer._paintText`, which is the WYSIWYG
   /// reference. At `1.0` (the export at 512) these equal the reference values
   /// (3.5-px stroke, `Offset(0, 4)` shadow, `letterSpacing` 1); the editor
@@ -35,7 +35,7 @@ class TextCaption extends StatelessWidget {
   /// longer draws a proportionally chunkier outline than the exported image.
   final double scale;
 
-  /// A plain glyph with no outline/shadow — used for emoji & prop layers (#61).
+  /// A plain glyph with no outline/shadow - used for emoji & prop layers (#61).
   final bool decorative;
 
   /// Light fills (white / amber) get a dark outline; everything else white.

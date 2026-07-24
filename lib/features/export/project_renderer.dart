@@ -15,7 +15,7 @@ import '../editor/widgets/bubble_view.dart';
 
 /// Flattens a project [Frame] to a transparent raster image at an arbitrary
 /// target size, matching the on-canvas rendering (ProjectCanvas). This is the
-/// single source of truth for export pixels — the PNG/JPG/WebP encoders all
+/// single source of truth for export pixels - the PNG/JPG/WebP encoders all
 /// build on it. Painting happens against a [Canvas] (origin = layer centre) so
 /// it renders headlessly without a widget pipeline.
 abstract final class ProjectRenderer {
@@ -24,7 +24,7 @@ abstract final class ProjectRenderer {
   /// Renders [frame] at the project's aspect. [outputWidth] defaults to
   /// [canvasWidth]; height follows the canvas aspect. Layer transforms are in
   /// canvasWidth×canvasHeight logical units, so scale = outputWidth/canvasWidth
-  /// (uniform) — matching the on-canvas render (WYSIWYG).
+  /// (uniform) - matching the on-canvas render (WYSIWYG).
   static Future<ui.Image> renderImageSized(
     Frame frame, {
     required int canvasWidth,
@@ -86,7 +86,7 @@ abstract final class ProjectRenderer {
     }
   }
 
-  /// PNG bytes (transparent) at the project's aspect — photo export.
+  /// PNG bytes (transparent) at the project's aspect - photo export.
   static Future<Uint8List> renderPngSized(
     Frame frame, {
     required int canvasWidth,
@@ -111,7 +111,7 @@ abstract final class ProjectRenderer {
     }
   }
 
-  /// JPG bytes at the project's aspect — transparency flattened onto white
+  /// JPG bytes at the project's aspect - transparency flattened onto white
   /// (JPG has no alpha).
   static Future<Uint8List> renderJpgSized(
     Frame frame, {
@@ -126,7 +126,7 @@ abstract final class ProjectRenderer {
       canvasHeight: canvasHeight,
       outputWidth: outputWidth,
     );
-    // package:image encode is pure-Dart + CPU-heavy — run it off the UI isolate
+    // package:image encode is pure-Dart + CPU-heavy - run it off the UI isolate
     // (heavy pure-Dart CPU work). JPG has no alpha, so flatten onto white.
     return Isolate.run(() {
       final src = img.Image.fromBytes(
@@ -168,7 +168,7 @@ abstract final class ProjectRenderer {
 
   /// Renders [frame] and returns its straight-alpha RGBA bytes + dimensions.
   /// The engine rasterizes off the UI isolate; callers then encode the bytes in
-  /// a background isolate (package:image works in straight alpha — premultiplied
+  /// a background isolate (package:image works in straight alpha - premultiplied
   /// would darken edges).
   static Future<(Uint8List, int, int)> _rasterize(
     Frame frame, {
@@ -263,7 +263,7 @@ abstract final class ProjectRenderer {
   );
 
   /// Paints a solid [color] die-cut silhouette of the cut-out subject, grown by
-  /// [radiusPx] via a morphological dilate — drawn *before* the subject so only
+  /// [radiusPx] via a morphological dilate - drawn *before* the subject so only
   /// the surrounding ring remains visible. Shared technique with the on-canvas
   /// painter (`_MaskedImagePainter`).
   static void _paintDieCut(
@@ -327,7 +327,7 @@ abstract final class ProjectRenderer {
       letterSpacing: 1 * scale,
       fontWeight: FontWeight.w700,
     );
-    // Emoji / props (#61) render as a plain glyph — no caption stroke/shadow.
+    // Emoji / props (#61) render as a plain glyph - no caption stroke/shadow.
     if (layer.decorative) {
       final glyph = TextPainter(
         text: TextSpan(
@@ -375,7 +375,7 @@ abstract final class ProjectRenderer {
     canvas.save();
     canvas.translate(-size.width / 2, -size.height / 2);
     BubblePainter(layer).paint(canvas, size);
-    // Caption centred in the body rect — the SAME auto-fit as BubbleView, so
+    // Caption centred in the body rect - the SAME auto-fit as BubbleView, so
     // a long caption that wraps in the editor wraps identically in the
     // exported image instead of spilling outside the bubble (#79).
     final captionRect = bubbleBodyRect(size).deflate(10 * scale);
@@ -422,7 +422,7 @@ abstract final class ProjectRenderer {
     double scale,
   ) async {
     // Decode each source no larger than its on-output footprint, so a layer
-    // drawn small — or a downscaled export / the 600-px preview — never decodes
+    // drawn small - or a downscaled export / the 600-px preview - never decodes
     // a multi-MB full-res bitmap. The fitted contain width is <= this bound, so
     // there is no quality loss; _decode caps the target at the source size.
     final targets = <String, int>{};
@@ -440,7 +440,7 @@ abstract final class ProjectRenderer {
       );
       // A cropped layer shows only cropRect.width of the source stretched to
       // fill the same box, so decode 1/cropRect.width larger to keep the
-      // visible region at full detail — matching the on-canvas preview
+      // visible region at full detail - matching the on-canvas preview
       // (project_canvas._imageContent). Without this, exported crops are
       // softer than the WYSIWYG preview. _decode still caps at the source size.
       if (layer.isCropped && layer.cropRect.width > 0) {
@@ -466,7 +466,7 @@ abstract final class ProjectRenderer {
         await file.readAsBytes(),
       );
       final descriptor = await ui.ImageDescriptor.encoded(buffer);
-      // Only ever downscale — never decode larger than the source.
+      // Only ever downscale - never decode larger than the source.
       final target = (maxWidth != null && descriptor.width > maxWidth)
           ? maxWidth
           : null;

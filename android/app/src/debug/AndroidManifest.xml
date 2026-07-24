@@ -13,8 +13,8 @@
           release for premium visual quality. However, the Android emulator's
           software Vulkan (SwiftShader) is unstable under Impeller and crashes the
           emulator's GPU process, which makes headless integration tests
-          impossible. Debug builds — including `flutter test integration_test/…`
-          on the emulator — therefore fall back to Skia, which is stable on
+          impossible. Debug builds - including `flutter test integration_test/…`
+          on the emulator - therefore fall back to Skia, which is stable on
           SwiftShader. Release builds are unaffected and keep Impeller.
         -->
         <meta-data

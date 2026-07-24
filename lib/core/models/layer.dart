@@ -227,7 +227,7 @@ final class TextLayer extends Layer {
   final Color color;
 
   /// When true this layer is a plain glyph (emoji / prop from the glyph
-  /// library, #61) — rendered without the caption stroke + drop shadow so an
+  /// library, #61) - rendered without the caption stroke + drop shadow so an
   /// emoji keeps its own colors.
   final bool decorative;
 

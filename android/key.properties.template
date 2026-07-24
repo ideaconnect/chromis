@@ -1,6 +1,6 @@
 # Release signing config for Play Store uploads.
 #
-# 1. Copy this file to android/key.properties (that path is git-ignored — never
+# 1. Copy this file to android/key.properties (that path is git-ignored - never
 #    commit real keys).
 # 2. Generate an upload keystore (once), keeping the .jks OUTSIDE the repo:
 #

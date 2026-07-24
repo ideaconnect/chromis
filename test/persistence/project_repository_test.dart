@@ -23,7 +23,7 @@ void main() {
     return dir;
   }
 
-  /// `<base>/projects` — the dir the repo reads/writes; created up front so a
+  /// `<base>/projects` - the dir the repo reads/writes; created up front so a
   /// test can drop hand-written (corrupt) manifests before any save().
   Directory projectsDirOf(Directory base) =>
       Directory('${base.path}/projects')..createSync(recursive: true);
@@ -205,7 +205,7 @@ void main() {
     expect(txt.id, '${c.id}_l1');
     expect({img.id, txt.id}.intersection({'src_l0', 'src_l1'}), isEmpty);
 
-    // Asset/mask paths are shared verbatim — never renamed or re-copied.
+    // Asset/mask paths are shared verbatim - never renamed or re-copied.
     expect(img.assetPath, '/assets/img_shared.png');
     expect(img.maskPath, '/assets/mask_shared.png');
 
@@ -318,7 +318,7 @@ void main() {
 
     final deleted = await repo.sweepOrphanAssets(minAge: Duration.zero);
 
-    // A corrupt manifest's references are invisible — deleting would be unsafe.
+    // A corrupt manifest's references are invisible - deleting would be unsafe.
     expect(deleted, 0);
     expect(orphan.existsSync(), isTrue);
   });

@@ -177,7 +177,7 @@ String _html(
   b.writeln(
     '<meta name="viewport" content="width=device-width,initial-scale=1">',
   );
-  b.writeln('<title>Chromis — E2E report</title><style>');
+  b.writeln('<title>Chromis - E2E report</title><style>');
   b.writeln('''
 :root{color-scheme:dark}
 *{box-sizing:border-box}
@@ -205,7 +205,7 @@ h1{font-size:22px;margin:0 0 4px}
 pre{margin:0 16px 14px;padding:12px;background:#08131f;border:1px solid #24384f;border-radius:8px;color:#f7b0a8;font-size:12px;overflow-x:auto;white-space:pre-wrap}
 ''');
   b.writeln('</style></head><body><div class="wrap">');
-  b.writeln('<h1>Chromis — E2E report</h1>');
+  b.writeln('<h1>Chromis - E2E report</h1>');
   b.writeln('<div class="sub">${_esc(device)} · ${at.toIso8601String()}</div>');
   b.writeln(
     '<div class="cards">'
@@ -250,7 +250,7 @@ String _markdown(
   int durationMs,
 ) {
   final b = StringBuffer();
-  b.writeln('# Chromis — E2E report\n');
+  b.writeln('# Chromis - E2E report\n');
   b.writeln('- Device: `$device`');
   b.writeln('- Generated: ${at.toIso8601String()}');
   b.writeln(

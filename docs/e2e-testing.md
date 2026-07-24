@@ -3,7 +3,7 @@
 Human-readable, Gherkin-driven end-to-end tests that drive the **real app on a
 connected device** and produce an HTML report. Built on
 [`bdd_widget_test`](https://pub.dev/packages/bdd_widget_test) (a real Flutter BDD
-framework — the Behat/Cucumber equivalent) on top of Flutter's `integration_test`.
+framework - the Behat/Cucumber equivalent) on top of Flutter's `integration_test`.
 
 ## One command
 
@@ -18,7 +18,7 @@ It regenerates the tests from the `.feature` files, runs them on the device
 (showing live progress), then writes and opens a report at
 **`build/e2e-report/index.html`** (plus `report.md` and a console summary).
 
-> These are E2E tests — they **install and drive the real app**, so a device
+> These are E2E tests - they **install and drive the real app**, so a device
 > must be connected. On Xiaomi/MIUI, accept the **"Install via USB"** prompt on
 > the phone when it appears. If no device is connected, the script says so and
 > runs nothing.
@@ -30,11 +30,11 @@ Options: `./e2e.ps1 -Device <id>` (target a device), `-SkipGen` (skip codegen),
 
 ```
 integration_test/bdd/
-  app_launch.feature        # Gherkin — you write these
+  app_launch.feature        # Gherkin - you write these
   editor.feature
   *_test.dart               # GENERATED from the features (do not edit)
 test/step/
-  *.dart                    # step definitions — you implement these (committed)
+  *.dart                    # step definitions - you implement these (committed)
   _e2e_support.dart         # shared helpers (settle, bootToHome)
 tool/e2e_report.dart        # JSON test output -> HTML/Markdown report
 e2e.ps1 / e2e.sh            # the launcher
@@ -60,22 +60,22 @@ tests that use `IntegrationTestWidgetsFlutterBinding` (i.e. real on-device runs)
    ```
    Parameters use `{'...'}` for strings / `{42}` for ints. Keep the free-text
    `Feature:` description from starting a line with a Gherkin keyword
-   (Given/When/Then/And) — that line would be misparsed as a step.
+   (Given/When/Then/And) - that line would be misparsed as a step.
 
 2. Regenerate: `dart run build_runner build` (or just run `./e2e.ps1`).
 
 3. Any **new** step phrase gets a stub in `test/step/<snake_case>.dart` that
-   throws `UnimplementedError()`. Implement it — the function receives a
+   throws `UnimplementedError()`. Implement it - the function receives a
    `WidgetTester` (plus a `String param1`, etc. for `{...}` params). Existing
    step files are never overwritten, and identical phrases reuse one step.
 
 ### Step conventions used here
 
 - `pumpAndSettle` **hangs** on this app (the splash spinner, onboarding dots and
-  Home banner-ad slot never settle) — use the shared `settle(tester)` which
+  Home banner-ad slot never settle) - use the shared `settle(tester)` which
   pumps fixed frames instead.
 - `bootToHome(tester)` launches the real app and skips first-run onboarding.
-- Assert real state where UI text is ambiguous — e.g. the bubble step reads
+- Assert real state where UI text is ambiguous - e.g. the bubble step reads
   `editorControllerProvider.layers` via `ProviderScope.containerOf(...)`.
 
 ## What it can and can't cover

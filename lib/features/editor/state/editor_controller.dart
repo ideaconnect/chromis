@@ -40,7 +40,7 @@ class EditorController extends Notifier<EditorState> {
 
   /// Fallback document when the editor is opened without a loaded project
   /// (the normal Home/drawer flows always call [loadProject] first). A blank
-  /// canvas — the user imports a photo to begin.
+  /// canvas - the user imports a photo to begin.
   Project _demoProject() {
     return Project(
       id: 'demo',
@@ -131,12 +131,12 @@ class EditorController extends Notifier<EditorState> {
   }
 
   /// When true, layers added via the Add menu are inserted onto **every** frame
-  /// (a fresh id per frame) — the basis for animating one caption across frames.
+  /// (a fresh id per frame) - the basis for animating one caption across frames.
   /// Toggled from the Frames panel; only takes effect on animated projects.
   bool addToAllFrames = false;
 
-  /// Adds a layer to the current frame, or — when [addToAllFrames] is on and the
-  /// project is animated — a fresh-id copy to every frame, selecting the copy on
+  /// Adds a layer to the current frame, or - when [addToAllFrames] is on and the
+  /// project is animated - a fresh-id copy to every frame, selecting the copy on
   /// the current frame. [make] is called once per target frame.
   T _addLayer<T extends Layer>(T Function() make) {
     if (addToAllFrames && state.project.frameCount > 1) {
@@ -297,7 +297,7 @@ class EditorController extends Notifier<EditorState> {
   };
 
   /// Changes the canvas size. With [scaleContent] the whole composition is
-  /// resampled — layer positions and scales multiply by the size ratio so it
+  /// resampled - layer positions and scales multiply by the size ratio so it
   /// keeps its relative layout (the "resize to N px" path). Without it the
   /// canvas simply grows/shrinks around the layers in place.
   void setCanvasSize(int width, int height, {bool scaleContent = false}) {
@@ -338,7 +338,7 @@ class EditorController extends Notifier<EditorState> {
   }
 
   /// Resizes the canvas to [newWidth]×[newHeight] keeping the composition
-  /// centered — every layer shifts by half the size delta (a center crop or
+  /// centered - every layer shifts by half the size delta (a center crop or
   /// extend, unlike [setCanvasSize]'s top-left-anchored resize).
   void cropCanvas(int newWidth, int newHeight) {
     final project = state.project;
@@ -466,7 +466,7 @@ class EditorController extends Notifier<EditorState> {
     Color? textColor,
     Offset? tail,
   }) {
-    // Coalesce per property group, not per bubble — otherwise shape → fill →
+    // Coalesce per property group, not per bubble - otherwise shape → fill →
     // typing all collapsed into one giant undo step (#82).
     final group = text != null
         ? 'text'
@@ -485,7 +485,7 @@ class EditorController extends Notifier<EditorState> {
       bubble: (l) => l.copyWith(
         text: text,
         // Mirror the layer name, but never rename to '' when the caption is
-        // cleared (#82) — keep the last non-empty name instead.
+        // cleared (#82) - keep the last non-empty name instead.
         name: text == null || text.trim().isEmpty ? null : text,
         shape: shape,
         fontFamily: fontFamily,
@@ -578,7 +578,7 @@ class EditorController extends Notifier<EditorState> {
     );
   }
 
-  /// Frame navigation — not an undoable document edit.
+  /// Frame navigation - not an undoable document edit.
   void selectFrame(int index) {
     final project = state.project;
     if (index < 0 || index >= project.frames.length) return;
@@ -645,7 +645,7 @@ class EditorController extends Notifier<EditorState> {
     );
   }
 
-  /// Renames the project. Blank input is rejected — the old name is kept —
+  /// Renames the project. Blank input is rejected - the old name is kept -
   /// and renaming to the current name is a no-op (no empty undo step).
   void rename(String name) {
     final trimmed = name.trim();
@@ -662,7 +662,7 @@ class EditorController extends Notifier<EditorState> {
     _commit(state.project.copyWith(fps: clamped), coalesce: 'fps');
   }
 
-  /// True when [maskPath] is still reachable — referenced by the live document
+  /// True when [maskPath] is still reachable - referenced by the live document
   /// or by any undo/redo snapshot. A superseded mask PNG may be deleted only
   /// while this is false, so an undo/redo can never surface a missing mask
   /// (drives the delete-on-supersede GC in the editor, #review perf 2026-07-19).

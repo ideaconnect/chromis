@@ -1,4 +1,4 @@
-# CLAUDE.md — Chromis
+# CLAUDE.md - Chromis
 
 Guidance for AI coding sessions on this repo.
 
@@ -12,18 +12,18 @@ Claude Design mockup, reusing IDCT Sticker Maker's engine code.
 
 Feature-first: `lib/app` (root + `go_router`), `lib/core` (theme, models,
 rendering, widgets), `lib/features/*`. State via `flutter_riverpod`. Dark-only
-theme — read colors from `AppColors` and design tokens from `context.sm`
+theme - read colors from `AppColors` and design tokens from `context.sm`
 (`SmTokens`); fonts are **Manrope** (body) + **Space Grotesk** (`AppFonts`).
 
 ## Milestones
 
-Planned as GitHub milestones **M0–M9** with issues. Work one milestone at a time;
+Planned as GitHub milestones **M0-M9** with issues. Work one milestone at a time;
 **after each milestone, stop and ask the user to test-deploy on their physical
 device** before starting the next (device deploys need their acknowledgement).
 
 ## On-device AI (reused from Sticker Maker)
 
-`lib/features/segmentation/**` — engine abstraction + registry, ML Kit engine,
+`lib/features/segmentation/**` - engine abstraction + registry, ML Kit engine,
 bundled U²-Netp (ONNX) engine, MobileSAM object engine, mask brush/processing.
 Models in `assets/models/*.onnx` (Apache-2.0). Runs via `flutter_onnxruntime`.
 

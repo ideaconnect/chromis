@@ -8,7 +8,7 @@ import 'frame.dart';
 /// [frames]. Serialized as a versioned JSON manifest (see [schemaVersion]);
 /// image/mask bytes live alongside it as project assets.
 ///
-/// Layer transform positions are in **canvas pixel units** — the space
+/// Layer transform positions are in **canvas pixel units** - the space
 /// [canvasWidth] × [canvasHeight]. Legacy square projects (before variable
 /// canvas sizes) migrate to [legacyCanvasSize]².
 @immutable
@@ -60,7 +60,7 @@ class Project {
 
   double get canvasAspect => canvasWidth / canvasHeight;
 
-  /// Center of the canvas in logical units — where new layers are placed.
+  /// Center of the canvas in logical units - where new layers are placed.
   Offset get canvasCenter => Offset(canvasWidth / 2, canvasHeight / 2);
 
   bool get isAnimated => frames.length > 1;
@@ -137,7 +137,7 @@ class Project {
         '$schemaVersion',
       );
     }
-    // v1 manifests predate variable canvases — migrate to the legacy square.
+    // v1 manifests predate variable canvases - migrate to the legacy square.
     return Project(
       id: json['id'] as String,
       name: json['name'] as String,

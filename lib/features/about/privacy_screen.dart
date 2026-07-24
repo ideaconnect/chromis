@@ -5,7 +5,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_typography.dart';
 import 'about_data.dart';
 
-/// In‑app privacy summary. Mirrors `docs/legal/privacy-policy.md`; the full
+/// In-app privacy summary. Mirrors `docs/legal/privacy-policy.md`; the full
 /// hosted policy lives at [AboutInfo.privacyUrl] (shown here, selectable).
 class PrivacyScreen extends StatelessWidget {
   const PrivacyScreen({super.key});
@@ -41,7 +41,7 @@ class PrivacyScreen extends StatelessWidget {
                         Expanded(
                           child: Text(
                             'Your photos stay on your device. Ads are the one '
-                            'exception — explained below.',
+                            'exception - explained below.',
                             style: TextStyle(
                               fontFamily: AppFonts.ui,
                               fontSize: 14,

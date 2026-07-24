@@ -72,7 +72,7 @@ void main() {
     expect(a, isNot(c));
   });
 
-  test('fromJson requires every key — a missing one throws', () {
+  test('fromJson requires every key - a missing one throws', () {
     // x/y/scale/rotation are read as non-nullable `num`; a missing key casts
     // null → num, which throws a TypeError.
     expect(

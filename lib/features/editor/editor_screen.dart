@@ -87,12 +87,12 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
   // capability toast instead of re-paying the full decode + encoder attempt.
   bool _samEngineFailed = false;
 
-  /// The honest capability toast — deliberately DISTINCT from the
+  /// The honest capability toast - deliberately DISTINCT from the
   /// tapped-the-subject message, which used to double for this case and sent
   /// users tapping other objects expecting different results (2026-07-19
   /// review, low/ai-usage).
   static const String samUnavailableMessage =
-      "Object removal AI isn't available on this device — "
+      "Object removal AI isn't available on this device - "
       'use the Erase brush instead';
 
   // Working mask cached across strokes of the Erase tool, so we don't reload
@@ -109,7 +109,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
   // Reclaims superseded mask PNGs (previous cut-out / erase files a newer mask
   // replaced) once they fall out of undo/redo reach, so intermediate masks
   // don't pile up as orphans (#review perf 2026-07-19). Never deletes a path a
-  // live undo entry could still restore — see [EditorController.isMaskReferenced].
+  // live undo entry could still restore - see [EditorController.isMaskReferenced].
   late final SupersededMaskCollector _maskGc = SupersededMaskCollector(
     ref.read(maskStoreProvider),
   );
@@ -120,7 +120,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
   // (which is unsafe once the widget is unmounting).
   ProjectRepository? _repo;
   // Captured during build so dispose()'s final save can also refresh Home's
-  // Recent list — invalidating via `ref` while unmounting is unsafe.
+  // Recent list - invalidating via `ref` while unmounting is unsafe.
   ProviderContainer? _homeContainer;
 
   EditorController get _controller =>
@@ -131,7 +131,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
   /// Closes the current undo step when a slider drag ends.
   void _endSliderEdit(double _) => _controller.endEdit();
 
-  /// Whether two projects are the same *document* — everything that gets
+  /// Whether two projects are the same *document* - everything that gets
   /// persisted except the transient current-frame index (frame navigation and
   /// playback must not count as edits).
   bool _sameDocument(Project a, Project b) =>
@@ -157,7 +157,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     if (project == null) return;
     _pendingSave = null;
     _repo?.save(project.copyWith(updatedAt: DateTime.now()));
-    // Refresh Home's Recent list — via the captured container so it works even
+    // Refresh Home's Recent list - via the captured container so it works even
     // from dispose() (a brand-new project's first save may only flush on exit).
     if (refreshHome) _homeContainer?.invalidate(savedProjectsProvider);
   }
@@ -184,7 +184,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
 
   void _restartPlayTimer() {
     _playTimer?.cancel();
-    // Preview at the project's fps — the same rate every export path uses.
+    // Preview at the project's fps - the same rate every export path uses.
     // Upper bound 8000 ms lets the 0.25 fps slow-motion preset play back too.
     final fps = ref.read(editorControllerProvider).project.fps;
     final ms = (1000 / fps).round().clamp(20, 8000);
@@ -210,7 +210,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
   /// export path (WYSIWYG).
   static const List<double> _fpsPresets = [0.25, 0.5, 1, 2, 4, 8, 12, 16, 24];
 
-  /// "0.25", "0.5", "1", "12" — drops the trailing ".0" on whole rates.
+  /// "0.25", "0.5", "1", "12" - drops the trailing ".0" on whole rates.
   static String _fpsLabel(double fps) => fps < 1 ? '$fps' : '${fps.round()}';
 
   Widget _fpsControl(EditorState editor) {
@@ -267,12 +267,12 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     _repo = ref.read(projectRepositoryProvider);
     _homeContainer = ProviderScope.containerOf(context, listen: false);
     ref.listen(editorControllerProvider, (prev, next) {
-      // A different project loaded into the shared editor state re-locks AI —
+      // A different project loaded into the shared editor state re-locks AI -
       // the rewarded unlock is per project, not per editor-screen instance.
       if (prev != null && prev.project.id != next.project.id) {
         _aiUnlockedThisSession = false;
       }
-      // Persist only real document edits — not frame navigation / playback,
+      // Persist only real document edits - not frame navigation / playback,
       // which change currentFrameIndex only. Otherwise scrubbing the timeline
       // (or a playback tick) would rewrite the file and bump it to the top of
       // Home's "recent" list with no actual edit.
@@ -284,7 +284,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         _stopPlayback();
       }
       // A commit / undo / redo may have dropped the last history reference to a
-      // superseded mask — reclaim any now-unreachable files (no-op when none are
+      // superseded mask - reclaim any now-unreachable files (no-op when none are
       // pending). Runs off the frame; the file delete never blocks the gesture.
       unawaited(_maskGc.collect(_controller.isMaskReferenced));
     });
@@ -363,7 +363,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                             ? 'Filling in the background…'
                             : 'Finding the object…',
                       ),
-                    // Which frame you're editing — shown in every tool while the
+                    // Which frame you're editing - shown in every tool while the
                     // project is animated (per-frame editing indicator, #36).
                     if (editor.project.frameCount > 1)
                       _FrameCounter(
@@ -380,7 +380,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     );
   }
 
-  /// Badge for the SELECTED layer only — with several photos a global "any
+  /// Badge for the SELECTED layer only - with several photos a global "any
   /// layer has a mask" reading was misleading (#73); per-layer state lives on
   /// the Layers-panel thumbnails.
   bool _hasCutout(EditorState editor) {
@@ -474,7 +474,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
 
   // ------------------------------------------------------------ Adjust
   /// Opens the per-layer crop editor over [layer]'s source photo (decoded at a
-  /// preview resolution — the crop itself is normalized) and applies the result.
+  /// preview resolution - the crop itself is normalized) and applies the result.
   Future<void> _cropSelectedImage(ImageLayer layer) async {
     final ui.Image image;
     final int srcW;
@@ -519,7 +519,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
 
   Widget _adjustPanel(EditorState editor) {
     final selected = editor.selectedLayer;
-    // Adding a photo/text/bubble is reachable right from the default tool —
+    // Adding a photo/text/bubble is reachable right from the default tool -
     // not only via the Layers tab (#77).
     final addChip = PillChip(
       label: 'Add',
@@ -589,7 +589,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                 style: OutlinedButton.styleFrom(
                   foregroundColor: AppColors.textMuted,
                   side: const BorderSide(color: AppColors.border),
-                  // NOT Expanded, so a fixed 38 min-HEIGHT only — Size.fromHeight
+                  // NOT Expanded, so a fixed 38 min-HEIGHT only - Size.fromHeight
                   // sets min-WIDTH to infinity, which crashes layout here (#crop).
                   minimumSize: const Size(0, 38),
                 ),
@@ -831,7 +831,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     _toast('Added font · $family');
   }
 
-  /// The "+ Font" chip at the end of a font row — opens the .ttf/.otf picker.
+  /// The "+ Font" chip at the end of a font row - opens the .ttf/.otf picker.
   Widget _importFontChip(VoidCallback onTap) {
     return GestureDetector(
       onTap: onTap,
@@ -881,7 +881,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
           EditorTool.text,
           trailing: const _PanelHint('Comic bubble'),
         ),
-        // Five shapes don't fit as equal tabs — horizontal pill scroll (#80).
+        // Five shapes don't fit as equal tabs - horizontal pill scroll (#80).
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: Row(
@@ -935,7 +935,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         ),
         const SizedBox(height: 12),
         // Font & size were model-supported but UI-locked to Bangers 26 (#81).
-        // The chosen size acts as a maximum — the auto-fit (#79) may shrink
+        // The chosen size acts as a maximum - the auto-fit (#79) may shrink
         // long captions to keep them inside the bubble.
         SizedBox(
           height: 42,
@@ -994,9 +994,9 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         ),
         const SizedBox(height: 8),
         // The tail is direct-manipulation now: drag the round knob at its tip
-        // on the canvas — any direction, any shape (#78).
+        // on the canvas - any direction, any shape (#78).
         const Text(
-          'Drag the dot at the tail tip to aim it — any direction.',
+          'Drag the dot at the tail tip to aim it - any direction.',
           textAlign: TextAlign.center,
           style: TextStyle(
             fontFamily: AppFonts.ui,
@@ -1103,7 +1103,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
             ),
           ),
         ),
-        // A second mode removes objects by tapping them on the canvas (#83) —
+        // A second mode removes objects by tapping them on the canvas (#83) -
         // works on the raw photo (MobileSAM), no prior background cut needed.
         if (image != null) ...[
           Row(
@@ -1121,7 +1121,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                 child: _segTab('Remove object', removeMode, AppColors.rose, () {
                   setState(() => _removeObjectMode = true);
                   // Warm the SAM image embedding while the user aims, so
-                  // the first escalated tap only pays the decoder (#85) —
+                  // the first escalated tap only pays the decoder (#85) -
                   // skipped entirely on capability-denied devices and after
                   // a hard engine failure.
                   unawaited(_precomputeSamIfAllowed(image.assetPath));
@@ -1133,7 +1133,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         ],
         if (removeMode) ...[
           _emptyHint(
-            'Tap an unwanted object on the photo to remove it — a stray '
+            'Tap an unwanted object on the photo to remove it - a stray '
             'item, a second subject, clutter. Tapping the main subject is '
             'safely ignored; undo brings anything back.',
           ),
@@ -1178,7 +1178,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
             image == null
                 ? 'Select a photo layer to cut out.'
                 : "One tap to isolate your subject. We'll auto-detect the "
-                      'edges — refine anything by hand in the Erase tool.',
+                      'edges - refine anything by hand in the Erase tool.',
           ),
           _modelPicker(model),
           const SizedBox(height: 16),
@@ -1457,7 +1457,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
           ),
         ),
         content: const Text(
-          'Watch a short ad to use AI tools for this editing session — or go '
+          'Watch a short ad to use AI tools for this editing session - or go '
           'Pro to remove ads entirely.',
           style: TextStyle(
             fontFamily: AppFonts.ui,
@@ -1520,7 +1520,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         }
         return;
       }
-      // The clean-up chain crunches every pixel of a photo-sized mask — run it
+      // The clean-up chain crunches every pixel of a photo-sized mask - run it
       // off the UI isolate so the "Working…" spinner actually animates
       // (docs/reviews/2026-07-19-review.md).
       final mask = await _processCutoutMask(result.mask, refine: refine);
@@ -1528,7 +1528,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       _maskGc.supersede(image.maskPath, path);
       _controller.setImageMask(image.id, path);
       if (mounted) {
-        // Report which engine actually ran — it may differ from the preference
+        // Report which engine actually ran - it may differ from the preference
         // if that one was unavailable and the registry fell through.
         final used = SegModel.fromEngineId(result.engineId);
         _toast(
@@ -1538,7 +1538,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         );
       }
     } catch (_) {
-      if (mounted) _toast("Couldn't remove the background — try again");
+      if (mounted) _toast("Couldn't remove the background - try again");
     } finally {
       if (mounted) setState(() => _removingBg = false);
     }
@@ -1859,7 +1859,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     );
   }
 
-  /// "Auto-refine edges" toggle — gates the keep-largest-component + feather
+  /// "Auto-refine edges" toggle - gates the keep-largest-component + feather
   /// clean-up on the raw engine mask (off = keep the raw soft mask).
   Widget _bgRefineToggle(bool value, ValueChanged<bool> onChanged) {
     return Padding(
@@ -1928,7 +1928,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     );
   }
 
-  /// Enters tap-to-remove-object mode on the photo — MobileSAM segments the
+  /// Enters tap-to-remove-object mode on the photo - MobileSAM segments the
   /// tapped object and cuts it out (no prior background removal required); the
   /// cutout tool's panel provides the mode's exit.
   void _startObjectRemoval(ImageLayer image) {
@@ -2029,7 +2029,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
   }
 
   /// Enqueues an erase stroke onto [_strokeLock] so strokes apply strictly in
-  /// order — overlapping async applies (esp. the cold-cache rebuild-after-await)
+  /// order - overlapping async applies (esp. the cold-cache rebuild-after-await)
   /// can't interleave and drop each other's dabs.
   void _applyEraseStroke(List<Offset> pointsLogical) {
     _strokeLock = _strokeLock
@@ -2039,7 +2039,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
 
   /// Applies an Erase/Restore brush stroke (points in 512-logical canvas units)
   /// to the selected photo's alpha mask: map into mask pixels, paint, persist
-  /// and apply — undoable per stroke. A working mask is cached across dabs so we
+  /// and apply - undoable per stroke. A working mask is cached across dabs so we
   /// don't decode the mask file every time; it reloads on a layer/mask change.
   /// Loads (or reuses) the working mask + image size for [layer]. Shared by
   /// the Erase brush and tap-to-remove (#83); false when the widget unmounted
@@ -2113,7 +2113,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
   }
 
   /// Tier-1 object removal (#83): the tapped 4-connected blob of the cutout's
-  /// alpha is subtracted (with a feathered seam) — no ML involved. Tapping the
+  /// alpha is subtracted (with a feathered seam) - no ML involved. Tapping the
   /// largest blob (the subject) or transparency is a safe no-op.
   Future<void> _removeObjectAt(Offset pointLogical) async {
     final layer = ref.read(editorControllerProvider).selectedLayer;
@@ -2135,7 +2135,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       // erase-seeded cutout panel.
       if (!await _ensureAiAllowed()) return;
       // Component labelling + feathered subtract walk the whole mask several
-      // times — off the UI isolate (docs/reviews/2026-07-19-review.md). Still
+      // times - off the UI isolate (docs/reviews/2026-07-19-review.md). Still
       // serialized behind [_strokeLock], so the working mask can't change
       // underneath the hop.
       final result = await _removeTappedObject(
@@ -2148,7 +2148,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         case RemoveTapOutcome.miss:
           if (mounted) _toast('Nothing to remove there');
         case RemoveTapOutcome.subject:
-          // The tapped blob IS (or touches) the biggest one — the free CC
+          // The tapped blob IS (or touches) the biggest one - the free CC
           // tier can't carve an attached object out. Escalate to the
           // point-prompt model (#86): tap coords are already source px.
           await _samRemoveAt(layer, maskPoint);
@@ -2162,15 +2162,15 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
             await _inpaintObject(layer, blob, _workingMask!);
           } else {
             await _applyRemovedMask(layer, result.mask!);
-            if (mounted) _toast('Object removed — undo brings it back');
+            if (mounted) _toast('Object removed - undo brings it back');
           }
       }
     } catch (_) {
-      if (mounted) _toast("Couldn't remove that — try again");
+      if (mounted) _toast("Couldn't remove that - try again");
     }
   }
 
-  /// Persists [next] as the layer's mask — shared by both removal tiers.
+  /// Persists [next] as the layer's mask - shared by both removal tiers.
   Future<void> _applyRemovedMask(ImageLayer layer, AlphaMask next) async {
     _workingMask = next;
     final path = await ref.read(maskStoreProvider).save(next, id: layer.id);
@@ -2203,7 +2203,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
   Future<void> _samRemoveAt(ImageLayer layer, Offset maskPoint) async {
     // Capability gate first: on denied devices (and after a hard engine
     // failure) short-circuit before paying any decode/encoder cost, and be
-    // honest that the CAPABILITY is missing — this is not the user's tap.
+    // honest that the CAPABILITY is missing - this is not the user's tap.
     final capability = await ref.read(aiCapabilityProvider.future);
     if (!capability.samAllowed || _samEngineFailed) {
       if (mounted) _toast(samUnavailableMessage);
@@ -2223,13 +2223,13 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         ]);
       } catch (_) {
         // A throwing engine (broken ORT runtime, unloadable model) won't heal
-        // this session — remember it so the next tap short-circuits to the
+        // this session - remember it so the next tap short-circuits to the
         // capability toast instead of re-paying the whole attempt. Only the
         // engine call trips the flag: failures past this point (a transient
         // mask-save IO error, say) are retryable and must not disable the
         // tier.
         _samEngineFailed = true;
-        if (mounted) _toast("Couldn't remove that — try again");
+        if (mounted) _toast("Couldn't remove that - try again");
         return;
       }
       if (!mounted) return;
@@ -2238,7 +2238,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         _toast("Couldn't find an object there");
         return;
       }
-      // Overlap with what the cutout currently keeps — a per-pixel pass over
+      // Overlap with what the cutout currently keeps - a per-pixel pass over
       // the full mask, so off the UI isolate (docs/reviews/2026-07-19-review.md).
       final stats = await _maskOverlap(current, object);
       if (!mounted) return;
@@ -2247,7 +2247,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         return;
       }
       if (stats.overlap > stats.kept * 0.8) {
-        _toast('That looks like your subject — use Erase for fine edits');
+        _toast('That looks like your subject - use Erase for fine edits');
         return;
       }
       // Fill mode: replace the object with synthesized background instead of
@@ -2256,13 +2256,13 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         await _inpaintObject(layer, object, current);
         return;
       }
-      // Feather + subtract are two more full-mask passes — same treatment.
+      // Feather + subtract are two more full-mask passes - same treatment.
       final next = await _subtractObject(current, object);
       if (!mounted) return;
       await _applyRemovedMask(layer, next);
-      if (mounted) _toast('Object removed — undo brings it back');
+      if (mounted) _toast('Object removed - undo brings it back');
     } catch (_) {
-      if (mounted) _toast("Couldn't remove that — try again");
+      if (mounted) _toast("Couldn't remove that - try again");
     } finally {
       if (mounted) setState(() => _samBusy = false);
     }
@@ -2284,7 +2284,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         final next = await _subtractObject(current, object);
         if (!mounted) return;
         await _applyRemovedMask(layer, next);
-        if (mounted) _toast('Fill unavailable — erased instead');
+        if (mounted) _toast('Fill unavailable - erased instead');
         return;
       }
       final newPath = await ref
@@ -2292,7 +2292,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
           .storeBytes(filled);
       if (!mounted) return;
       _controller.replaceImageAsset(layer.id, newPath);
-      if (mounted) _toast('Object filled in — undo reverts');
+      if (mounted) _toast('Object filled in - undo reverts');
     } finally {
       if (mounted) setState(() => _inpainting = false);
     }
@@ -2309,7 +2309,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
 
   // ------------------------------------------------------------ Erase
   Widget _erasePanel() {
-    // Erasing needs a photo layer — strokes no-op without one, so guide instead
+    // Erasing needs a photo layer - strokes no-op without one, so guide instead
     // of showing live brush controls that do nothing.
     final selected = ref.read(editorControllerProvider).selectedLayer;
     if (selected is! ImageLayer) {
@@ -2608,7 +2608,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
           ? await service.pickFromCamera()
           : await service.pickFromGallery();
       if (path == null) return; // cancelled
-      // Importing a photo NEVER resizes the canvas — a blank project keeps the
+      // Importing a photo NEVER resizes the canvas - a blank project keeps the
       // size the user chose. (To start with the canvas sized to a photo, use
       // "Open a photo" on Home.) The first photo is placed scaled to FIT.
       final wasEmpty = ref.read(editorControllerProvider).layers.isEmpty;
@@ -2803,7 +2803,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     );
   }
 
-  /// Crop tool sheet — center-crops the canvas to a common aspect ratio.
+  /// Crop tool sheet - center-crops the canvas to a common aspect ratio.
   /// Opens the full-screen freeform crop editor, then applies the returned
   /// rectangle (in canvas coords) as an arbitrary crop.
   Future<void> _openFreeformCrop() async {
@@ -3635,7 +3635,7 @@ Future<AlphaMask> _processCutoutMask(AlphaMask raw, {bool refine = true}) =>
       ),
     );
 
-/// Cleans up a raw engine mask with an explicit [feather] radius — used by the
+/// Cleans up a raw engine mask with an explicit [feather] radius - used by the
 /// AI-Cut sheet's done stage so the edge-feather slider is live.
 Future<AlphaMask> _processMask(
   AlphaMask raw, {
@@ -3659,7 +3659,7 @@ Future<({RemoveTapOutcome outcome, AlphaMask? mask})> _removeTappedObject(
 ) => Isolate.run(() => MaskProcessing.removeObjectAt(mask, x, y));
 
 /// How much of what the cutout currently keeps ([current] > 16) the SAM
-/// [object] (> 128) covers — drives the "that's your subject" guard (#86).
+/// [object] (> 128) covers - drives the "that's your subject" guard (#86).
 Future<({int kept, int overlap})> _maskOverlap(
   AlphaMask current,
   AlphaMask object,
@@ -3681,13 +3681,13 @@ Future<AlphaMask> _subtractObject(AlphaMask current, AlphaMask object) =>
       () => MaskProcessing.subtract(current, MaskProcessing.feather(object, 1)),
     );
 
-/// Paints an Erase/Restore brush [stroke] over [mask] off the UI isolate — the
+/// Paints an Erase/Restore brush [stroke] over [mask] off the UI isolate - the
 /// full mask copy + dab loop are pure CPU work, like the cut-out helpers above.
 Future<AlphaMask> _paintStroke(AlphaMask mask, BrushStroke stroke) =>
     Isolate.run(() => MaskBrush.paint(mask, stroke));
 
 /// The region removed between [before] and [after] masks (opaque → transparent),
-/// as an opaque-where-removed mask — the blob to fill in Fill mode.
+/// as an opaque-where-removed mask - the blob to fill in Fill mode.
 Future<AlphaMask> _removedRegion(AlphaMask before, AlphaMask after) =>
     Isolate.run(() {
       final n = before.alpha.length;

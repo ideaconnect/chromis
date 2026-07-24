@@ -16,7 +16,7 @@ class MaskProcessingOptions {
   /// any other step (a hard matte). Leave null to keep the engine's soft edges.
   final int? threshold;
 
-  /// Drop everything except the largest connected foreground blob — removes the
+  /// Drop everything except the largest connected foreground blob - removes the
   /// stray specks ML Kit sometimes leaves in the background.
   final bool keepLargestComponent;
 
@@ -158,8 +158,8 @@ abstract final class MaskProcessing {
     queue.add(p);
   }
 
-  /// `current − object`: alpha becomes `min(current, 255 − object)`, so a soft
-  /// object edge subtracts softly. NEVER run [process] on the result — its
+  /// `current - object`: alpha becomes `min(current, 255 - object)`, so a soft
+  /// object edge subtracts softly. NEVER run [process] on the result - its
   /// keep-largest-component step would eat surviving blobs (#83).
   static AlphaMask subtract(AlphaMask current, AlphaMask object) {
     assert(
@@ -178,10 +178,10 @@ abstract final class MaskProcessing {
   /// Tier-1 tap-to-remove (#83): the 4-connected opaque component (coverage
   /// `>= cutoff`) under ([x],[y]) is subtracted from [mask] with a 1-px
   /// feathered seam. Outcomes:
-  /// - `miss`   — the tap hit transparency (or out of bounds); mask untouched.
-  /// - `subject`— the tapped blob is the LARGEST component: that's the
+  /// - `miss`   - the tap hit transparency (or out of bounds); mask untouched.
+  /// - `subject`- the tapped blob is the LARGEST component: that's the
   ///   image's subject, refuse to nuke it; mask untouched.
-  /// - `removed`— `mask` carries the result.
+  /// - `removed`- `mask` carries the result.
   static ({RemoveTapOutcome outcome, AlphaMask? mask}) removeObjectAt(
     AlphaMask mask,
     int x,

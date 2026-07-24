@@ -1,8 +1,8 @@
-# Chromis — BG Removal
+# Chromis - BG Removal
 
 A free, ad-supported Flutter **Android** photo editor with on-device AI. Cut out
 backgrounds, remove objects, add text & speech bubbles, adjust colors, and
-export with transparency — everything processed locally, nothing uploaded.
+export with transparency - everything processed locally, nothing uploaded.
 
 > Modeled on IDCT's [Sticker Maker](https://github.com/ideaconnect/sticker-maker)
 > and built from the approved Claude Design mockup.
@@ -11,21 +11,21 @@ export with transparency — everything processed locally, nothing uploaded.
 
 The build is planned as [GitHub milestones + issues](../../milestones):
 
-- **M0** Scaffold & app shell — navigation, Home/projects, side menu, About/Privacy/Licenses, theme, icon/splash
+- **M0** Scaffold & app shell - navigation, Home/projects, side menu, About/Privacy/Licenses, theme, icon/splash
 - **M1** Canvas, layers & transforms (move/scale/rotate, undo/redo)
-- **M2** AI background removal — ML Kit + bundled **U²-Netp** (ONNX)
-- **M3** Manual tools — fast brush erase, crop, adjust (light/color/detail)
+- **M2** AI background removal - ML Kit + bundled **U²-Netp** (ONNX)
+- **M3** Manual tools - fast brush erase, crop, adjust (light/color/detail)
 - **M4** Text & comic bubbles (rotatable/re-tailed)
-- **M5** Object removal — **MobileSAM** tap-to-select + optional MI-GAN inpaint
-- **M6** Export & share — PNG (transparent) / JPG / WebP
-- **M7** Ads — AdMob banner/interstitial/rewarded + UMP consent
-- **M8** Go Pro IAP — one-time `pro_remove_ads`, removes all ads
+- **M5** Object removal - **MobileSAM** tap-to-select + optional MI-GAN inpaint
+- **M6** Export & share - PNG (transparent) / JPG / WebP
+- **M7** Ads - AdMob banner/interstitial/rewarded + UMP consent
+- **M8** Go Pro IAP - one-time `pro_remove_ads`, removes all ads
 - **M9** Licenses, legal & release
 
 ## On-device AI
 
 Background removal uses **Google ML Kit Subject Segmentation** with a bundled
-**U²-Netp** ONNX fallback; object selection uses **MobileSAM** — all Apache-2.0
+**U²-Netp** ONNX fallback; object selection uses **MobileSAM** - all Apache-2.0
 and run entirely on-device via `flutter_onnxruntime`. No cloud, no uploads.
 
 ## Monetization
@@ -40,7 +40,7 @@ Play Console setup you must complete before release. AdMob/IAP use Google's
 ## Licensing
 
 Closed-source app: only MIT / BSD / Apache-2.0 / SIL-OFL dependencies are
-bundled (no GPL/LGPL — ffmpeg was intentionally dropped). The in-app **Licenses**
+bundled (no GPL/LGPL - ffmpeg was intentionally dropped). The in-app **Licenses**
 screen lists everything via Flutter's `LicenseRegistry`.
 
 ## Develop

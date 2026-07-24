@@ -1,5 +1,5 @@
 <#
-  e2e.ps1 — run the Gherkin/BDD end-to-end tests on a connected device and open
+  e2e.ps1 - run the Gherkin/BDD end-to-end tests on a connected device and open
   an HTML report.
 
   Usage:

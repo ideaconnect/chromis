@@ -31,7 +31,7 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
   _Fmt _fmt = _Fmt.png;
   bool _busy = false;
 
-  /// Rendered composition for the preview tile — computed once (the project
+  /// Rendered composition for the preview tile - computed once (the project
   /// doesn't change while this screen is open), disposed on close.
   late final Future<ui.Image> _previewFuture;
 
@@ -100,7 +100,7 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
       _snack(loc == null ? "Couldn't save the image" : 'Saved · $loc');
       if (loc != null) _maybeInterstitial();
     } catch (_) {
-      if (mounted) _snack('Export failed — try again');
+      if (mounted) _snack('Export failed - try again');
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -125,7 +125,7 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
         ),
       );
     } catch (_) {
-      if (mounted) _snack('Share failed — try again');
+      if (mounted) _snack('Share failed - try again');
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -134,7 +134,7 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
   void _snack(String m) =>
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(m)));
 
-  /// After a successful export, show a full-screen interstitial — skipped for
+  /// After a successful export, show a full-screen interstitial - skipped for
   /// Pro users, and a no-op when none is preloaded (never blocks the user).
   void _maybeInterstitial() {
     if (ref.read(isProProvider)) return;

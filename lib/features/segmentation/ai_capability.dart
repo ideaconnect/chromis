@@ -19,8 +19,8 @@ const int samMinTotalMemBytes = 2560 * 1024 * 1024; // 2.5 GiB
 ///
 /// Deny only on a *positive* signal that the device is too small
 /// (`isLowRamDevice`, or total RAM under [samMinTotalMemBytes]). When the
-/// platform can't answer at all — an APK predating `getMemoryInfo`, tests,
-/// a non-Android host — default to ALLOWED so no device that works today
+/// platform can't answer at all - an APK predating `getMemoryInfo`, tests,
+/// a non-Android host - default to ALLOWED so no device that works today
 /// regresses.
 ///
 /// A `FutureProvider` so the probe is memoized for the app run and trivially

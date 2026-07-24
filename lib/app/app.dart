@@ -28,7 +28,7 @@ class ChromisApp extends ConsumerWidget {
     final seen = ref.watch(onboardingSeenProvider);
     final start = seen.maybeWhen(
       data: (v) => v ? '/' : '/onboarding',
-      error: (_, _) => '/', // fail open — never trap the user on a splash
+      error: (_, _) => '/', // fail open - never trap the user on a splash
       orElse: () => null,
     );
     if (start == null) return const _Splash();
@@ -74,7 +74,7 @@ class _RouterHostState extends State<_RouterHost> {
 /// A flat brand-colour hold shown only for the few milliseconds the first-run
 /// flag takes to load. It matches the native splash background exactly
 /// (`android_12.color` in pubspec), so the native OS splash stays the only
-/// splash the user sees — it hands off to Home with no visible seam.
+/// splash the user sees - it hands off to Home with no visible seam.
 class _Splash extends StatelessWidget {
   const _Splash();
 

@@ -30,15 +30,15 @@ class ProjectCanvas extends StatelessWidget {
 
   final Frame frame;
 
-  /// The project's canvas size in logical (pixel) units — the layer-transform
+  /// The project's canvas size in logical (pixel) units - the layer-transform
   /// coordinate space. The W×H rect is BoxFit.contain-ed and centered within
   /// whatever box the widget is given (so square thumbnails letterbox cleanly).
   final int width;
   final int height;
 
   /// Cached `File.existsSync` results keyed by absolute path. A path's on-disk
-  /// presence is stable for a layer's lifetime — asset paths are written once at
-  /// import, and mask paths are freshly timestamped on every cut-out / erase —
+  /// presence is stable for a layer's lifetime - asset paths are written once at
+  /// import, and mask paths are freshly timestamped on every cut-out / erase -
   /// so re-stat-ing per image layer AND per mask on every rebuild (i.e. per
   /// pointer-move frame during a drag) is pure syscall waste (#review perf,
   /// 2026-07-19). Shared statically so frame thumbnails reusing an asset stat it
@@ -53,7 +53,7 @@ class ProjectCanvas extends StatelessWidget {
 
   static bool defaultFileExists(String path) => File(path).existsSync();
 
-  /// Cached existence check — stats a given [path] at most once.
+  /// Cached existence check - stats a given [path] at most once.
   static bool _exists(String path) =>
       existsCache.putIfAbsent(path, () => fileExists(path));
 
@@ -133,14 +133,14 @@ class ProjectCanvas extends StatelessWidget {
     final file = File(layer.assetPath);
     // Show the placeholder synchronously for a missing asset (e.g. the demo /
     // gallery fixtures, or a deleted file) instead of flashing an error frame.
-    // Existence is cached per path (see [existsCache]) — the path only changes
+    // Existence is cached per path (see [existsCache]) - the path only changes
     // when the layer's asset changes, so a drag doesn't re-stat every frame.
     if (!_exists(layer.assetPath)) {
       return _ImagePlaceholder(name: layer.name, side: 180 * scale);
     }
     final base =
         kLayerFitBoxSide * scale; // ~0.86 of the canvas; user scale above
-    // Decode only the pixels this box (and the layer's own zoom) can show —
+    // Decode only the pixels this box (and the layer's own zoom) can show -
     // full-res decodes of 2048² sources per widget instance were the top OOM
     // risk with several photos × frame thumbnails (#75).
     var target = layerDecodeTarget(
@@ -159,7 +159,7 @@ class ProjectCanvas extends StatelessWidget {
 
     // A cut-out layer composites its alpha mask over the photo (background
     // removed). The mask file may be absent (e.g. a project opened without its
-    // assets) — fall back to the plain photo in that case.
+    // assets) - fall back to the plain photo in that case.
     final maskPath = layer.maskPath;
     final hasMask = maskPath != null && _exists(maskPath);
     // A mask OR a per-layer crop needs the painter path (Image.file can't
@@ -209,7 +209,7 @@ int layerDecodeTarget({
   return quantized < 256 ? 256 : (quantized > 4096 ? 4096 : quantized);
 }
 
-/// Renders a photo with its alpha mask applied — the visible result of an AI
+/// Renders a photo with its alpha mask applied - the visible result of an AI
 /// cut-out. Both files are decoded to [ui.Image] and composited with
 /// `BlendMode.dstIn` so the photo survives only where the mask is opaque.
 /// Non-destructive: the source photo and the mask stay separate on disk.
@@ -271,7 +271,7 @@ class _MaskedImageState extends State<_MaskedImage> {
     if (old.imagePath != widget.imagePath || old.maskPath != widget.maskPath) {
       _load();
     } else if (widget.decodeTarget > _decodedTarget) {
-      // More pixels needed (pinch zoom / bigger box) — smaller targets keep
+      // More pixels needed (pinch zoom / bigger box) - smaller targets keep
       // the existing decode; downscaling again would only cost CPU.
       _load();
     }
@@ -299,7 +299,7 @@ class _MaskedImageState extends State<_MaskedImage> {
     });
   }
 
-  /// Decodes [path] at most [targetWidth] px wide — never upscaled past the
+  /// Decodes [path] at most [targetWidth] px wide - never upscaled past the
   /// encoded source size.
   static Future<ui.Image?> _decode(String path, int targetWidth) async {
     try {

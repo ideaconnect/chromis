@@ -14,7 +14,7 @@ import 'alpha_mask.dart';
 /// [ImageLayer.maskPath] non-destructively (the original photo is untouched).
 ///
 /// The PNG carries the coverage in its **alpha channel** (RGB left white), which
-/// makes render-time compositing a single `BlendMode.dstIn` draw — see
+/// makes render-time compositing a single `BlendMode.dstIn` draw - see
 /// `ProjectCanvas`.
 class MaskStore {
   MaskStore({this.baseDir});
@@ -48,7 +48,7 @@ class MaskStore {
       decodeAlpha(await File(path).readAsBytes());
 
   /// Best-effort deletion of a superseded mask PNG previously written by [save].
-  /// A missing or locked file is ignored — the cold-launch orphan sweep
+  /// A missing or locked file is ignored - the cold-launch orphan sweep
   /// ([ProjectRepository.sweepOrphanAssets]) remains the backstop. Callers MUST
   /// have established that [path] is no longer reachable by undo/redo, so a
   /// restored history state can never surface a now-missing mask.
@@ -82,7 +82,7 @@ class MaskStore {
   }
 
   /// Decodes just the pixel dimensions of the image at [path] from its encoded
-  /// header — no full-bitmap decode. A `getNextFrame` decode of a 2048² source
+  /// header - no full-bitmap decode. A `getNextFrame` decode of a 2048² source
   /// would otherwise allocate ~16 MB just to read two ints; this reads only the
   /// header via [ui.ImageDescriptor], mirroring `EditorCanvas._loadDims`.
   static Future<ui.Size> decodeImageSize(String path) async {
@@ -102,7 +102,7 @@ class MaskStore {
   /// the mask coverage. Uses `dart:ui`, so it runs on-device / in the test
   /// engine (not in a bare Dart VM).
   static Future<Uint8List> encodePng(AlphaMask mask) async {
-    // Expanding the alpha mask to a full w*h*4 RGBA buffer is pure CPU work —
+    // Expanding the alpha mask to a full w*h*4 RGBA buffer is pure CPU work -
     // run it off the UI isolate (the Skia PNG compression below is already
     // off-thread). Only decodeImageFromPixels/toByteData need the engine.
     final rgba = await Isolate.run(() => _alphaToRgba(mask));
@@ -144,7 +144,7 @@ class MaskStore {
 /// `mask_<id>_<stamp>.png` and points the layer at it; the previous file is then
 /// only reachable through undo/redo history. This collector remembers those
 /// superseded paths and, on demand, deletes each one that is no longer reachable
-/// per a caller-supplied `isReferenced` predicate — so intermediate masks don't
+/// per a caller-supplied `isReferenced` predicate - so intermediate masks don't
 /// pile up as orphans while a live undo entry can still restore them (#review
 /// perf, 2026-07-19).
 class SupersededMaskCollector {

@@ -1,4 +1,4 @@
-# Chromis — website
+# Chromis - website
 
 Static marketing site for the Chromis Android app. Plain HTML/CSS +
 a little vanilla JS, no build step. Matches the app's dark theme and palette
@@ -18,7 +18,7 @@ website/
 
 ## Analytics & contact form
 
-Both are **configured** (values live in the HTML, which is fine — a GA4
+Both are **configured** (values live in the HTML, which is fine - a GA4
 Measurement ID and a Web3Forms access key are public, client-side identifiers):
 
 | Service | Where | Value |
@@ -42,7 +42,7 @@ Guards that remain in place:
 - The download CTAs use a **Google Play badge** (`.store-badge`, matching
   idct.tech/sticker-maker). Its `href` is a placeholder Play URL for this app id
   (`play.google.com/store/apps/details?id=tech.idct.chromis`). When the final
-  store link is provided, replace that URL on every `.store-badge` — header, hero,
+  store link is provided, replace that URL on every `.store-badge` - header, hero,
   CTA band, and the nav on both legal pages. A "Coming soon to Google Play" note
   sits under the hero badge until launch.
 

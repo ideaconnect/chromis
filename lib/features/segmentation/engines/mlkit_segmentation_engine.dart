@@ -44,7 +44,7 @@ class MlKitSegmentationEngine implements SegmentationEngine {
     // The ENTIRE body sits inside the try: the interface contract
     // (segmentation_engine.dart) is that every failure surfaces as a
     // [SegmentationException], so the registry's fall-through to the bundled
-    // engine can never be bypassed by an untyped throw (2026-07-19 review) —
+    // engine can never be bypassed by an untyped throw (2026-07-19 review) -
     // _resolveSize alone can raise FileSystemException or a decode error.
     try {
       final size = await _resolveSize(request);
@@ -83,13 +83,13 @@ class MlKitSegmentationEngine implements SegmentationEngine {
       );
     } catch (e) {
       // Everything else: file IO, a corrupt image header, plugin-internal
-      // errors (MissingPluginException, …) — still the typed contract.
+      // errors (MissingPluginException, …) - still the typed contract.
       throw SegmentationException('$e', engineId: id);
     }
   }
 
   /// Converts ML Kit's per-pixel foreground confidences (0.0 … 1.0) into an
-  /// 8-bit [AlphaMask]. Pure and side-effect free — unit-tested directly.
+  /// 8-bit [AlphaMask]. Pure and side-effect free - unit-tested directly.
   static AlphaMask maskFromConfidence(
     List<double> confidence,
     int width,

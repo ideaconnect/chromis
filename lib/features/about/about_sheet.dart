@@ -10,7 +10,7 @@ import '../go_pro/iap.dart';
 import 'about_data.dart';
 
 /// Opens the About / settings sheet from the Home avatar: app identity plus
-/// links to the privacy summary and open‑source licenses.
+/// links to the privacy summary and open-source licenses.
 Future<void> showAboutSheet(BuildContext context) {
   return showModalBottomSheet<void>(
     context: context,
@@ -88,7 +88,7 @@ class _AboutSheet extends ConsumerWidget {
               _AboutRow(
                 icon: Icons.workspace_premium_outlined,
                 label: 'Go Pro · remove ads',
-                sub: 'One‑time upgrade — no ads, ever',
+                sub: 'One-time upgrade - no ads, ever',
                 onTap: () => _go(context, Routes.goPro),
               ),
               const SizedBox(height: 10),
@@ -96,13 +96,13 @@ class _AboutSheet extends ConsumerWidget {
             _AboutRow(
               icon: Icons.verified_user_outlined,
               label: 'Privacy & Cookies',
-              sub: 'On‑device editing · how ads work',
+              sub: 'On-device editing · how ads work',
               onTap: () => _go(context, Routes.privacy),
             ),
             const SizedBox(height: 10),
             _AboutRow(
               icon: Icons.article_outlined,
-              label: 'Open‑source licenses',
+              label: 'Open-source licenses',
               sub: 'The great work we build on',
               onTap: () => _go(context, Routes.licenses),
             ),

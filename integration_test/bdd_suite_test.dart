@@ -1,10 +1,10 @@
-// Aggregated BDD suite — runs every deterministic feature in a SINGLE test
+// Aggregated BDD suite - runs every deterministic feature in a SINGLE test
 // binary so `flutter test` builds + installs the app only ONCE (instead of once
 // per feature file, which on MIUI means one "Install via USB" prompt per file).
 //
 // Run:  flutter test integration_test/bdd_suite_test.dart -d <deviceId>
 //
-// The hardware/ML-dependent AI feature (editor_ai) is intentionally left out —
+// The hardware/ML-dependent AI feature (editor_ai) is intentionally left out -
 // run it on its own when needed: flutter test integration_test/bdd/editor_ai_test.dart -d <id>
 import 'bdd/about_test.dart' as about;
 import 'bdd/app_launch_test.dart' as app_launch;

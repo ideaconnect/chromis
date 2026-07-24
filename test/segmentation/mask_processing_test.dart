@@ -210,7 +210,7 @@ void main() {
       // The speck is knocked down, but softly (feathered), not a hard zero.
       expect(out.at(5, 3), lessThan(255));
       expect(out.at(5, 3), greaterThan(0));
-      // The subject is untouched — the seam is local to the removed blob.
+      // The subject is untouched - the seam is local to the removed blob.
       expect(out.at(0, 0), 255);
       // Overall foreground shrank.
       expect(total(out), lessThan(total(m)));

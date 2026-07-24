@@ -32,7 +32,7 @@ class ModelConfig {
 const u2netpConfig = ModelConfig(assetPath: 'assets/models/u2netp.onnx');
 
 /// Pure tensor <-> image conversions around the native inference seam. No
-/// `dart:ui`, no plugin — fully host-unit-testable, which is where recipe bugs
+/// `dart:ui`, no plugin - fully host-unit-testable, which is where recipe bugs
 /// (wrong mean/std, BGR order, planar-vs-interleaved) get caught cheaply.
 abstract final class MaskTensor {
   MaskTensor._();

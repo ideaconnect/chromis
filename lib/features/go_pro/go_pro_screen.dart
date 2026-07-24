@@ -26,7 +26,7 @@ class GoProScreen extends ConsumerWidget {
       if (product == null) {
         _snack(
           context,
-          'Purchases are temporarily unavailable — please try again later.',
+          'Purchases are temporarily unavailable - please try again later.',
         );
         return;
       }
@@ -67,7 +67,7 @@ class GoProScreen extends ConsumerWidget {
                 ),
                 SizedBox(height: 6),
                 Text(
-                  'One-time purchase. Every AI feature stays free — no ads, '
+                  'One-time purchase. Every AI feature stays free - no ads, '
                   'no watch-to-run.',
                   style: TextStyle(
                     fontFamily: AppFonts.ui,
@@ -82,7 +82,7 @@ class GoProScreen extends ConsumerWidget {
           const SizedBox(height: 20),
           _benefit('No banner or interstitial ads'),
           _benefit('Run AI Cut & object removal without a rewarded ad'),
-          _benefit('One-time payment — no subscription'),
+          _benefit('One-time payment - no subscription'),
           _benefit('Supports private, on-device photo editing'),
           const SizedBox(height: 24),
           if (isPro)
@@ -101,7 +101,7 @@ class GoProScreen extends ConsumerWidget {
                   SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      "You're Pro — ads are off. Thank you!",
+                      "You're Pro - ads are off. Thank you!",
                       style: TextStyle(
                         fontFamily: AppFonts.ui,
                         fontSize: 14,
@@ -122,7 +122,7 @@ class GoProScreen extends ConsumerWidget {
                 minimumSize: const Size.fromHeight(52),
               ),
               child: Text(
-                product == null ? 'Go Pro' : 'Upgrade — ${product.price}',
+                product == null ? 'Go Pro' : 'Upgrade - ${product.price}',
                 style: const TextStyle(
                   fontFamily: AppFonts.display,
                   fontWeight: FontWeight.w700,

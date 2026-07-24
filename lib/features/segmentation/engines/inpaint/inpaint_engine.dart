@@ -26,12 +26,12 @@ const _outputName = 'output';
 /// synthesized background instead of erasing it to transparency.
 ///
 /// Signature this engine feeds (the standard MI-GAN export):
-///   input  `[1, 4, 512, 512]` float32 — channel 0 = `keep - 0.5`
+///   input  `[1, 4, 512, 512]` float32 - channel 0 = `keep - 0.5`
 ///     (keep: 1 outside the hole, 0 inside), channels 1..3 = `rgb/127.5 - 1`
 ///     multiplied by `keep` (the hole zeroed);
 ///   output `[1, 3, 512, 512]` float32 in [-1, 1].
 /// The hole (synthesized) region is composited back over the FULL-resolution
-/// original, so only the filled area is resampled — the rest stays sharp.
+/// original, so only the filled area is resampled - the rest stays sharp.
 class InpaintEngine {
   InpaintEngine(this._openGraph);
 
@@ -42,7 +42,7 @@ class InpaintEngine {
 
   /// Fills the [region] (alpha > 128 = the object to remove) in the photo at
   /// [imageBytes] with synthesized content, returning PNG bytes of the whole
-  /// image with that region replaced — or null if the model can't run.
+  /// image with that region replaced - or null if the model can't run.
   Future<Uint8List?> inpaint(Uint8List imageBytes, AlphaMask region) async {
     try {
       final graph = await _ensure();
@@ -81,7 +81,7 @@ class InpaintEngine {
 typedef InpaintBox = ({int x, int y, int w, int h});
 
 /// Fit-contain rect of a [w]×[h] photo centered in the square 512 field.
-/// Pure geometry — covered by test/inpaint_letterbox_test.dart.
+/// Pure geometry - covered by test/inpaint_letterbox_test.dart.
 InpaintBox inpaintLetterbox(int w, int h) {
   final scale = _side / (w > h ? w : h);
   final lw = (w * scale).round().clamp(1, _side);
@@ -204,7 +204,7 @@ final inpaintEngineProvider = Provider<InpaintEngine>((ref) {
   return engine;
 });
 
-/// Whether the optional MI-GAN model is bundled — checked cheaply from the asset
+/// Whether the optional MI-GAN model is bundled - checked cheaply from the asset
 /// manifest (no model load). Gates the "Fill" object-removal option.
 final inpaintAvailableProvider = FutureProvider<bool>((ref) async {
   try {

@@ -74,7 +74,7 @@ class _CropOverlay extends StatefulWidget {
   /// Produces the preview image (the composition, or a single layer's image).
   final Future<ui.Image> Function() loadPreview;
 
-  /// Source dimensions — drive the container aspect and the minimum crop size.
+  /// Source dimensions - drive the container aspect and the minimum crop size.
   final int srcWidth;
   final int srcHeight;
 

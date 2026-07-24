@@ -47,7 +47,7 @@ def to_square(im: Image.Image) -> Image.Image:
 
 
 def padded(badge: Image.Image, size: int, scale: float = 0.62) -> Image.Image:
-    """Badge scaled to `scale` of `size`, centered on a transparent square — so
+    """Badge scaled to `scale` of `size`, centered on a transparent square - so
     it fits inside the Android-12 circular splash mask without clipping."""
     inner = round(size * scale)
     art = badge.resize((inner, inner), Image.LANCZOS)
@@ -58,7 +58,7 @@ def padded(badge: Image.Image, size: int, scale: float = 0.62) -> Image.Image:
 
 def gradient_bg(w: int, h: int, stops) -> Image.Image:
     """Vertical multi-stop gradient. `stops` = [(pos 0..1, (r, g, b)), ...].
-    Built as a 1×h column then stretched — fast and smooth."""
+    Built as a 1×h column then stretched - fast and smooth."""
     col = Image.new("RGB", (1, h))
     px = col.load()
     for y in range(h):

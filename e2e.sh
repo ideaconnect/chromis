@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# e2e.sh — run the Gherkin/BDD end-to-end tests on a connected device and write
+# e2e.sh - run the Gherkin/BDD end-to-end tests on a connected device and write
 # an HTML report (macOS/Linux/CI companion to e2e.ps1).
 #
 # Usage:
@@ -30,7 +30,7 @@ set -e
 if [ -f "$RESULTS" ]; then
   dart run tool/e2e_report.dart "$RESULTS" "${DEVICE:-connected device}"
 else
-  echo "No results file produced — the run likely failed before any test."
+  echo "No results file produced - the run likely failed before any test."
 fi
 
 exit $TEST_EXIT

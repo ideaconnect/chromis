@@ -30,7 +30,7 @@ class LabeledSlider extends StatelessWidget {
   final Color accent;
   final ValueChanged<double>? onChanged;
 
-  /// Called when a drag gesture ends — used to close an undo step.
+  /// Called when a drag gesture ends - used to close an undo step.
   final ValueChanged<double>? onChangeEnd;
 
   /// Text shown on the right (e.g. "118%"). Defaults to the rounded value.

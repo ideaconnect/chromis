@@ -3,7 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 /// Guards the ad-unit id selection: while [AdsConfig.useTestAds] is true (the
 /// shipped default until real ids are filled in), every getter must resolve to
-/// Google's official Android **test** unit ids — never the prod placeholders.
+/// Google's official Android **test** unit ids - never the prod placeholders.
 void main() {
   // Google's documented Android test unit ids share this test publisher id.
   const testPublisher = 'ca-app-pub-3940256099942544';

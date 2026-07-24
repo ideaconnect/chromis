@@ -30,7 +30,7 @@ class SettingsStore {
       return (jsonDecode(await file.readAsString()) as Map)
           .cast<String, dynamic>();
     } catch (_) {
-      // A corrupt settings file should never brick the app — treat as empty.
+      // A corrupt settings file should never brick the app - treat as empty.
       return {};
     }
   }
@@ -50,7 +50,7 @@ class SettingsStore {
   }
 
   /// The user's preferred background-removal model id (see `SegModel`), or null
-  /// when unset — the segmentation layer maps that to its default. Stored as a
+  /// when unset - the segmentation layer maps that to its default. Stored as a
   /// bare string so this core layer stays free of any feature dependency.
   Future<String?> segmentationModelId() async =>
       (await _read())[_kSegModel] as String?;
@@ -61,7 +61,7 @@ class SettingsStore {
     await _write(data);
   }
 
-  /// Whether the one-time "Go Pro — remove ads" purchase is owned. Cached
+  /// Whether the one-time "Go Pro - remove ads" purchase is owned. Cached
   /// locally so Pro survives offline; re-verified via Restore on reinstall.
   Future<bool> proEntitled() async => (await _read())[_kProEntitled] == true;
 

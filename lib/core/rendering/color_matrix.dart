@@ -4,7 +4,7 @@ import '../models/image_adjustments.dart';
 
 /// Builds 4×5 color matrices (the format [ColorFilter.matrix] expects) for the
 /// Adjust tool, and composes them into a single matrix for an
-/// [ImageAdjustments]. Matrices operate on 0–255 channel values; the 5th column
+/// [ImageAdjustments]. Matrices operate on 0-255 channel values; the 5th column
 /// is a constant translation in the same range.
 abstract final class ColorMatrix {
   ColorMatrix._();

@@ -162,7 +162,7 @@ def main():
     compose_on(cut, checkerboard(canvas_size), scale=0.96, shadow=False).save(
         os.path.join(OUT, "dog-checker.jpg"), quality=86, optimize=True)
 
-    # 4) studio (brand radial) — the "after" for the before/after slider + hero
+    # 4) studio (brand radial) - the "after" for the before/after slider + hero
     studio = radial(canvas_size, inner=(30, 44, 92), outer=(9, 14, 30))
     compose_on(cut, studio, scale=0.9).save(
         os.path.join(OUT, "dog-studio.jpg"), quality=86, optimize=True)

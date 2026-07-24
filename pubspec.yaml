@@ -1,5 +1,5 @@
 name: chromis
-description: "Chromis BG Removal — cut out backgrounds, remove objects, add text & speech bubbles, all on-device."
+description: "Chromis BG Removal - cut out backgrounds, remove objects, add text & speech bubbles, all on-device."
 # Prevents accidental publication to pub.dev (this is a private app package).
 publish_to: 'none'
 
@@ -34,7 +34,7 @@ dependencies:
   # The ShareParams/SharePlus.instance API used here is unchanged across 12↔13.
   share_plus: ^12.0.2
   # Monetization (free app): AdMob (banner/interstitial/rewarded + UMP consent)
-  # and one-time non-consumable "Go Pro — remove ads" purchase.
+  # and one-time non-consumable "Go Pro - remove ads" purchase.
   google_mobile_ads: ^9.0.0
   in_app_purchase: ^3.3.0
   # Open external links (the community Discord) in the browser / Discord app.
@@ -76,7 +76,7 @@ flutter:
     # - assets/models/migan.onnx
     # Bundled AI model licenses (MobileSAM + U²-Netp, Apache-2.0).
     - assets/licenses/Apache-2.0-models.txt
-    # Bundled font license texts — registered into LicenseRegistry as SIL OFL /
+    # Bundled font license texts - registered into LicenseRegistry as SIL OFL /
     # Apache-2.0 require. Reskinned to Space Grotesk + Manrope in M0; the full
     # display-font set lands in M4. See about/bundled_licenses.dart.
     - assets/fonts/OFL-SpaceGrotesk.txt

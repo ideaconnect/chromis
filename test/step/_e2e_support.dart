@@ -12,10 +12,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path_provider/path_provider.dart';
 
-/// Shared helpers for the BDD step definitions (not a step itself — the leading
+/// Shared helpers for the BDD step definitions (not a step itself - the leading
 /// underscore keeps it out of bdd_widget_test's way).
 
-/// `pumpAndSettle` hangs on this app — the splash spinner, onboarding dots and
+/// `pumpAndSettle` hangs on this app - the splash spinner, onboarding dots and
 /// the Home banner-ad slot never reach a steady state. Pump fixed frames so
 /// async startup (onboarding flag, fonts, ads/UMP, IAP) completes instead.
 Future<void> settle(
@@ -75,7 +75,7 @@ Future<void> bootFirstRun(WidgetTester tester) async {
 }
 
 // ---------------------------------------------------------------------------
-// Provider + state access (works on any screen — reads the root container).
+// Provider + state access (works on any screen - reads the root container).
 // ---------------------------------------------------------------------------
 
 ProviderContainer containerOf(WidgetTester tester) => ProviderScope.containerOf(
@@ -101,7 +101,7 @@ BubbleLayer selectedBubble(WidgetTester tester) =>
     selectedLayer(tester) as BubbleLayer;
 
 // ---------------------------------------------------------------------------
-// Headless photo seeding — no system picker. Copies a bundled asset to the
+// Headless photo seeding - no system picker. Copies a bundled asset to the
 // app's project-assets dir (a real on-disk file) and adds it as an ImageLayer.
 // Call AFTER the editor is on screen (a project must be loaded).
 // ---------------------------------------------------------------------------
@@ -115,7 +115,7 @@ Future<void> seedPhoto(WidgetTester tester) async {
   await settle(tester);
 }
 
-/// Tap a visible text label and let the UI settle. The primary interaction —
+/// Tap a visible text label and let the UI settle. The primary interaction -
 /// the app is built from custom widgets wrapping Text, so find.text is the
 /// canonical finder.
 Future<void> tapText(WidgetTester tester, String label) async {

@@ -8,7 +8,7 @@ import '../../config/ads_config.dart';
 /// Central AdMob controller: one-time SDK init + UMP consent, and the
 /// interstitial (export) / rewarded (AI actions) helpers. Banner ads are built
 /// inline via [AdWidget] by their host widget. Callers gate on `isProProvider`
-/// before showing anything — Pro users see no ads.
+/// before showing anything - Pro users see no ads.
 class AdsService {
   AdsService();
 
@@ -21,7 +21,7 @@ class AdsService {
   Future<void> init() async {
     if (_initialized) return;
     _initialized = true;
-    // UMP consent (EEA/UK). Best-effort — never block or crash the app on it.
+    // UMP consent (EEA/UK). Best-effort - never block or crash the app on it.
     try {
       ConsentInformation.instance.requestConsentInfoUpdate(
         ConsentRequestParameters(),
@@ -61,7 +61,7 @@ class AdsService {
   }
 
   /// Shows a full-screen interstitial if one is ready (e.g. after export), then
-  /// preloads the next. No-op when none is loaded — never blocks the user.
+  /// preloads the next. No-op when none is loaded - never blocks the user.
   Future<void> showInterstitial() async {
     final ad = _interstitial;
     if (ad == null) {
@@ -83,7 +83,7 @@ class AdsService {
   }
 
   /// Shows a rewarded ad to unlock an AI action. Completes **true** when the
-  /// user earned the reward — OR when no ad is available (fail-open, so a
+  /// user earned the reward - OR when no ad is available (fail-open, so a
   /// failed load never blocks the feature). Completes false only if the user
   /// dismisses without earning.
   Future<bool> showRewarded() async {

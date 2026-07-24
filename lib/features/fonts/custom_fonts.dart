@@ -64,7 +64,7 @@ class CustomFontStore {
   }
 
   /// Loads every persisted font and registers it with the engine, returning the
-  /// catalogue (best-effort — a missing/corrupt file is skipped).
+  /// catalogue (best-effort - a missing/corrupt file is skipped).
   Future<List<CustomFont>> loadAndRegister() async {
     final dir = await _dir();
     final ok = <CustomFont>[];

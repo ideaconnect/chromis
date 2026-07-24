@@ -11,7 +11,7 @@ import 'package:chromis/features/editor/state/editor_tool.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// Exhaustive behavioral coverage for [EditorController] — the document owner
+/// Exhaustive behavioral coverage for [EditorController] - the document owner
 /// that funnels every mutation through the coalescing undo/redo history (#20).
 /// Each test seeds a document via [loadProject], drives the controller, and
 /// asserts against the freshly read [EditorState]. Assertions prefer invariants

@@ -22,10 +22,10 @@ class PromptPoint {
   final bool foreground;
 }
 
-/// Point-prompted object segmentation — deliberately a PARALLEL interface to
+/// Point-prompted object segmentation - deliberately a PARALLEL interface to
 /// the promptless `SegmentationEngine` registry (#85): falling through from a
 /// prompted engine to a promptless one would silently change what the result
-/// means, so there is no fall-through chain here — one engine, or unavailable.
+/// means, so there is no fall-through chain here - one engine, or unavailable.
 abstract interface class ObjectSegmentationEngine {
   Future<bool> isAvailable();
 
@@ -43,7 +43,7 @@ abstract interface class ObjectSegmentationEngine {
 
 /// MobileSAM (Apache-2.0) via ONNX Runtime: a TinyViT encoder that runs ONCE
 /// per photo (embedding cached in memory + on disk), and a light prompt
-/// decoder per tap (#84/#85 — see model_conversion/convert_mobile_sam.py for
+/// decoder per tap (#84/#85 - see model_conversion/convert_mobile_sam.py for
 /// the exact graph contracts). The encoder session is disposed right after
 /// its single pass to cap peak RAM; the decoder stays resident.
 class MobileSamEngine implements ObjectSegmentationEngine {
@@ -62,7 +62,7 @@ class MobileSamEngine implements ObjectSegmentationEngine {
   static const int inputSide = 1024;
 
   /// The decoder's low-res logit grid (256²), which maps onto the PADDED
-  /// 1024² frame — only the top-left (resized/4) region is valid.
+  /// 1024² frame - only the top-left (resized/4) region is valid.
   static const int lowResSide = 256;
 
   /// Disk-cache entries beyond this count are pruned (newest mtime wins);
@@ -121,7 +121,7 @@ class MobileSamEngine implements ObjectSegmentationEngine {
     final embedded = await _ensureEmbedding(imagePath);
 
     // Prompt coords live in the RESIZED (longest-side-1024) frame. The resize
-    // keeps aspect, so one factor per axis — computed per-axis anyway to stay
+    // keeps aspect, so one factor per axis - computed per-axis anyway to stay
     // robust to rounding.
     final sx = embedded.resizedW / embedded.srcW;
     final sy = embedded.resizedH / embedded.srcH;
@@ -148,7 +148,7 @@ class MobileSamEngine implements ObjectSegmentationEngine {
         ),
         'has_mask_input': (data: Float32List.fromList([0]), shape: [1]),
         // We never read the full-size `masks` output (megapixel float lists are
-        // slow across the channel) — ask for a tiny one so the graph's final
+        // slow across the channel) - ask for a tiny one so the graph's final
         // resize is cheap, and upscale `low_res_masks` ourselves.
         'orig_im_size': (
           data: Float32List.fromList([
@@ -183,7 +183,7 @@ class MobileSamEngine implements ObjectSegmentationEngine {
       try {
         await (await decoder).dispose();
       } catch (_) {
-        // The create itself failed — no session to free.
+        // The create itself failed - no session to free.
       }
     }
   }
@@ -220,7 +220,7 @@ class MobileSamEngine implements ObjectSegmentationEngine {
     // Single-flight per photo: the future is stored BEFORE anything is
     // awaited, so a tap that lands while the armed-mode precompute() is
     // still encoding joins that pass instead of starting a second one.
-    // Completion always evicts the slot — success is served from
+    // Completion always evicts the slot - success is served from
     // _memoryCache/disk, and a transient failure stays retryable.
     return _inFlight[key] ??= _computeEmbedding(file, key).whenComplete(() {
       _inFlight.remove(key);
@@ -239,7 +239,7 @@ class MobileSamEngine implements ObjectSegmentationEngine {
     final bytes = await file.readAsBytes();
     final prepared = await Isolate.run(() => _prepareInput(bytes));
 
-    // Encoder: create, run once, dispose immediately — the TinyViT session +
+    // Encoder: create, run once, dispose immediately - the TinyViT session +
     // arena is tens of MB we don't want resident.
     final encoder = await _graphFactory(encoderAsset);
     try {
@@ -268,7 +268,7 @@ class MobileSamEngine implements ObjectSegmentationEngine {
   }
 
   void _remember(String key, _Embedded value) {
-    // Tiny LRU: an embedding is ~4 MB fp32 — keep at most two.
+    // Tiny LRU: an embedding is ~4 MB fp32 - keep at most two.
     if (_memoryCache.length >= 2 && !_memoryCache.containsKey(key)) {
       _memoryCache.remove(_memoryCache.keys.first);
     }
@@ -316,7 +316,7 @@ class MobileSamEngine implements ObjectSegmentationEngine {
       if (bytes.lengthInBytes != _cacheEntryBytes) {
         // Truncated/corrupt entry (e.g. the process was killed mid-write
         // before the tmp+rename hardening existed). It must not shadow
-        // recomputation forever — delete it and fall through to the encoder.
+        // recomputation forever - delete it and fall through to the encoder.
         try {
           await file.delete();
         } catch (_) {
@@ -334,7 +334,7 @@ class MobileSamEngine implements ObjectSegmentationEngine {
         resizedH: header[3],
       );
     } catch (_) {
-      return null; // corrupt cache entry — recompute
+      return null; // corrupt cache entry - recompute
     }
   }
 
@@ -365,7 +365,7 @@ class MobileSamEngine implements ObjectSegmentationEngine {
       tmp = null;
       await _pruneDiskCache(dir, keep: '$key.bin');
     } catch (_) {
-      // Disk cache is an optimization — never fail the pipeline over it.
+      // Disk cache is an optimization - never fail the pipeline over it.
       try {
         await tmp?.delete();
       } catch (_) {
@@ -374,7 +374,7 @@ class MobileSamEngine implements ObjectSegmentationEngine {
     }
   }
 
-  /// Caps the disk cache at [maxDiskCacheEntries] embeddings — newest by mtime
+  /// Caps the disk cache at [maxDiskCacheEntries] embeddings - newest by mtime
   /// win. The [keep] entry (the basename just saved) is never evicted even
   /// under equal mtimes, so a rapid save is never immediately pruned (coarse
   /// filesystem mtime resolution can tie many entries). Best-effort, called
@@ -410,7 +410,7 @@ class MobileSamEngine implements ObjectSegmentationEngine {
 
   // ----------------------------------------------------- isolate helpers
   /// Decode + resize (longest side [inputSide], aspect kept) + pack to HWC
-  /// float32 RGB 0..255 — the exact encoder input contract.
+  /// float32 RGB 0..255 - the exact encoder input contract.
   static _PreparedInput _prepareInput(Uint8List bytes) {
     final decoded = img.decodeImage(bytes);
     if (decoded == null) {
@@ -515,7 +515,7 @@ class _Embedded {
   final int resizedH;
 }
 
-/// The app's point-prompt engine. Kept as a plain provider (not a family) —
+/// The app's point-prompt engine. Kept as a plain provider (not a family) -
 /// one resident decoder for the whole app.
 final objectSegmentationEngineProvider = Provider<ObjectSegmentationEngine>((
   ref,

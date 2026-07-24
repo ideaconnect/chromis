@@ -8,7 +8,7 @@ Future<void> iPickADifferentColor(WidgetTester tester, String param1) async {
   // The bubble panel builds two _swatchRow rows (editor_screen.dart ~1058):
   // a Row headed by Text('Fill' | 'Outline') followed by a Wrap of 9 tappable
   // color swatches (GestureDetectors). `.first` on the ancestor finder yields
-  // the *nearest* Row — the swatch row for this label — so the swatch finder
+  // the *nearest* Row - the swatch row for this label - so the swatch finder
   // stays scoped to just its 9 swatches. Index 2 is AppColors.pink, which is
   // neither the default fill (white) nor the default outline (#14101A), so it
   // always registers as a change from the current color.

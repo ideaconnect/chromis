@@ -36,7 +36,7 @@ class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
   /// How many recent projects the Home grid shows before "See all". The grid is
-  /// shrink-wrapped (non-lazy), so it must stay small — otherwise every saved
+  /// shrink-wrapped (non-lazy), so it must stay small - otherwise every saved
   /// project's thumbnail decodes up front. The full list lives in All projects.
   static const _recentCount = 6;
 
@@ -50,7 +50,7 @@ class HomeScreen extends ConsumerWidget {
       createdAt: DateTime.now(),
     );
     ref.read(editorControllerProvider.notifier).loadProject(project);
-    // Don't persist yet — the editor auto-saves on the first real edit, so an
+    // Don't persist yet - the editor auto-saves on the first real edit, so an
     // abandoned blank project never litters Recent.
     unawaited(context.pushNamed(Routes.editor));
   }
@@ -143,7 +143,7 @@ class HomeScreen extends ConsumerWidget {
               _StartCard(
                 icon: Icons.add,
                 title: 'New blank project',
-                subtitle: 'Pick a canvas size — it stays fixed',
+                subtitle: 'Pick a canvas size - it stays fixed',
                 onTap: () => _newProject(context, ref),
               ),
               const SizedBox(height: 12),
@@ -261,7 +261,7 @@ class _Header extends StatelessWidget {
   }
 }
 
-/// Community Discord button — a circular icon button matching the menu button,
+/// Community Discord button - a circular icon button matching the menu button,
 /// sitting just left of it in the Home header. Opens the invite in the Discord
 /// app or the browser.
 class _DiscordButton extends StatelessWidget {
@@ -371,7 +371,7 @@ class _HamburgerButton extends StatelessWidget {
   }
 }
 
-/// A start-a-project CTA — a dashed cyan border over a subtle cyan-tint
+/// A start-a-project CTA - a dashed cyan border over a subtle cyan-tint
 /// gradient, a filled cyan icon tile, a title and a subtitle. Used for both
 /// "New blank project" and "Open a photo".
 class _StartCard extends StatelessWidget {
@@ -583,7 +583,7 @@ class _HomeAdBannerState extends ConsumerState<_HomeAdBanner> {
   Widget build(BuildContext context) {
     final ad = _ad;
     // Hide the slot for Pro users, and while there's no ad to show (still
-    // loading or no-fill) — no stuck "Ad" placeholder pinned to the bottom.
+    // loading or no-fill) - no stuck "Ad" placeholder pinned to the bottom.
     if (ref.watch(isProProvider) || !_loaded || ad == null) {
       return const SizedBox.shrink();
     }

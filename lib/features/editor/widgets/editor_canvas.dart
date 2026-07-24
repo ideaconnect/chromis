@@ -57,7 +57,7 @@ class EditorCanvas extends ConsumerStatefulWidget {
 class _EditorCanvasState extends ConsumerState<EditorCanvas> {
   /// Decoded pixel size per photo assetPath, so hit boxes and the selection
   /// frame match the BoxFit.contain content rect instead of the full 440
-  /// square (#74). Read from the encoded header only — pixels are never
+  /// square (#74). Read from the encoded header only - pixels are never
   /// decoded here.
   final Map<String, Size> _imageDims = {};
   final Set<String> _dimsLoading = {};
@@ -98,7 +98,7 @@ class _EditorCanvasState extends ConsumerState<EditorCanvas> {
       descriptor.dispose();
       if (mounted) setState(() => _imageDims[path] = size);
     } catch (_) {
-      // Unreadable file — keep the square fallback (and don't retry).
+      // Unreadable file - keep the square fallback (and don't retry).
       if (mounted) _imageDims[path] = Size.zero;
     } finally {
       _dimsLoading.remove(path);
@@ -150,12 +150,12 @@ class _EditorCanvasState extends ConsumerState<EditorCanvas> {
                 ),
               if (selected != null && editor.tool != EditorTool.frames) ...[
                 _selectionOverlay(selected, scale),
-                // Bubbles get a draggable knob at the tail tip (#78) — except
+                // Bubbles get a draggable knob at the tail tip (#78) - except
                 // caption boxes, which have no tail (#80).
                 if (selected is BubbleLayer &&
                     selected.shape != BubbleShape.caption)
                   _tailHandle(selected, scale),
-                // Delete the selected layer right on the canvas — previously
+                // Delete the selected layer right on the canvas - previously
                 // removal only existed on the Layers-panel rows, so anything
                 // added while on Adjust/Text felt undeletable. Hidden for
                 // Erase/Cut-out, where canvas taps mean brush dabs / object
@@ -228,7 +228,7 @@ class _EditorCanvasState extends ConsumerState<EditorCanvas> {
   }
 
   /// A tappable × on the selection frame's top-right corner (rotating with
-  /// the layer) that removes the selected layer — one undo step.
+  /// the layer) that removes the selected layer - one undo step.
   Widget _deleteHandle(Layer layer, double scale) {
     const pad = 10.0; // matches _selectionOverlay's frame padding
     final size = _sizeOf(layer);
@@ -315,7 +315,7 @@ class _EditorCanvasState extends ConsumerState<EditorCanvas> {
     }
     final hit = _hitTest(editor.layers, pointLogical);
     _controller.selectLayer(hit?.id);
-    // Tapping a bubble opens its editor right away — previously the bubble
+    // Tapping a bubble opens its editor right away - previously the bubble
     // panel appeared only if the Text tool happened to be active (#82).
     if (hit is BubbleLayer && editor.tool != EditorTool.text) {
       _controller.setTool(EditorTool.text);
@@ -471,7 +471,7 @@ class _ImmediatePanRecognizer extends PanGestureRecognizer {
 }
 
 /// Draws the selection frame: a rounded accent border around the selected
-/// layer. Scale/rotate is a two-finger pinch, so no drag-handles are drawn —
+/// layer. Scale/rotate is a two-finger pinch, so no drag-handles are drawn -
 /// they would imply an interaction the canvas doesn't offer.
 class _SelectionPainter extends CustomPainter {
   static const Color _c = AppColors.cyan;

@@ -4,7 +4,7 @@ import '../theme/app_colors.dart';
 import '../theme/app_typography.dart';
 
 /// Prompts for a name (e.g. renaming a project). Returns the trimmed
-/// name, or null if cancelled / left blank — blank input never renames, so
+/// name, or null if cancelled / left blank - blank input never renames, so
 /// callers keep the old name (mirrors the pack rename guard).
 Future<String?> promptName(
   BuildContext context, {
@@ -28,7 +28,7 @@ Future<String?> promptName(
 }
 
 /// Owns its [TextEditingController] so it is disposed exactly when the dialog
-/// element leaves the tree — disposing an externally-held controller right
+/// element leaves the tree - disposing an externally-held controller right
 /// after `showDialog` returns crashes the dialog's exit animation.
 class _NamePromptDialog extends StatefulWidget {
   const _NamePromptDialog({

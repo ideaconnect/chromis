@@ -63,7 +63,7 @@ BubbleLayer fullBubble() => const BubbleLayer(
 );
 
 void main() {
-  // Layers hold Color / Rect / Offset (dart:ui) — bind before touching them.
+  // Layers hold Color / Rect / Offset (dart:ui) - bind before touching them.
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('ImageLayer', () {

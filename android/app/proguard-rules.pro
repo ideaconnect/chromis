@@ -2,7 +2,7 @@
 #
 # Release builds shrink + obfuscate Java/Kotlin. Two native libraries resolve
 # their Java classes by name at runtime via JNI (FindClass/GetMethodID), so R8
-# must not rename or remove those classes — otherwise inference aborts the VM.
+# must not rename or remove those classes - otherwise inference aborts the VM.
 
 # ONNX Runtime (flutter_onnxruntime, #28). Symptom when stripped:
 #   "JNI DETECTED ERROR IN APPLICATION: java_class == null in call to
