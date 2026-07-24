@@ -494,4 +494,43 @@ void main() {
       );
     });
   });
+
+  group('cellId (Photo Grid)', () {
+    // Every variant can live inside a cell - a caption pinned into one photo of
+    // the collage is as valid as the photo itself.
+    final variants = <String, Layer>{
+      'image': fullImage(),
+      'text': fullText(),
+      'bubble': fullBubble(),
+    };
+
+    Layer withCell(Layer layer, String? cellId, {bool clear = false}) =>
+        switch (layer) {
+          ImageLayer() => layer.copyWith(cellId: cellId, clearCell: clear),
+          TextLayer() => layer.copyWith(cellId: cellId, clearCell: clear),
+          BubbleLayer() => layer.copyWith(cellId: cellId, clearCell: clear),
+        };
+
+    for (final entry in variants.entries) {
+      test('${entry.key}: defaults to null (a free layer)', () {
+        expect(entry.value.cellId, isNull);
+        // Absent, not null-valued: manifests of non-collage projects are
+        // byte-identical to the pre-grid schema.
+        expect(entry.value.toJson().containsKey('cellId'), isFalse);
+      });
+
+      test('${entry.key}: round-trips and clears through copyWith', () {
+        final assigned = withCell(entry.value, 'c2');
+        expect(assigned.cellId, 'c2');
+        expect(assigned.toJson()['cellId'], 'c2');
+        expect(Layer.fromJson(assigned.toJson()).cellId, 'c2');
+        expect(assigned, isNot(entry.value)); // participates in ==
+        expect(assigned.hashCode, isNot(entry.value.hashCode));
+
+        expect(withCell(assigned, null, clear: true).cellId, isNull);
+        // A bare copyWith must not silently drop the assignment.
+        expect(withCell(assigned, null).cellId, 'c2');
+      });
+    }
+  });
 }

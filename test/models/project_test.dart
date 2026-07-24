@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:ui';
 
 import 'package:chromis/core/models/frame.dart';
+import 'package:chromis/core/models/grid.dart';
 import 'package:chromis/core/models/image_adjustments.dart';
 import 'package:chromis/core/models/layer.dart';
 import 'package:chromis/core/models/layer_transform.dart';
@@ -10,8 +11,8 @@ import 'package:flutter_test/flutter_test.dart';
 
 /// Guards the [Project] document model: canvas-size clamping, derived geometry,
 /// per-field copyWith, the versioned JSON manifest round-trip (mixed layer
-/// types + ISO8601 dates), and the v1->v2 migration / validation paths in
-/// [Project.fromJson].
+/// types + ISO8601 dates), the optional Photo Grid ([Project.grid]), and the
+/// v1/v2 -> v3 migration / validation paths in [Project.fromJson].
 
 final _created = DateTime.utc(2026, 7, 22, 10, 30, 15, 500);
 final _updated = DateTime.utc(2026, 7, 22, 11, 45, 0, 250);
@@ -106,7 +107,7 @@ void main() {
     expect(Project.minFps, 0.25);
     expect(Project.maxFps, 30.0);
     expect(Project.defaultFps, 8.0);
-    expect(Project.schemaVersion, 2);
+    expect(Project.schemaVersion, 3); // v3 added the Photo Grid
   });
 
   test('Project.empty clamps canvas dimensions into range', () {
@@ -258,6 +259,117 @@ void main() {
     final restored = Project.fromJson(decoded);
     expect(restored, equals(original));
     expect(restored.frames, equals(original.frames));
+  });
+
+  group('Photo Grid (v3)', () {
+    GridSpec sampleGrid() => GridSpec(
+      root: GridSplit(
+        GridAxis.columns,
+        [0.6, 0.4],
+        [
+          const GridLeaf('a'),
+          GridSplit(
+            GridAxis.rows,
+            [1, 1],
+            const [GridLeaf('b'), GridLeaf('c')],
+          ),
+        ],
+      ).withCanonicalIds(),
+      borderColor: const Color(0xFF17B6D6),
+      borderWidth: 18,
+      cornerRadius: 12,
+    );
+
+    test('grid is null by default and isGrid follows it', () {
+      final plain = Project.empty(id: 'p');
+      expect(plain.grid, isNull);
+      expect(plain.isGrid, isFalse);
+
+      final collage = plain.copyWith(grid: sampleGrid());
+      expect(collage.isGrid, isTrue);
+      expect(collage.grid!.cellIds, ['c0', 'c1', 'c2']);
+      // copyWith(clearGrid:) is the only way back to an ordinary project.
+      expect(collage.copyWith(clearGrid: true).grid, isNull);
+      expect(collage.copyWith(name: 'x').grid, sampleGrid());
+    });
+
+    test('a collage round-trips through JSON with its cell assignments', () {
+      final original = Project(
+        id: 'g',
+        name: 'Collage',
+        canvasWidth: 1080,
+        canvasHeight: 1080,
+        grid: sampleGrid(),
+        frames: const [
+          Frame(
+            id: 'g_f0',
+            layers: [
+              ImageLayer(
+                id: 'l0',
+                name: 'Photo',
+                assetPath: '/a.png',
+                cellId: 'c0',
+              ),
+              // A free layer (no cell) rides above the whole grid.
+              TextLayer(
+                id: 'l1',
+                name: 'Caption',
+                text: 'Hi',
+                fontFamily: 'Manrope',
+                color: Color(0xFF17B6D6),
+              ),
+            ],
+          ),
+        ],
+      );
+      final decoded =
+          jsonDecode(jsonEncode(original.toJson())) as Map<String, dynamic>;
+      expect(decoded['version'], 3);
+
+      final restored = Project.fromJson(decoded);
+      expect(restored, equals(original));
+      expect((restored.frames.first.layers[0] as ImageLayer).cellId, 'c0');
+      expect(restored.frames.first.layers[1].cellId, isNull);
+    });
+
+    test('an ordinary project writes no grid key at all', () {
+      // Keeps existing manifests byte-identical to the v2 output.
+      expect(Project.empty(id: 'p').toJson().containsKey('grid'), isFalse);
+    });
+
+    test('a v2 manifest loads as an ordinary project', () {
+      final v2 = <String, dynamic>{
+        'version': 2,
+        'id': 'p2',
+        'name': 'Pre-grid',
+        'canvasWidth': 1080,
+        'canvasHeight': 1350,
+        'frames': [
+          {
+            'id': 'p2_f0',
+            'layers': [
+              {
+                'type': 'image',
+                'id': 'l0',
+                'name': 'Photo',
+                'assetPath': '/a.png',
+                'transform': {
+                  'x': 1.0,
+                  'y': 2.0,
+                  'scale': 1.0,
+                  'rotation': 0.0,
+                },
+              },
+            ],
+          },
+        ],
+      };
+      final p = Project.fromJson(v2);
+      expect(p.grid, isNull);
+      expect(p.isGrid, isFalse);
+      expect(p.canvasWidth, 1080);
+      expect(p.frames.first.layers.single.cellId, isNull);
+    });
   });
 
   test('fromJson migrates a v1 manifest to the legacy canvas size', () {

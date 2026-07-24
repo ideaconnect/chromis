@@ -16,6 +16,7 @@ sealed class Layer {
     required this.transform,
     this.visible = true,
     this.opacity = 1.0,
+    this.cellId,
   });
 
   final String id;
@@ -26,12 +27,18 @@ sealed class Layer {
   /// 0.0 … 1.0
   final double opacity;
 
+  /// Which Photo Grid cell this layer lives in (see `GridSpec`), or null for a
+  /// **free** layer - drawn above the whole grid, unclipped, so a caption can
+  /// span the collage. Always null in an ordinary (non-collage) project.
+  final String? cellId;
+
   /// Discriminator written into JSON.
   String get type;
 
   Map<String, dynamic> toJson();
 
-  /// Base fields shared by every layer variant.
+  /// Base fields shared by every layer variant. `cellId` is written only when
+  /// set, so manifests of non-collage projects are unchanged.
   Map<String, dynamic> baseJson() => {
     'type': type,
     'id': id,
@@ -39,6 +46,7 @@ sealed class Layer {
     'transform': transform.toJson(),
     'visible': visible,
     'opacity': opacity,
+    if (cellId != null) 'cellId': cellId,
   };
 
   factory Layer.fromJson(Map<String, dynamic> json) {
@@ -66,6 +74,7 @@ final class ImageLayer extends Layer {
     super.transform = LayerTransform.identity,
     super.visible = true,
     super.opacity = 1.0,
+    super.cellId,
     this.maskPath,
     this.adjustments = ImageAdjustments.identity,
     this.outlineWidth = 0,
@@ -109,6 +118,8 @@ final class ImageLayer extends Layer {
     LayerTransform? transform,
     bool? visible,
     double? opacity,
+    String? cellId,
+    bool clearCell = false,
     String? assetPath,
     String? maskPath,
     bool clearMask = false,
@@ -123,6 +134,7 @@ final class ImageLayer extends Layer {
       transform: transform ?? this.transform,
       visible: visible ?? this.visible,
       opacity: opacity ?? this.opacity,
+      cellId: clearCell ? null : (cellId ?? this.cellId),
       assetPath: assetPath ?? this.assetPath,
       maskPath: clearMask ? null : (maskPath ?? this.maskPath),
       adjustments: adjustments ?? this.adjustments,
@@ -152,6 +164,7 @@ final class ImageLayer extends Layer {
       ),
       visible: json['visible'] as bool? ?? true,
       opacity: (json['opacity'] as num?)?.toDouble() ?? 1.0,
+      cellId: json['cellId'] as String?,
       assetPath: json['assetPath'] as String,
       maskPath: json['maskPath'] as String?,
       adjustments: ImageAdjustments.fromJson(
@@ -183,6 +196,7 @@ final class ImageLayer extends Layer {
       other.transform == transform &&
       other.visible == visible &&
       other.opacity == opacity &&
+      other.cellId == cellId &&
       other.assetPath == assetPath &&
       other.maskPath == maskPath &&
       other.adjustments == adjustments &&
@@ -197,6 +211,7 @@ final class ImageLayer extends Layer {
     transform,
     visible,
     opacity,
+    cellId,
     assetPath,
     maskPath,
     adjustments,
@@ -216,6 +231,7 @@ final class TextLayer extends Layer {
     super.transform = LayerTransform.identity,
     super.visible = true,
     super.opacity = 1.0,
+    super.cellId,
     this.fontSize = 40,
     this.color = const Color(0xFFFFFFFF),
     this.decorative = false,
@@ -240,6 +256,8 @@ final class TextLayer extends Layer {
     LayerTransform? transform,
     bool? visible,
     double? opacity,
+    String? cellId,
+    bool clearCell = false,
     String? text,
     String? fontFamily,
     double? fontSize,
@@ -252,6 +270,7 @@ final class TextLayer extends Layer {
       transform: transform ?? this.transform,
       visible: visible ?? this.visible,
       opacity: opacity ?? this.opacity,
+      cellId: clearCell ? null : (cellId ?? this.cellId),
       text: text ?? this.text,
       fontFamily: fontFamily ?? this.fontFamily,
       fontSize: fontSize ?? this.fontSize,
@@ -279,6 +298,7 @@ final class TextLayer extends Layer {
       ),
       visible: json['visible'] as bool? ?? true,
       opacity: (json['opacity'] as num?)?.toDouble() ?? 1.0,
+      cellId: json['cellId'] as String?,
       text: json['text'] as String,
       fontFamily: json['fontFamily'] as String,
       fontSize: (json['fontSize'] as num?)?.toDouble() ?? 40,
@@ -295,6 +315,7 @@ final class TextLayer extends Layer {
       other.transform == transform &&
       other.visible == visible &&
       other.opacity == opacity &&
+      other.cellId == cellId &&
       other.text == text &&
       other.fontFamily == fontFamily &&
       other.fontSize == fontSize &&
@@ -308,6 +329,7 @@ final class TextLayer extends Layer {
     transform,
     visible,
     opacity,
+    cellId,
     text,
     fontFamily,
     fontSize,
@@ -334,6 +356,7 @@ final class BubbleLayer extends Layer {
     super.transform = LayerTransform.identity,
     super.visible = true,
     super.opacity = 1.0,
+    super.cellId,
   });
 
   final String text;
@@ -357,6 +380,8 @@ final class BubbleLayer extends Layer {
     LayerTransform? transform,
     bool? visible,
     double? opacity,
+    String? cellId,
+    bool clearCell = false,
     String? text,
     BubbleShape? shape,
     String? fontFamily,
@@ -372,6 +397,7 @@ final class BubbleLayer extends Layer {
       transform: transform ?? this.transform,
       visible: visible ?? this.visible,
       opacity: opacity ?? this.opacity,
+      cellId: clearCell ? null : (cellId ?? this.cellId),
       text: text ?? this.text,
       shape: shape ?? this.shape,
       fontFamily: fontFamily ?? this.fontFamily,
@@ -406,6 +432,7 @@ final class BubbleLayer extends Layer {
       ),
       visible: json['visible'] as bool? ?? true,
       opacity: (json['opacity'] as num?)?.toDouble() ?? 1.0,
+      cellId: json['cellId'] as String?,
       text: json['text'] as String? ?? '',
       shape: BubbleShape.values.firstWhere(
         (s) => s.name == json['shape'],
@@ -431,6 +458,7 @@ final class BubbleLayer extends Layer {
       other.transform == transform &&
       other.visible == visible &&
       other.opacity == opacity &&
+      other.cellId == cellId &&
       other.text == text &&
       other.shape == shape &&
       other.fontFamily == fontFamily &&
@@ -447,6 +475,7 @@ final class BubbleLayer extends Layer {
     transform,
     visible,
     opacity,
+    cellId,
     text,
     shape,
     fontFamily,

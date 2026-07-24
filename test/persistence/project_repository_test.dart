@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:chromis/core/models/frame.dart';
+import 'package:chromis/core/models/grid.dart';
 import 'package:chromis/core/models/layer.dart';
 import 'package:chromis/core/models/layer_transform.dart';
 import 'package:chromis/core/models/project.dart';
@@ -209,8 +210,51 @@ void main() {
     expect(img.assetPath, '/assets/img_shared.png');
     expect(img.maskPath, '/assets/mask_shared.png');
 
+    // Document settings survive the copy. duplicate() used to re-list the
+    // Project fields by hand and silently dropped these, so duplicating an
+    // 800x600 12fps project handed back a 512x512 8fps one.
+    expect(c.canvasWidth, 800);
+    expect(c.canvasHeight, 600);
+    expect(c.fps, 12);
+
     // The copy is persisted, not just returned.
     expect(await repo.load(c.id), equals(c));
+  });
+
+  test('duplicate() carries the Photo Grid and its cell assignments', () async {
+    final repo = ProjectRepository(baseDir: freshTemp());
+    final grid = GridSpec(
+      root: GridSplit(
+        GridAxis.columns,
+        [1, 1],
+        const [GridLeaf('a'), GridLeaf('b')],
+      ).withCanonicalIds(),
+      borderWidth: 24,
+    );
+    await repo.save(
+      buildProject(
+        id: 'src',
+        frames: const [
+          Frame(
+            id: 'src_f0',
+            layers: [
+              ImageLayer(
+                id: 'src_l0',
+                name: 'Photo',
+                assetPath: '/assets/img_a.png',
+                cellId: 'c1',
+              ),
+            ],
+          ),
+        ],
+      ).copyWith(grid: grid),
+    );
+
+    final copy = await repo.duplicate('src', now: DateTime.utc(2026, 7, 24));
+    expect(copy!.grid, grid);
+    // Re-ided layers keep the cell they were assigned to.
+    expect(copy.frames.first.layers.single.cellId, 'c1');
+    expect(await repo.load(copy.id), equals(copy));
   });
 
   test('duplicate() of a missing source returns null', () async {

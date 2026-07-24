@@ -112,10 +112,12 @@ class ProjectRepository {
       };
     }
 
-    final copy = Project(
+    // copyWith, not a fresh Project(...): re-listing fields silently dropped
+    // canvasWidth/canvasHeight/fps (a duplicated 1080x1920 project came back
+    // 512x512 at 8fps) and would drop `grid` the same way.
+    final copy = source.copyWith(
       id: newId,
       name: '${source.name} copy',
-      currentFrameIndex: source.currentFrameIndex,
       createdAt: at,
       updatedAt: at,
       frames: [

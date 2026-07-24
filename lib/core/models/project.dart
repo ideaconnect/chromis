@@ -3,10 +3,12 @@ import 'dart:ui' show Offset;
 import 'package:flutter/foundation.dart';
 
 import 'frame.dart';
+import 'grid.dart';
 
 /// The top-level editor document: a variable-size canvas plus one or more
-/// [frames]. Serialized as a versioned JSON manifest (see [schemaVersion]);
-/// image/mask bytes live alongside it as project assets.
+/// [frames], optionally partitioned into Photo Grid cells ([grid]). Serialized
+/// as a versioned JSON manifest (see [schemaVersion]); image/mask bytes live
+/// alongside it as project assets.
 ///
 /// Layer transform positions are in **canvas pixel units** - the space
 /// [canvasWidth] × [canvasHeight]. Legacy square projects (before variable
@@ -21,6 +23,7 @@ class Project {
     this.canvasHeight = legacyCanvasSize,
     this.currentFrameIndex = 0,
     this.fps = defaultFps,
+    this.grid,
     this.createdAt,
     this.updatedAt,
   });
@@ -30,8 +33,9 @@ class Project {
   static const double minFps = 0.25;
   static const double maxFps = 30;
 
-  /// On-disk manifest version. v1 = fixed 512² square; v2 = variable canvas.
-  static const int schemaVersion = 2;
+  /// On-disk manifest version. v1 = fixed 512² square; v2 = variable canvas;
+  /// v3 = Photo Grid ([grid] + per-layer `cellId`).
+  static const int schemaVersion = 3;
 
   /// The pre-variable-canvas square edge, used as the migration default for v1
   /// manifests and the fallback for any construction that omits a size.
@@ -55,8 +59,17 @@ class Project {
 
   final int currentFrameIndex;
   final double fps;
+
+  /// Photo Grid (collage) partition of the canvas, or null for an ordinary
+  /// project. Layers reference its cells by `Layer.cellId`; the grid is
+  /// project-level, so every frame shares it.
+  final GridSpec? grid;
+
   final DateTime? createdAt;
   final DateTime? updatedAt;
+
+  /// Whether this document is a Photo Grid (collage).
+  bool get isGrid => grid != null;
 
   double get canvasAspect => canvasWidth / canvasHeight;
 
@@ -100,6 +113,8 @@ class Project {
     int? canvasHeight,
     int? currentFrameIndex,
     double? fps,
+    GridSpec? grid,
+    bool clearGrid = false,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -111,6 +126,7 @@ class Project {
       canvasHeight: canvasHeight ?? this.canvasHeight,
       currentFrameIndex: currentFrameIndex ?? this.currentFrameIndex,
       fps: fps ?? this.fps,
+      grid: clearGrid ? null : (grid ?? this.grid),
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -124,6 +140,8 @@ class Project {
     'canvasHeight': canvasHeight,
     'currentFrameIndex': currentFrameIndex,
     'fps': fps,
+    // Written only for collages, so ordinary manifests are byte-unchanged.
+    if (grid != null) 'grid': grid!.toJson(),
     'createdAt': createdAt?.toIso8601String(),
     'updatedAt': updatedAt?.toIso8601String(),
     'frames': frames.map((f) => f.toJson()).toList(),
@@ -138,7 +156,12 @@ class Project {
       );
     }
     // v1 manifests predate variable canvases - migrate to the legacy square.
+    // v1/v2 predate Photo Grid, so `grid` is simply absent and reads as null.
+    final grid = json['grid'];
     return Project(
+      grid: grid == null
+          ? null
+          : GridSpec.fromJson((grid as Map).cast<String, dynamic>()),
       id: json['id'] as String,
       name: json['name'] as String,
       canvasWidth: json['canvasWidth'] as int? ?? legacyCanvasSize,
@@ -168,6 +191,7 @@ class Project {
       other.canvasHeight == canvasHeight &&
       other.currentFrameIndex == currentFrameIndex &&
       other.fps == fps &&
+      other.grid == grid &&
       other.createdAt == createdAt &&
       other.updatedAt == updatedAt &&
       listEquals(other.frames, frames);
@@ -180,6 +204,7 @@ class Project {
     canvasHeight,
     currentFrameIndex,
     fps,
+    grid,
     createdAt,
     updatedAt,
     Object.hashAll(frames),
