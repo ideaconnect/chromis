@@ -45,9 +45,12 @@ Both placeholders are **self-guarding**:
 - The before/after slider expects the two effect images to share the **3:4**
   aspect ratio (`dog-before.jpg` / `dog-studio.jpg` are 900×1200). Keep new
   slider images at 3:4 so the reveal stays pixel-aligned.
-- The app CTAs point at `#contact` ("Get notified at launch") because the app
-  isn't on Google Play yet. At launch, swap them to the Play listing URL and
-  relabel to "Get it on Google Play" (see the HTML comments in `index.html`).
+- The download CTAs use a **Google Play badge** (`.store-badge`, matching
+  idct.tech/sticker-maker). Its `href` is a placeholder Play URL for this app id
+  (`play.google.com/store/apps/details?id=tech.idct.photoeditor`). When the final
+  store link is provided, replace that URL on every `.store-badge` — header, hero,
+  CTA band, and the nav on both legal pages. A "Coming soon to Google Play" note
+  sits under the hero badge until launch.
 
 ## The AI example images
 
