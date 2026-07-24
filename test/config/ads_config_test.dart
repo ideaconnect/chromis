@@ -21,8 +21,8 @@ void main() {
     expect(AdsConfig.interstitial, '$testPublisher/1033173712');
   });
 
-  test('rewarded falls back to the test unit until a real id is set', () {
-    expect(AdsConfig.rewarded, '$testPublisher/5224354917');
+  test('rewarded resolves to the real prod rewarded unit id', () {
+    expect(AdsConfig.rewarded, '$prodPublisher/3027192977');
   });
 
   test('every resolved id is a real, distinct (non-placeholder) unit', () {

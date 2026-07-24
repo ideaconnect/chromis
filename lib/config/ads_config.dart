@@ -25,7 +25,7 @@ abstract final class AdsConfig {
   // type on its test unit until you have the real id.
   static const _prodBanner = 'ca-app-pub-6904561240517963/7987729825';
   static const _prodInterstitial = _placeholder;
-  static const _prodRewarded = _placeholder;
+  static const _prodRewarded = 'ca-app-pub-6904561240517963/3027192977';
 
   static String _unit(String prod, String test) =>
       (useTestAds || prod == _placeholder) ? test : prod;
