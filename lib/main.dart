@@ -8,6 +8,22 @@ import 'app/app.dart';
 import 'features/about/bundled_licenses.dart';
 import 'features/home/project_repository.dart';
 
+/// The orientations the app allows.
+///
+/// Landscape is a first-class layout in the editor - a rail down the left, a
+/// folding tool panel, and the rest of the screen for the picture - so the app
+/// has to be allowed to turn. It was locked to portraitUp, which made all of
+/// that unreachable no matter how the layout responded; that is what the test
+/// beside this constant exists to stop happening again.
+///
+/// portraitDown stays out: nothing here benefits from an upside-down phone, and
+/// it makes the camera and picker hand-offs odd.
+const List<DeviceOrientation> supportedOrientations = [
+  DeviceOrientation.portraitUp,
+  DeviceOrientation.landscapeLeft,
+  DeviceOrientation.landscapeRight,
+];
+
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   registerBundledLicenses();
@@ -18,7 +34,7 @@ void main() {
   unawaited(
     ProjectRepository().sweepOrphanAssets().then((_) => 0, onError: (_) => 0),
   );
-  SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+  SystemChrome.setPreferredOrientations(supportedOrientations);
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
