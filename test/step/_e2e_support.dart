@@ -42,6 +42,29 @@ Future<void> _writeSettings({
   await File('${base.path}/settings.json').writeAsString(
     jsonEncode({'onboardingSeen': onboarded, 'proEntitled': pro}),
   );
+  await _clearProjects(base);
+}
+
+/// Removes saved project manifests so every scenario starts from an empty
+/// Recent list.
+///
+/// settings.json alone was not enough isolation: projects persist across runs,
+/// so anything created by an earlier scenario - or by a human driving the app
+/// on the same device - made the empty-state scenario fail for a reason that
+/// had nothing to do with the code. Asset files are left alone; the app's own
+/// orphan sweep reclaims them.
+Future<void> _clearProjects(Directory base) async {
+  final dir = Directory('${base.path}/projects');
+  if (!dir.existsSync()) return;
+  for (final entity in dir.listSync()) {
+    if (entity is File && entity.path.endsWith('.json')) {
+      try {
+        entity.deleteSync();
+      } catch (_) {
+        // Best-effort: a leftover manifest is not worth failing a run over.
+      }
+    }
+  }
 }
 
 Future<void> _boot(WidgetTester tester) async {
