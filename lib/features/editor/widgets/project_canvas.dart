@@ -10,7 +10,6 @@ import '../../../core/models/layer.dart';
 import '../../../core/models/layer_effects.dart';
 import '../../../core/models/project.dart';
 import '../../../core/rendering/canvas_geometry.dart';
-import '../../../core/rendering/color_matrix.dart';
 import '../../../core/rendering/layer_effects_painter.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
@@ -251,18 +250,14 @@ class ProjectCanvas extends StatelessWidget {
     if (layer.isCropped && layer.cropRect.width > 0) {
       target = (target / layer.cropRect.width).round().clamp(256, 4096);
     }
-    final colorFilter = layer.adjustments.isIdentity
-        ? null
-        : ColorFilter.matrix(layer.adjustments.toColorMatrix());
-
     // A cut-out layer composites its alpha mask over the photo (background
     // removed). The mask file may be absent (e.g. a project opened without its
     // assets) - fall back to the plain photo in that case.
     final maskPath = layer.maskPath;
     final hasMask = maskPath != null && _exists(maskPath);
-    // A mask, a per-layer crop, or any effect that has to reach the pixels
-    // (vignette, HDR, contour) needs the painter path - `Image.file` can only
-    // carry a colour filter. A plain photo keeps the cached Image.file path.
+    // A mask, a crop, or anything that reaches the pixels needs the painter -
+    // see [ImageLayer.needsPainter]. An untouched photo keeps the cached
+    // Image.file path.
     if (hasMask || layer.needsPainter) {
       return _MaskedImage(
         imagePath: layer.assetPath,
@@ -277,7 +272,7 @@ class ProjectCanvas extends StatelessWidget {
       );
     }
 
-    Widget image = Image.file(
+    return Image.file(
       file,
       width: base,
       height: base,
@@ -287,10 +282,6 @@ class ProjectCanvas extends StatelessWidget {
       errorBuilder: (_, _, _) =>
           _ImagePlaceholder(name: layer.name, side: 180 * scale),
     );
-    if (colorFilter != null) {
-      image = ColorFiltered(colorFilter: colorFilter, child: image);
-    }
-    return image;
   }
 }
 

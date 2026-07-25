@@ -115,13 +115,21 @@ final class ImageLayer extends Layer {
   bool get isCropped => cropRect != const Rect.fromLTRB(0, 0, 1, 1);
 
   /// Whether this photo needs the painter path rather than a plain cached
-  /// `Image.file`: a mask, a source crop, or any effect that has to reach the
-  /// pixels (vignette, HDR's local-contrast pass, a contour stroke).
+  /// `Image.file`: a mask, a source crop, or anything that has to reach the
+  /// pixels (a colour transform, a vignette, HDR's local-contrast pass, a
+  /// contour stroke).
+  ///
+  /// Colour transforms are on this list for a compositing reason, not a
+  /// capability one: `Image.file` could carry them through a `ColorFiltered`,
+  /// but that pushes an engine layer, and a layer that pushes one cannot sit
+  /// inside the `saveLayer` that applies the layer's opacity and blend mode
+  /// (see `layer_effects_box.dart`). The painter applies the matrix through
+  /// `Paint.colorFilter` instead, which paints inline.
   bool get needsPainter =>
       maskPath != null ||
       isCropped ||
       vignette.isVisible ||
-      !adjustments.isMatrixOnly ||
+      !adjustments.isIdentity ||
       effects.stroke.isVisible;
 
   @override
