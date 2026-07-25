@@ -66,28 +66,38 @@ class AppDrawer extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(width: 11),
-                  const Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Chromis',
-                        style: TextStyle(
-                          fontFamily: AppFonts.display,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 15,
-                          color: AppColors.textPrimary,
+                  // Expanded, not intrinsic: the drawer is a fixed 304dp wide
+                  // whatever the screen is, so a wide accessibility text scale
+                  // (or a longer subtitle) has to ellipsize rather than
+                  // overflow the header row.
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Chromis',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontFamily: AppFonts.display,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 15,
+                            color: AppColors.textPrimary,
+                          ),
                         ),
-                      ),
-                      SizedBox(height: 2),
-                      Text(
-                        'BG Removal · v1.0.0',
-                        style: TextStyle(
-                          fontFamily: AppFonts.ui,
-                          fontSize: 10.5,
-                          color: AppColors.textMuted,
+                        SizedBox(height: 2),
+                        Text(
+                          'Photo editor · v1.0.0',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontFamily: AppFonts.ui,
+                            fontSize: 10.5,
+                            color: AppColors.textMuted,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ],
               ),

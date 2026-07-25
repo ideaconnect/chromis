@@ -42,6 +42,11 @@ class HomeScreen extends ConsumerWidget {
   /// project's thumbnail decodes up front. The full list lives in All projects.
   static const _recentCount = 6;
 
+  /// The Recent header's count. Written out so a single saved project doesn't
+  /// read "1 projects".
+  static String _projectCount(int count) =>
+      count == 1 ? '1 project' : '$count projects';
+
   /// "New project" asks what kind of document first, then branches to the
   /// canvas-size sheet or the Photo Grid setup.
   Future<void> _newProject(BuildContext context, WidgetRef ref) async {
@@ -268,7 +273,7 @@ class HomeScreen extends ConsumerWidget {
                     onTap: () => context.pushNamed(Routes.allProjects),
                     behavior: HitTestBehavior.opaque,
                     child: Text(
-                      '${projectsAsync.asData?.value.length ?? 0} projects',
+                      _projectCount(projectsAsync.asData?.value.length ?? 0),
                       style: const TextStyle(
                         fontFamily: AppFonts.ui,
                         fontSize: 11,
