@@ -33,6 +33,32 @@ from the rects before/after (never incrementally, so drags cannot drift).
 
 See `docs/photo-grid-plan.md`.
 
+### Layer effects
+
+`LayerEffects` (blend / shadow / stroke) is ONE field on the sealed `Layer`
+base, so a new shared effect touches one class instead of three; photo-only
+effects (filter, HDR, vignette) hang off `ImageLayer`/`ImageAdjustments`
+because they describe pixels rather than compositing. Filters and the HDR tone
+curve fold into the SAME colour matrix as the Adjust sliders, so a layer costs
+one `ColorFilter` however many looks are stacked on it.
+
+The photo chain is one function - `paintImageLayer` in
+`core/rendering/layer_effects_painter.dart` - called by both the preview and
+the export, so those cannot drift. Compositing (blend / opacity / shadow)
+cannot be shared that way and is written twice, guarded by
+`test/rendering/effects_render_parity_test.dart`.
+
+The widget half (`core/widgets/layer_effects_box.dart`) MUST use raw
+`saveLayer` render objects: a blend mode has no engine-layer representation, so
+it has to live inside one recorded picture, and `Opacity`/`ColorFiltered`/
+`ImageFiltered` each push a compositing layer that would split it.
+
+### Landscape
+
+`EditorScreen` branches on `maxWidth > maxHeight`: the dock becomes a rail down
+the left, the tool panel a folding column beside it, the rest is canvas.
+Portrait is unchanged.
+
 ## Milestones
 
 Planned as GitHub milestones **M0-M9** with issues. Work one milestone at a time;

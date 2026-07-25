@@ -36,7 +36,6 @@ void main() {
       await iMoveTheSlider(tester, 'Contrast');
       await iMoveTheSlider(tester, 'Saturation');
       await iMoveTheSlider(tester, 'Opacity');
-      await iMoveTheSlider(tester, 'Cutout outline');
       await theSelectedPhotoHasBeenAdjusted(tester);
       await iTap(tester, 'Reset');
       await theSelectedPhotoHasDefaultAdjustments(tester);

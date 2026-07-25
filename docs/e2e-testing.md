@@ -77,6 +77,25 @@ tests that use `IntegrationTestWidgetsFlutterBinding` (i.e. real on-device runs)
 - `bootToHome(tester)` launches the real app and skips first-run onboarding.
 - Assert real state where UI text is ambiguous - e.g. the bubble step reads
   `editorControllerProvider.layers` via `ProviderScope.containerOf(...)`.
+- Prefer a widget **key** over a label when the app repeats the wording. The
+  dock buttons carry `ValueKey('dock-<label>')` because every tool name is also
+  a panel title; `find.text('Adjust')` matches both.
+- Scrolling a lazy strip is fiddly: `ensureVisible` aligns its target to the
+  viewport's LEADING edge, so tapping one tile leaves the strip scrolled and the
+  next target can be off either end. `i_tap_the_filter` rewinds to the start
+  first, and reveals the strip vertically before dragging it - a horizontal drag
+  aimed at a strip scrolled out of the panel lands on the page behind it.
+- Orientation is changed with `rotateSurface(tester, landscape: ...)`, which
+  resizes the test surface. Driving the device's real sensor orientation
+  mid-test is racy and tells us nothing the layout constraints do not.
+
+### Sample photos on the device
+
+`./tool/seed_device_photos.ps1` downloads a dozen landscapes, animals and one
+low-light portrait into `/sdcard/Pictures/ChromisSamples` and rescans the media
+store so the picker can see them. They are test fixtures only - nothing there is
+bundled into the app, so the repo's MIT/BSD/Apache/OFL rule for shipped assets
+is untouched. Pass `-Clean` to remove them again.
 
 ## What it can and can't cover
 

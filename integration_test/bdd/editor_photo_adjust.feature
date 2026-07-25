@@ -1,6 +1,7 @@
 Feature: Editor photo adjustments
-  Brightness, contrast, saturation, opacity and the cutout outline change a
-  photo layer, and Reset restores the identity look.
+  Brightness, contrast, saturation and opacity change a photo layer, and Reset
+  restores the identity look. The contour and the one-tap looks moved to the
+  Effects tool (editor_effects.feature).
 
   Background:
     Given the app is freshly launched
@@ -17,7 +18,6 @@ Feature: Editor photo adjustments
     And I move the {'Contrast'} slider
     And I move the {'Saturation'} slider
     And I move the {'Opacity'} slider
-    And I move the {'Cutout outline'} slider
     Then the selected photo has been adjusted
     When I tap {'Reset'}
     Then the selected photo has default adjustments

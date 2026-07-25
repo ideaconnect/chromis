@@ -193,6 +193,17 @@ Gherkin `.feature` + `bdd_widget_test`-generated tests, run via `./e2e.ps1`.
   photo count / border sliders drive it; a collage exports. The collage is
   seeded through the controller because the create flow ends in the system
   photo picker (Tier 3).
+- **`editor_effects.feature`** *(seeded photo)* - the Effects panel offers
+  filter / HDR / vignette / shadow / blend; a filter applies, fades by
+  strength, and can be taken back off; HDR + vignette; a shadow with
+  direction/distance/blur/density; a contour; blend mode; Reset clears the lot;
+  and a caption gets a shadow + outline of its own.
+- **`editor_merge.feature`** - Merge down and Flatten are hidden with a single
+  layer, fold a stack into one photo layer, and undo in a single step.
+- **`editor_landscape.feature`** - rotating turns the dock into a vertical rail,
+  the tool panel folds away and comes back, tools still work, and rotating back
+  restores the horizontal bar. The rotation resizes the test surface rather than
+  driving the real sensor - see the note in the feature.
 
 ---
 
@@ -203,6 +214,10 @@ Gherkin `.feature` + `bdd_widget_test`-generated tests, run via `./e2e.ps1`.
   count/layout/size → multi-pick fills the cells) and the tap-an-empty-cell
   import, both of which end in the picker.
 - **Clipboard paste** (`_pastePhoto` → Pasteboard) - needs real clipboard image.
+- **Effects on real photographs** - the automated coverage proves the controls
+  drive the model and that preview and export agree; whether a look is *good*
+  is a human call. `./tool/seed_device_photos.ps1` puts a spread of landscapes,
+  animals and a low-light portrait in the device gallery for exactly that.
 - **Generative Fill / MI-GAN** - no bundled `migan.onnx`; option hidden.
 - **MobileSAM object removal on <3 GiB devices** - capability-denied by hardware.
 - **Frames / animation UI** - exists in code but is **UI-unreachable** (no dock

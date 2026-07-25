@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math' as math;
 
 import 'package:chromis/core/models/layer.dart';
 import 'package:chromis/features/editor/services/image_import.dart';
@@ -44,9 +45,57 @@ Future<void> _writeSettings({
 }
 
 Future<void> _boot(WidgetTester tester) async {
+  // A previous scenario may have left the surface rotated; every launch starts
+  // from the device's real geometry. Only when it was actually overridden,
+  // though: calling setSurfaceSize at all perturbs the view metrics enough to
+  // change the layout (it cost the onboarding page 40px of height), and a
+  // feature that never rotates must be unaffected by this file.
+  if (_surfaceOverridden) {
+    await tester.binding.setSurfaceSize(null);
+    _surfaceOverridden = false;
+  }
+  _rotationBase = null;
   app.main();
   await tester.pump(); // first frame
   await settle(tester);
+}
+
+// ---------------------------------------------------------------------------
+// Orientation. The surface is resized rather than the device's real sensor
+// orientation driven: asking the OS to rotate mid-test is racy and tells us
+// nothing about the layout that the constraints do not.
+// ---------------------------------------------------------------------------
+
+/// The device's unrotated logical size, captured on the first rotation so
+/// going back to portrait restores exactly what launch had.
+Size? _rotationBase;
+
+/// Whether this scenario resized the surface, so the next launch knows whether
+/// it has anything to restore.
+bool _surfaceOverridden = false;
+
+Future<void> rotateSurface(
+  WidgetTester tester, {
+  required bool landscape,
+}) async {
+  final view = tester.view;
+  _rotationBase ??= view.physicalSize / view.devicePixelRatio;
+  final base = _rotationBase!;
+  final short = math.min(base.width, base.height);
+  final long = math.max(base.width, base.height);
+  await tester.binding.setSurfaceSize(
+    landscape ? Size(long, short) : Size(short, long),
+  );
+  _surfaceOverridden = true;
+  await settle(tester);
+}
+
+/// A dock button's rect, found by the stable key rather than its label - the
+/// dock's wording repeats the panel titles, so a text finder is ambiguous.
+Rect dockButtonRect(WidgetTester tester, String label) {
+  final finder = find.byKey(ValueKey('dock-$label'));
+  expect(finder, findsOneWidget, reason: 'no dock button labelled $label');
+  return tester.getRect(finder);
 }
 
 /// Boot to Home as a free (non-Pro) user with onboarding already seen. Keeps
