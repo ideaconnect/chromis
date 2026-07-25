@@ -458,6 +458,10 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
   Widget _panel(EditorState editor, double maxHeight) {
     final tokens = context.tokens;
     return Container(
+      // Keyed so a test can measure the panel SURFACE. Measuring its scroll
+      // view instead proves nothing: that shrink-wraps either way, which is
+      // how the panel-height regression slipped through once already.
+      key: const ValueKey('tool-panel'),
       width: double.infinity,
       constraints: BoxConstraints(maxHeight: maxHeight),
       decoration: BoxDecoration(
@@ -469,10 +473,19 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       ),
       padding: const EdgeInsets.fromLTRB(18, 16, 18, 12),
       // The bar itself spans the screen (it is the panel's surface), but its
-      // controls stay a readable column - a slider stretched across a tablet
-      // is harder to aim, not easier.
-      child: ResponsiveCenter(
-        child: SingleChildScrollView(child: _panelBody(editor)),
+      // controls stay a readable column - a slider stretched across a tablet is
+      // harder to aim, not easier.
+      //
+      // Align with heightFactor 1, NOT ResponsiveCenter: this Container caps
+      // the height rather than setting it, so a Center here would expand to
+      // that cap and the panel would stop hugging its content - a two-line
+      // empty state would reserve 300px and float in the middle of it.
+      child: Align(
+        heightFactor: 1,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 560),
+          child: SingleChildScrollView(child: _panelBody(editor)),
+        ),
       ),
     );
   }
