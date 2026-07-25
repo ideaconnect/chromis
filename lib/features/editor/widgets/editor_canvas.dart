@@ -138,15 +138,21 @@ class _EditorCanvasState extends ConsumerState<EditorCanvas> {
                     frame: widget.onionFrame!,
                     width: editor.project.canvasWidth,
                     height: editor.project.canvasHeight,
+                    grid: editor.project.grid,
                   ),
                 ),
-              if (editor.layers.isEmpty)
+              // A collage always renders - its empty cells are the invitation
+              // to add photos, so the whole-canvas drop placeholder would only
+              // cover them up.
+              if (editor.layers.isEmpty && !editor.project.isGrid)
                 Center(child: widget.dropPlaceholder)
               else
                 ProjectCanvas(
                   frame: editor.currentFrame,
                   width: editor.project.canvasWidth,
                   height: editor.project.canvasHeight,
+                  grid: editor.project.grid,
+                  showCellPlaceholders: true,
                 ),
               if (selected != null && editor.tool != EditorTool.frames) ...[
                 _selectionOverlay(selected, scale),

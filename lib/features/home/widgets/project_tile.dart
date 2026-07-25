@@ -70,6 +70,7 @@ class ProjectTile extends StatelessWidget {
                           frame: project.frames.first,
                           width: project.canvasWidth,
                           height: project.canvasHeight,
+                          grid: project.grid,
                         ),
                     ],
                   ),

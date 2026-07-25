@@ -3,6 +3,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 
 import '../../../core/models/frame.dart';
+import '../../../core/models/grid.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/checkerboard.dart';
@@ -17,6 +18,7 @@ Future<Rect?> showCropOverlay(
   required Frame frame,
   required int canvasWidth,
   required int canvasHeight,
+  GridSpec? grid,
 }) {
   return Navigator.of(context).push<Rect>(
     MaterialPageRoute<Rect>(
@@ -27,6 +29,7 @@ Future<Rect?> showCropOverlay(
           canvasWidth: canvasWidth,
           canvasHeight: canvasHeight,
           outputWidth: canvasWidth.clamp(1, 1080),
+          grid: grid,
         ),
         srcWidth: canvasWidth,
         srcHeight: canvasHeight,

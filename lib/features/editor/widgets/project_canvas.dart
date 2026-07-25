@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 
 import '../../../core/models/frame.dart';
+import '../../../core/models/grid.dart';
 import '../../../core/models/layer.dart';
 import '../../../core/models/project.dart';
 import '../../../core/rendering/canvas_geometry.dart';
@@ -18,14 +19,18 @@ import 'bubble_view.dart';
 /// Image layers render as placeholders until image import (#21) provides pixels;
 /// text layers render for real with the caption outline.
 ///
-/// This is the shared rendering surface for the editor canvas and (later) the
-/// export renderer.
+/// With a [grid], the same layers are drawn as a Photo Grid: the grid's border
+/// color fills the canvas, each cell clips the layers assigned to it, and free
+/// layers (no `cellId`) draw above the whole collage. Must stay in lockstep
+/// with `ProjectRenderer` - see the parity test.
 class ProjectCanvas extends StatelessWidget {
   const ProjectCanvas({
     super.key,
     required this.frame,
     this.width = Project.legacyCanvasSize,
     this.height = Project.legacyCanvasSize,
+    this.grid,
+    this.showCellPlaceholders = false,
   });
 
   final Frame frame;
@@ -35,6 +40,13 @@ class ProjectCanvas extends StatelessWidget {
   /// whatever box the widget is given (so square thumbnails letterbox cleanly).
   final int width;
   final int height;
+
+  /// Photo Grid partition, or null for an ordinary composition.
+  final GridSpec? grid;
+
+  /// Draws the "tap to add a photo" hint in empty cells. Editor chrome only:
+  /// off by default so Home thumbnails and the export renderer never show it.
+  final bool showCellPlaceholders;
 
   /// Cached `File.existsSync` results keyed by absolute path. A path's on-disk
   /// presence is stable for a layer's lifetime - asset paths are written once at
@@ -78,23 +90,91 @@ class ProjectCanvas extends StatelessWidget {
           child: SizedBox(
             width: fitW,
             height: fitH,
-            child: Stack(
-              children: [
-                for (final layer in frame.layers)
-                  if (layer.visible) _positioned(layer, scale, dpr),
-              ],
-            ),
+            child: Stack(children: _children(scale, dpr, logicalW, logicalH)),
           ),
         );
       },
     );
   }
 
-  Widget _positioned(Layer layer, double scale, double dpr) {
+  List<Widget> _children(
+    double scale,
+    double dpr,
+    double logicalW,
+    double logicalH,
+  ) {
+    final grid = this.grid;
+    final visible = frame.layers.where((l) => l.visible);
+    if (grid == null) {
+      return [for (final layer in visible) _positioned(layer, scale, dpr)];
+    }
+
+    final layout = layoutGrid(grid, Size(logicalW, logicalH));
+    final cells = layout.cells;
+    final radius = Radius.circular(grid.cornerRadius * scale);
+    return [
+      // The frame is a background fill, not a stroke: cells are drawn on top of
+      // it, so the gaps and the outer margin ARE the border and no photo pixel
+      // is ever painted over. An empty cell simply shows this fill through.
+      if (grid.borderColor.a > 0)
+        Positioned.fill(child: ColoredBox(color: grid.borderColor)),
+      for (final id in grid.cellIds)
+        if (cells[id] case final cell?)
+          Positioned.fromRect(
+            rect: scaleRect(cell, scale),
+            child: ClipRRect(
+              borderRadius: BorderRadius.all(radius),
+              child: _cellContent(id, cell, scale, dpr, visible),
+            ),
+          ),
+      // Free layers ride above the whole collage, unclipped - a caption can
+      // span cells. A layer pointing at a cell the grid no longer has is
+      // treated as free rather than silently dropped, so content stays visible
+      // (and fixable) instead of vanishing.
+      for (final layer in visible)
+        if (layer.cellId == null || !cells.containsKey(layer.cellId))
+          _positioned(layer, scale, dpr),
+    ];
+  }
+
+  /// One cell's layers, drawn relative to the cell's top-left. The layer maths
+  /// is the whole-canvas one shifted by the cell origin, so nothing about the
+  /// coordinate space changes inside a cell.
+  Widget _cellContent(
+    String id,
+    Rect cell,
+    double scale,
+    double dpr,
+    Iterable<Layer> visible,
+  ) {
+    final layers = [
+      for (final l in visible)
+        if (l.cellId == id) l,
+    ];
+    if (layers.isEmpty) {
+      return showCellPlaceholders
+          ? const _CellPlaceholder()
+          : const SizedBox.expand();
+    }
+    final origin = cell.topLeft * scale;
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        for (final layer in layers) _positioned(layer, scale, dpr, origin),
+      ],
+    );
+  }
+
+  Widget _positioned(
+    Layer layer,
+    double scale,
+    double dpr, [
+    Offset origin = Offset.zero,
+  ]) {
     final t = layer.transform;
     return Positioned(
-      left: t.position.dx * scale,
-      top: t.position.dy * scale,
+      left: t.position.dx * scale - origin.dx,
+      top: t.position.dy * scale - origin.dy,
       child: FractionalTranslation(
         translation: const Offset(-0.5, -0.5),
         child: Opacity(
@@ -458,6 +538,35 @@ class _MaskedImagePainter extends CustomPainter {
       old.colorFilter != colorFilter ||
       old.outlineWidthPx != outlineWidthPx ||
       old.outlineColor != outlineColor;
+}
+
+/// The "tap to add a photo" hint drawn inside an empty Photo Grid cell. Editor
+/// chrome only - [ProjectCanvas.showCellPlaceholders] keeps it out of
+/// thumbnails and exports.
+class _CellPlaceholder extends StatelessWidget {
+  const _CellPlaceholder();
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: AppColors.cardAlt.withValues(alpha: 0.7),
+      ),
+      child: const Center(
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Padding(
+            padding: EdgeInsets.all(6),
+            child: Icon(
+              Icons.add_photo_alternate_outlined,
+              size: 26,
+              color: AppColors.textMuted,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 /// Stand-in for an image layer until real pixels arrive in #21.

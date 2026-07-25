@@ -47,6 +47,7 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
       canvasWidth: project.canvasWidth,
       canvasHeight: project.canvasHeight,
       outputWidth: project.canvasWidth.clamp(1, 600),
+      grid: project.grid,
     );
   }
 
@@ -68,24 +69,28 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
     final h = project.canvasHeight;
     final outW = (w * _scale).round().clamp(16, w);
     final frame = project.currentFrame;
+    final grid = project.grid;
     return switch (_fmt) {
       _Fmt.png => ProjectRenderer.renderPngSized(
         frame,
         canvasWidth: w,
         canvasHeight: h,
         outputWidth: outW,
+        grid: grid,
       ),
       _Fmt.jpg => ProjectRenderer.renderJpgSized(
         frame,
         canvasWidth: w,
         canvasHeight: h,
         outputWidth: outW,
+        grid: grid,
       ),
       _Fmt.webp => ProjectRenderer.renderWebpSized(
         frame,
         canvasWidth: w,
         canvasHeight: h,
         outputWidth: outW,
+        grid: grid,
       ),
     };
   }

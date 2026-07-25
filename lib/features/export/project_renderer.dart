@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:image/image.dart' as img;
 
 import '../../core/models/frame.dart';
+import '../../core/models/grid.dart';
 import '../../core/models/layer.dart';
 import '../../core/rendering/canvas_geometry.dart';
 import '../../core/rendering/color_matrix.dart';
@@ -30,10 +31,18 @@ abstract final class ProjectRenderer {
     required int canvasWidth,
     required int canvasHeight,
     int? outputWidth,
+    GridSpec? grid,
   }) {
     final outW = (outputWidth ?? canvasWidth).clamp(1, 100000);
     final outH = (outW * canvasHeight / canvasWidth).round().clamp(1, 100000);
-    return _render(frame, outW, outH, outW / canvasWidth);
+    return _render(
+      frame,
+      outW,
+      outH,
+      outW / canvasWidth,
+      Size(canvasWidth.toDouble(), canvasHeight.toDouble()),
+      grid,
+    );
   }
 
   static Future<ui.Image> _render(
@@ -41,6 +50,8 @@ abstract final class ProjectRenderer {
     int outW,
     int outH,
     double scale,
+    Size logicalCanvas,
+    GridSpec? grid,
   ) async {
     final decoded = await _decodeImages(frame, scale);
     try {
@@ -48,8 +59,7 @@ abstract final class ProjectRenderer {
       final bounds = Rect.fromLTWH(0, 0, outW.toDouble(), outH.toDouble());
       final canvas = Canvas(recorder, bounds);
 
-      for (final layer in frame.layers) {
-        if (!layer.visible) continue;
+      void paintLayer(Layer layer) {
         final t = layer.transform;
         canvas.save();
         canvas.translate(t.position.dx * scale, t.position.dy * scale);
@@ -75,6 +85,37 @@ abstract final class ProjectRenderer {
         canvas.restore();
       }
 
+      final visible = frame.layers.where((l) => l.visible);
+      if (grid == null) {
+        visible.forEach(paintLayer);
+      } else {
+        // Mirrors ProjectCanvas exactly (see the parity test): the border is a
+        // background fill, each cell clips its own layers, and free layers -
+        // including any pointing at a cell the grid no longer has - ride on
+        // top, unclipped.
+        final cells = layoutGrid(grid, logicalCanvas).cells;
+        if (grid.borderColor.a > 0) {
+          canvas.drawRect(bounds, Paint()..color = grid.borderColor);
+        }
+        final radius = Radius.circular(grid.cornerRadius * scale);
+        for (final id in grid.cellIds) {
+          final cell = cells[id];
+          if (cell == null) continue;
+          final rect = scaleRect(cell, scale);
+          canvas.save();
+          canvas.clipRRect(RRect.fromRectAndRadius(rect, radius));
+          for (final layer in visible) {
+            if (layer.cellId == id) paintLayer(layer);
+          }
+          canvas.restore();
+        }
+        for (final layer in visible) {
+          if (layer.cellId == null || !cells.containsKey(layer.cellId)) {
+            paintLayer(layer);
+          }
+        }
+      }
+
       final picture = recorder.endRecording();
       final image = await picture.toImage(outW, outH);
       picture.dispose();
@@ -92,12 +133,14 @@ abstract final class ProjectRenderer {
     required int canvasWidth,
     required int canvasHeight,
     int? outputWidth,
+    GridSpec? grid,
   }) async => _pngBytes(
     await renderImageSized(
       frame,
       canvasWidth: canvasWidth,
       canvasHeight: canvasHeight,
       outputWidth: outputWidth,
+      grid: grid,
     ),
   );
 
@@ -118,6 +161,7 @@ abstract final class ProjectRenderer {
     required int canvasWidth,
     required int canvasHeight,
     int? outputWidth,
+    GridSpec? grid,
     int quality = 92,
   }) async {
     final (rgba, w, h) = await _rasterize(
@@ -125,6 +169,7 @@ abstract final class ProjectRenderer {
       canvasWidth: canvasWidth,
       canvasHeight: canvasHeight,
       outputWidth: outputWidth,
+      grid: grid,
     );
     // package:image encode is pure-Dart + CPU-heavy - run it off the UI isolate
     // (heavy pure-Dart CPU work). JPG has no alpha, so flatten onto white.
@@ -148,12 +193,14 @@ abstract final class ProjectRenderer {
     required int canvasWidth,
     required int canvasHeight,
     int? outputWidth,
+    GridSpec? grid,
   }) async {
     final (rgba, w, h) = await _rasterize(
       frame,
       canvasWidth: canvasWidth,
       canvasHeight: canvasHeight,
       outputWidth: outputWidth,
+      grid: grid,
     );
     return Isolate.run(() {
       final src = img.Image.fromBytes(
@@ -175,12 +222,14 @@ abstract final class ProjectRenderer {
     required int canvasWidth,
     required int canvasHeight,
     int? outputWidth,
+    GridSpec? grid,
   }) async {
     final image = await renderImageSized(
       frame,
       canvasWidth: canvasWidth,
       canvasHeight: canvasHeight,
       outputWidth: outputWidth,
+      grid: grid,
     );
     try {
       final data = await image.toByteData(

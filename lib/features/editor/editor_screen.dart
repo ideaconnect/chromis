@@ -2435,6 +2435,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                 key: ValueKey('frame-thumb-${frames[i].id}'),
                 index: i,
                 frame: frames[i],
+                project: editor.project,
                 active: i == current,
                 onTap: () => _controller.selectFrame(i),
                 onMenu: () => _showFrameMenu(i, frames.length),
@@ -2813,6 +2814,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       frame: p.currentFrame,
       canvasWidth: p.canvasWidth,
       canvasHeight: p.canvasHeight,
+      grid: p.grid,
     );
     if (rect == null) return;
     _controller.cropCanvasRect(rect);
@@ -3407,6 +3409,7 @@ class _FrameThumb extends StatelessWidget {
     super.key,
     required this.index,
     required this.frame,
+    required this.project,
     required this.active,
     required this.onTap,
     required this.onMenu,
@@ -3414,6 +3417,12 @@ class _FrameThumb extends StatelessWidget {
 
   final int index;
   final Frame frame;
+
+  /// The owning document - the thumb needs its canvas size (so a non-square
+  /// project previews at its real aspect instead of the 512² default) and its
+  /// Photo Grid.
+  final Project project;
+
   final bool active;
   final VoidCallback onTap;
   final VoidCallback onMenu;
@@ -3441,7 +3450,12 @@ class _FrameThumb extends StatelessWidget {
             fit: StackFit.expand,
             children: [
               const Checkerboard(cell: 6),
-              ProjectCanvas(frame: frame),
+              ProjectCanvas(
+                frame: frame,
+                width: project.canvasWidth,
+                height: project.canvasHeight,
+                grid: project.grid,
+              ),
               Positioned(
                 top: 3,
                 left: 4,

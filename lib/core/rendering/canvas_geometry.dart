@@ -23,9 +23,42 @@ const double kLayerFitBoxSide = 440.0;
 /// into a blank canvas that keeps its size, or filling a photo-sized canvas.
 double photoFitScale(Size pixels, int canvasWidth, int canvasHeight) {
   if (pixels.width <= 0 || pixels.height <= 0) return 1;
-  final ar = pixels.width / pixels.height;
-  final rendered = ar >= 1
-      ? Size(kLayerFitBoxSide, kLayerFitBoxSide / ar)
-      : Size(kLayerFitBoxSide * ar, kLayerFitBoxSide);
+  final rendered = _renderedSize(pixels);
   return math.min(canvasWidth / rendered.width, canvasHeight / rendered.height);
 }
+
+/// The layer scale that makes a [pixels]-sized photo **cover** a
+/// [width]×[height] box (in canvas-logical units), i.e. fill it completely with
+/// the overflow clipped away.
+///
+/// The cover counterpart to [photoFitScale] (max instead of min): a Photo Grid
+/// cell wants its photo to fill it edge to edge, and the cell clip hides the
+/// spill. Used when placing a photo into a cell and when re-fitting a cell's
+/// content after a divider drag, so both paths agree on what "fills the cell"
+/// means.
+double photoCoverScale(Size pixels, double width, double height) {
+  if (pixels.width <= 0 || pixels.height <= 0 || width <= 0 || height <= 0) {
+    return 1;
+  }
+  final rendered = _renderedSize(pixels);
+  return math.max(width / rendered.width, height / rendered.height);
+}
+
+/// The logical size a [pixels]-sized photo occupies at layer scale 1 - its
+/// aspect fitted (contain) into the [kLayerFitBoxSide] square both painters
+/// draw image layers into.
+Size _renderedSize(Size pixels) {
+  final ar = pixels.width / pixels.height;
+  return ar >= 1
+      ? Size(kLayerFitBoxSide, kLayerFitBoxSide / ar)
+      : Size(kLayerFitBoxSide * ar, kLayerFitBoxSide);
+}
+
+/// [rect] scaled about the origin - maps canvas-logical geometry (cell rects,
+/// divider bands) into a painter's pixel space.
+Rect scaleRect(Rect rect, double scale) => Rect.fromLTRB(
+  rect.left * scale,
+  rect.top * scale,
+  rect.right * scale,
+  rect.bottom * scale,
+);
