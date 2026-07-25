@@ -156,54 +156,64 @@ class _PageView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 32),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            width: 128,
-            height: 128,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: page.gradient,
-              ),
-              borderRadius: BorderRadius.circular(36),
-              boxShadow: [
-                BoxShadow(
-                  color: page.glow.withValues(alpha: 0.4),
-                  blurRadius: 40,
-                  offset: const Offset(0, 18),
+    // Centred when there is room, scrollable when there is not. The artwork,
+    // title and body add up to a fixed height, so a short viewport - a phone in
+    // landscape, a large system font, or simply a device whose insets leave
+    // less than we assumed - used to overflow the page instead of letting the
+    // user reach the rest of it.
+    return LayoutBuilder(
+      builder: (context, constraints) => SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 32),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minHeight: constraints.maxHeight),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 128,
+                height: 128,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: page.gradient,
+                  ),
+                  borderRadius: BorderRadius.circular(36),
+                  boxShadow: [
+                    BoxShadow(
+                      color: page.glow.withValues(alpha: 0.4),
+                      blurRadius: 40,
+                      offset: const Offset(0, 18),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-            child: Icon(page.icon, size: 58, color: Colors.white),
+                child: Icon(page.icon, size: 58, color: Colors.white),
+              ),
+              const SizedBox(height: 40),
+              Text(
+                page.title,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontFamily: AppFonts.display,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 26,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 14),
+              Text(
+                page.body,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontFamily: AppFonts.ui,
+                  fontSize: 14.5,
+                  height: 1.5,
+                  color: AppColors.textMuted,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 40),
-          Text(
-            page.title,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontFamily: AppFonts.display,
-              fontWeight: FontWeight.w700,
-              fontSize: 26,
-              color: AppColors.textPrimary,
-            ),
-          ),
-          const SizedBox(height: 14),
-          Text(
-            page.body,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontFamily: AppFonts.ui,
-              fontSize: 14.5,
-              height: 1.5,
-              color: AppColors.textMuted,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
