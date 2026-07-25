@@ -10,6 +10,7 @@ import 'package:chromis/core/rendering/canvas_geometry.dart';
 import 'package:chromis/features/editor/state/editor_controller.dart';
 import 'package:chromis/features/editor/state/editor_state.dart';
 import 'package:chromis/features/editor/state/editor_tool.dart';
+import 'package:chromis/features/grid/grid_templates.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -871,6 +872,126 @@ void main() {
       controller.addPhotoToCell(assetPath: '/fake/a.png', cellId: 'c0');
       controller.addPhotoToCell(assetPath: '/fake/b.png', cellId: 'c1');
       expect(read(container).layers.map((l) => l.name), ['Photo', 'Photo 2']);
+    });
+  });
+
+  group('grid ops', () {
+    Project collageSeed([int count = 2]) => Project.empty(
+      id: 'p',
+      createdAt: DateTime(2024),
+    ).copyWith(grid: GridSpec(root: gridTemplatesFor(count).first.root));
+
+    GridSpec gridOf(ProviderContainer c) => read(c).project.grid!;
+
+    test('a collage opens on the Grid tool, an ordinary project does not', () {
+      final (:container, :controller) = open(collageSeed());
+      expect(read(container).tool, EditorTool.grid);
+      controller.loadProject(defaultSeed());
+      expect(read(container).tool, EditorTool.adjust);
+    });
+
+    test('setGridTemplate keeps photo N in cell N and re-fits it', () {
+      final (:container, :controller) = open(collageSeed(3));
+      for (final id in ['c0', 'c1', 'c2']) {
+        controller.addPhotoToCell(assetPath: '/fake/$id.png', cellId: id);
+      }
+      final target = gridTemplatesFor(3)[2]; // big left + 2 stacked
+      controller.setGridTemplate(target.root);
+
+      expect(matchGridTemplate(gridOf(container).root)?.label, target.label);
+      final rects = layoutGrid(gridOf(container), const Size(1080, 1080)).cells;
+      for (final layer in read(container).layers) {
+        expect(layer.transform.position, rects[layer.cellId]!.center);
+      }
+    });
+
+    test('lowering the count drops the trailing photos in ONE undo step', () {
+      final (:container, :controller) = open(collageSeed(4));
+      for (final id in ['c0', 'c1', 'c2', 'c3']) {
+        controller.addPhotoToCell(assetPath: '/fake/$id.png', cellId: id);
+      }
+      controller.setGridPhotoCount(2);
+
+      expect(gridOf(container).cellCount, 2);
+      expect(read(container).layers.map((l) => l.cellId), ['c0', 'c1']);
+      // Undo restores both the layout and the dropped photos together.
+      controller.undo();
+      expect(gridOf(container).cellCount, 4);
+      expect(read(container).layers, hasLength(4));
+    });
+
+    test('raising the count keeps every photo', () {
+      final (:container, :controller) = open(collageSeed());
+      controller.addPhotoToCell(assetPath: '/fake/a.png', cellId: 'c0');
+      controller.setGridPhotoCount(5);
+      expect(gridOf(container).cellCount, 5);
+      expect(read(container).layers, hasLength(1));
+    });
+
+    test('the count clamps to the offered range and no-ops when unchanged', () {
+      final (:container, :controller) = open(collageSeed());
+      controller.setGridPhotoCount(99);
+      expect(gridOf(container).cellCount, kMaxGridPhotos);
+      final before = read(container).project;
+      controller.setGridPhotoCount(kMaxGridPhotos);
+      expect(read(container).project, same(before)); // no empty undo step
+    });
+
+    test('border edits coalesce per property and leave photos in place', () {
+      final (:container, :controller) = open(collageSeed());
+      final photo = controller.addPhotoToCell(
+        assetPath: '/fake/a.png',
+        cellId: 'c0',
+      )!;
+
+      for (final w in [20.0, 30.0, 40.0]) {
+        controller.setGridBorder(width: w);
+      }
+      expect(gridOf(container).borderWidth, 40);
+      // The outer frame tracks the gap.
+      expect(gridOf(container).outerMargin, 40);
+      // A slider drag is one undo step, and the photo has not moved.
+      expect(byId(container, photo.id).transform, photo.transform);
+      controller.undo();
+      expect(gridOf(container).borderWidth, GridSpec.defaultBorderWidth);
+
+      // A different property starts its own step rather than folding in.
+      controller.setGridBorder(width: 30);
+      controller.setGridBorder(color: const Color(0xFF112233));
+      controller.undo();
+      expect(gridOf(container).borderColor, const Color(0xFFFFFFFF));
+      expect(gridOf(container).borderWidth, 30);
+    });
+
+    test('border values are clamped', () {
+      final (:container, :controller) = open(collageSeed());
+      controller.setGridBorder(width: 9999);
+      expect(gridOf(container).borderWidth, GridSpec.maxBorderWidth);
+      controller.setGridBorder(radius: -5);
+      expect(gridOf(container).cornerRadius, 0);
+    });
+
+    test('shuffle rotates the photos one cell forward', () {
+      final (:container, :controller) = open(collageSeed(3));
+      for (final id in ['c0', 'c1', 'c2']) {
+        controller.addPhotoToCell(assetPath: '/fake/$id.png', cellId: id);
+      }
+      controller.shuffleGridPhotos();
+      expect(read(container).layers.map((l) => l.cellId), ['c1', 'c2', 'c0']);
+      controller.undo();
+      expect(read(container).layers.map((l) => l.cellId), ['c0', 'c1', 'c2']);
+    });
+
+    test('grid ops are inert on a project without a grid', () {
+      final (:container, :controller) = open(defaultSeed());
+      final before = read(container).project;
+      controller
+        ..setGridPhotoCount(4)
+        ..setGridTemplate(gridTemplatesFor(3).first.root)
+        ..setGridBorder(width: 40)
+        ..shuffleGridPhotos();
+      expect(read(container).project, same(before));
+      expect(controller.canUndo, isFalse);
     });
   });
 }

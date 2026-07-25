@@ -62,6 +62,7 @@ class AppTokens extends ThemeExtension<AppTokens> {
       ToolAccent.erase: AppColors.amber,
       ToolAccent.cutout: AppColors.green,
       ToolAccent.frames: AppColors.orange,
+      ToolAccent.grid: AppColors.violet,
     },
     heroGradient: LinearGradient(
       begin: Alignment.topLeft,
@@ -147,8 +148,8 @@ class AppTokens extends ThemeExtension<AppTokens> {
   static double lerpDouble(double a, double b, double t) => a + (b - a) * t;
 }
 
-/// The six editor tools, each with its own accent color.
-enum ToolAccent { layers, adjust, text, erase, cutout, frames }
+/// The editor tools, each with its own accent color.
+enum ToolAccent { layers, adjust, text, erase, cutout, frames, grid }
 
 /// Ergonomic access: `context.tokens.accent(ToolAccent.text)`.
 extension AppTokensContext on BuildContext {

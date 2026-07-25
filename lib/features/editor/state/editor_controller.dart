@@ -9,6 +9,8 @@ import '../../../core/models/layer.dart';
 import '../../../core/models/layer_transform.dart';
 import '../../../core/models/project.dart';
 import '../../../core/rendering/canvas_geometry.dart';
+import '../../grid/grid_refit.dart';
+import '../../grid/grid_templates.dart';
 import 'editor_state.dart';
 import 'editor_tool.dart';
 
@@ -98,7 +100,12 @@ class EditorController extends Notifier<EditorState> {
         _bumpSeqPast(layer.id);
       }
     }
-    state = EditorState(project: project);
+    // A collage opens on its Grid tool: layout, count and border are the first
+    // things you reach for, and the tool is invisible on ordinary projects.
+    state = EditorState(
+      project: project,
+      tool: project.isGrid ? EditorTool.grid : EditorTool.adjust,
+    );
   }
 
   void _bumpSeqPast(String id) {
@@ -678,6 +685,63 @@ class EditorController extends Notifier<EditorState> {
         currentFrameIndex: current < 0 ? project.safeFrameIndex : current,
       ),
     );
+  }
+
+  // ------------------------------------------------------------- photo grid
+  /// Replaces the grid, carrying every cell's content to its new rect (see
+  /// [applyGridSpec]). One undoable step; [coalesce] folds a continuous change
+  /// (a slider, a divider drag) into a single entry.
+  void setGrid(GridSpec next, {String? coalesce}) {
+    if (state.project.grid == next) return;
+    _commit(applyGridSpec(state.project, next), coalesce: coalesce);
+  }
+
+  /// Switches to another layout of the same photo count. Cell ids are stable,
+  /// so photo N stays in cell N and simply moves to that cell's new rect.
+  void setGridTemplate(GridNode root) {
+    final grid = state.project.grid;
+    if (grid == null) return;
+    setGrid(grid.copyWith(root: root.withCanonicalIds()));
+  }
+
+  /// Changes how many photos the collage holds, landing on that count's default
+  /// layout. Growing adds empty cells; shrinking drops the trailing cells'
+  /// layers as part of this same undo step.
+  void setGridPhotoCount(int count) {
+    final grid = state.project.grid;
+    final clamped = count.clamp(kMinGridPhotos, kMaxGridPhotos);
+    if (grid == null || grid.cellCount == clamped) return;
+    setGrid(grid.copyWith(root: defaultGridTemplate(clamped).root));
+  }
+
+  /// Frame styling. Deliberately does not move cell content - see
+  /// [applyGridSpec]. Coalesced per property so a slider drag is one step.
+  void setGridBorder({Color? color, double? width, double? radius}) {
+    final grid = state.project.grid;
+    if (grid == null) return;
+    final group = color != null
+        ? 'color'
+        : width != null
+        ? 'width'
+        : 'radius';
+    setGrid(
+      grid.copyWith(
+        borderColor: color,
+        borderWidth: width?.clamp(0, GridSpec.maxBorderWidth),
+        // The outer frame tracks the gap, which is what "border width" reads
+        // as; a separate control for it would be a setting nobody asks for.
+        outerMargin: width?.clamp(0, GridSpec.maxOuterMargin),
+        cornerRadius: radius?.clamp(0, GridSpec.maxCornerRadius),
+      ),
+      coalesce: 'grid:$group',
+    );
+  }
+
+  /// Rotates the photos one cell forward, so a collage can be rearranged
+  /// without dragging anything.
+  void shuffleGridPhotos() {
+    if (state.project.grid == null) return;
+    _commit(shuffleGridCells(state.project), clearSelection: true);
   }
 
   /// Renames the project. Blank input is rejected - the old name is kept -

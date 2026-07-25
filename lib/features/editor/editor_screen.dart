@@ -13,6 +13,7 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../app/router.dart';
 import '../../core/models/frame.dart';
+import '../../core/models/grid.dart';
 import '../../core/models/image_adjustments.dart';
 import '../../core/models/layer.dart';
 import '../../core/models/layer_transform.dart';
@@ -30,6 +31,8 @@ import '../../core/widgets/sm_toast.dart';
 import '../ads/ads_service.dart';
 import '../fonts/custom_fonts.dart';
 import '../go_pro/iap.dart';
+import '../grid/grid_templates.dart';
+import '../grid/widgets/grid_template_strip.dart';
 import '../home/project_repository.dart';
 import '../home/widgets/app_drawer.dart';
 import '../segmentation/ai_capability.dart';
@@ -432,6 +435,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       EditorTool.erase => _erasePanel(),
       EditorTool.frames => _framesPanel(editor),
       EditorTool.layers => _layersPanel(editor),
+      EditorTool.grid => _gridPanel(editor),
     };
   }
 
@@ -1067,6 +1071,96 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                 ),
             ],
           ),
+        ),
+      ],
+    );
+  }
+
+  // ------------------------------------------------------------ Photo grid
+  /// The always-available collage controls: how many photos, which layout, and
+  /// the frame (color, thickness, corner rounding).
+  Widget _gridPanel(EditorState editor) {
+    final grid = editor.project.grid;
+    if (grid == null) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _panelHeader(EditorTool.grid),
+          _emptyHint('This project is not a photo grid.'),
+        ],
+      );
+    }
+    final templates = gridTemplatesFor(grid.cellCount);
+    final current = matchGridTemplate(grid.root);
+    final accent = context.tokens.accent(ToolAccent.grid);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _panelHeader(
+          EditorTool.grid,
+          trailing: PillChip(
+            label: 'Shuffle',
+            icon: Icons.shuffle,
+            accent: accent,
+            selected: true,
+            onTap: _controller.shuffleGridPhotos,
+          ),
+        ),
+        const _PanelHint('PHOTOS'),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            for (var n = kMinGridPhotos; n <= kMaxGridPhotos; n++) ...[
+              Expanded(
+                child: PillChip(
+                  key: ValueKey('grid-count-$n'),
+                  label: '$n',
+                  accent: accent,
+                  selected: n == grid.cellCount,
+                  onTap: () => _controller.setGridPhotoCount(n),
+                ),
+              ),
+              if (n < kMaxGridPhotos) const SizedBox(width: 8),
+            ],
+          ],
+        ),
+        const SizedBox(height: 14),
+        const _PanelHint('LAYOUT'),
+        const SizedBox(height: 8),
+        GridTemplateStrip(
+          templates: templates,
+          selectedIndex: current == null
+              ? -1
+              : templates.indexWhere((t) => t.label == current.label),
+          aspect: editor.project.canvasAspect,
+          onSelected: (i) => _controller.setGridTemplate(templates[i].root),
+        ),
+        const SizedBox(height: 10),
+        LabeledSlider(
+          label: 'Border',
+          value: grid.borderWidth,
+          min: 0,
+          max: GridSpec.maxBorderWidth,
+          accent: accent,
+          valueLabel: '${grid.borderWidth.round()} px',
+          onChanged: (v) => _controller.setGridBorder(width: v),
+          onChangeEnd: (_) => _controller.endEdit(),
+        ),
+        LabeledSlider(
+          label: 'Corners',
+          value: grid.cornerRadius,
+          min: 0,
+          max: GridSpec.maxCornerRadius,
+          accent: accent,
+          valueLabel: '${grid.cornerRadius.round()} px',
+          onChanged: (v) => _controller.setGridBorder(radius: v),
+          onChangeEnd: (_) => _controller.endEdit(),
+        ),
+        const SizedBox(height: 4),
+        _swatchRow(
+          'Color',
+          grid.borderColor,
+          (c) => _controller.setGridBorder(color: c),
         ),
       ],
     );
@@ -3062,6 +3156,15 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         scrollDirection: Axis.horizontal,
         child: Row(
           children: [
+            // Collage-only, and first: layout / count / border are what a
+            // photo grid is edited through.
+            if (editor.project.isGrid)
+              dockButton(
+                icon: Icons.grid_view,
+                label: 'Grid',
+                active: editor.tool == EditorTool.grid,
+                onTap: () => _controller.setTool(EditorTool.grid),
+              ),
             dockButton(
               icon: Icons.add_photo_alternate_outlined,
               label: 'Add layer',

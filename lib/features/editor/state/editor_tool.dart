@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_tokens.dart';
 
-/// The six editor tools, each carrying its own presentation. This is the single
+/// The editor tools, each carrying its own presentation. This is the single
 /// source of truth for the tool set; [ToolAccent] stays a pure color key in the
 /// theme layer and is mapped from here.
 enum EditorTool {
@@ -16,7 +16,10 @@ enum EditorTool {
     Icons.auto_awesome_outlined,
     ToolAccent.cutout,
   ),
-  frames('Frames', 'Animation frames', Icons.animation, ToolAccent.frames);
+  frames('Frames', 'Animation frames', Icons.animation, ToolAccent.frames),
+
+  /// Photo Grid (collage) controls. Reachable only while `project.grid` is set.
+  grid('Grid', 'Photo grid', Icons.grid_view, ToolAccent.grid);
 
   const EditorTool(this.tabLabel, this.panelTitle, this.icon, this.accent);
 
