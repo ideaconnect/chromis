@@ -189,12 +189,19 @@ Gherkin `.feature` + `bdd_widget_test`-generated tests, run via `./e2e.ps1`.
   visible; (Pro-seeded) upsell hidden, "You're Pro" shown.
 - **`about.feature`** - drawer → Privacy screen (policy link, on-device banner);
   drawer → Licenses screen (category cards, "View full license texts").
+- **`photo_grid.feature`** - a seeded collage opens on the Grid tool; layout /
+  photo count / border sliders drive it; a collage exports. The collage is
+  seeded through the controller because the create flow ends in the system
+  photo picker (Tier 3).
 
 ---
 
 ## Tier 3 - Manual-only (documented, not automated)
 
 - **System photo picker & camera** (`_pickPhoto` → image_picker) - real OS UI.
+  This covers the Photo Grid create flow end to end (New project → Photo grid →
+  count/layout/size → multi-pick fills the cells) and the tap-an-empty-cell
+  import, both of which end in the picker.
 - **Clipboard paste** (`_pastePhoto` → Pasteboard) - needs real clipboard image.
 - **Generative Fill / MI-GAN** - no bundled `migan.onnx`; option hidden.
 - **MobileSAM object removal on <3 GiB devices** - capability-denied by hardware.
