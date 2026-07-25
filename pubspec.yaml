@@ -130,5 +130,9 @@ flutter_native_splash:
     # Must match _Splash._base in lib/app/app.dart (the gradient's dark centre
     # stop) so the native → in-app animated splash hands off with no colour cut.
     color: "#0a1526"
+    # Pre-padded by tool/gen_branding.py so the OS's circular splash mask never
+    # reaches the badge - it keeps its own corner radius instead of being cut
+    # into a circle. No icon_background_color: the circle would be invisible
+    # anyway (same colour as the splash) and asking for one shrinks the icon
+    # canvas from 288dp to 240dp, i.e. a 20% smaller logo for nothing.
     image: assets/branding/splash_android12.png
-    icon_background_color: "#0a1526"

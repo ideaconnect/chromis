@@ -14,6 +14,8 @@ Also generates the native-splash assets:
 Run: python tool/gen_branding.py
 """
 
+import math
+
 from PIL import Image, ImageDraw
 
 SRC = "assets/branding/appicon.png"
@@ -46,7 +48,37 @@ def to_square(im: Image.Image) -> Image.Image:
     return sq
 
 
-def padded(badge: Image.Image, size: int, scale: float = 0.62) -> Image.Image:
+# Android 12+ masks the splash icon to a circle whose diameter is 2/3 of the
+# drawable's side. Anything outside is cut - which is what made the badge's
+# corners read as far rounder than they are designed to be.
+A12_MASK_RATIO = 2 / 3
+# Leave a sliver of slack for the mask's antialiased edge.
+A12_MASK_SAFETY = 0.97
+
+
+def circumscribed_ratio(badge: Image.Image, alpha_floor: int = 16) -> float:
+    """Radius of the smallest circle (centered) covering every opaque pixel of
+    `badge`, as a fraction of the badge's SIDE. A perfect square would give
+    ~0.707; the rounder the artwork's corners, the smaller it gets."""
+    w, h = badge.size
+    cx, cy = (w - 1) / 2, (h - 1) / 2
+    alpha = badge.split()[3].load()
+    worst = 0.0
+    for y in range(h):
+        for x in range(w):
+            if alpha[x, y] > alpha_floor:
+                worst = max(worst, math.hypot(x - cx, y - cy))
+    return worst / max(w, h)
+
+
+def a12_scale(badge: Image.Image) -> float:
+    """The largest scale at which `badge` fits ENTIRELY inside the Android-12
+    circular splash mask - measured from the artwork instead of hardcoded, so
+    the badge keeps its own corner radius rather than being re-cut by the OS."""
+    return (A12_MASK_RATIO / 2) / circumscribed_ratio(badge) * A12_MASK_SAFETY
+
+
+def padded(badge: Image.Image, size: int, scale: float) -> Image.Image:
     """Badge scaled to `scale` of `size`, centered on a transparent square - so
     it fits inside the Android-12 circular splash mask without clipping."""
     inner = round(size * scale)
@@ -90,8 +122,12 @@ def main() -> None:
     print(f"badge (transparent bg): {floating.size}")
     save(floating, 512, "assets/branding/logo.png")
     save(floating, 768, "assets/branding/splash.png")
-    padded(floating, 768).save("assets/branding/splash_android12.png")
-    print("  wrote assets/branding/splash_android12.png (768, padded for A12)")
+    scale = a12_scale(floating)
+    padded(floating, 768, scale).save("assets/branding/splash_android12.png")
+    print(
+        f"  wrote assets/branding/splash_android12.png "
+        f"(768, badge at {scale:.3f} - fits the A12 circular mask uncut)"
+    )
     gradient_bg(
         720,
         1280,
