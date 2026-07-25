@@ -205,6 +205,12 @@ Gherkin `.feature` + `bdd_widget_test`-generated tests, run via `./e2e.ps1`.
   restores the horizontal bar. The rotation resizes the test surface rather than
   driving the real sensor - see the note in the feature.
 
+**Run the suite in both orientations.** The device's own rotation decides how
+the app lays out, so `adb shell settings put system user_rotation 1` and a
+second pass is a genuinely different run - it is what found the overflowing
+sheets, the drawer's lost footer, and three step definitions that only worked
+because nothing had ever been below the fold.
+
 ---
 
 ## Tier 3 - Manual-only (documented, not automated)

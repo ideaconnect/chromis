@@ -34,8 +34,9 @@ void main() {
       await iDoNotSee(tester, 'Merge down');
       await iDoNotSee(tester, 'Flatten');
     });
-    testWidgets('''Merge the selected layer into the one below''',
-        (tester) async {
+    testWidgets('''Merge the selected layer into the one below''', (
+      tester,
+    ) async {
       await bddSetUp(tester);
       await aPhotoLayerIsAdded(tester);
       await iAddATextLayer(tester);

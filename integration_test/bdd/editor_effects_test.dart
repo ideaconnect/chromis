@@ -34,8 +34,9 @@ void main() {
       await iTapTheTool(tester, 'Effects');
     }
 
-    testWidgets('''The Effects panel offers the whole look toolbox''',
-        (tester) async {
+    testWidgets('''The Effects panel offers the whole look toolbox''', (
+      tester,
+    ) async {
       await bddSetUp(tester);
       await iSee(tester, 'FILTER');
       await iSee(tester, 'HDR');
@@ -67,8 +68,9 @@ void main() {
       await theSelectedPhotoHasAVignette(tester);
       await noUnhandledErrorOccurred(tester);
     });
-    testWidgets('''A drop shadow with direction, blur and density''',
-        (tester) async {
+    testWidgets('''A drop shadow with direction, blur and density''', (
+      tester,
+    ) async {
       await bddSetUp(tester);
       await iMoveTheSlider(tester, 'Opacity');
       await theSelectedLayerHasAShadow(tester);
@@ -103,8 +105,9 @@ void main() {
       await theSelectedPhotoHasNoEffects(tester);
       await noUnhandledErrorOccurred(tester);
     });
-    testWidgets('''A caption gets a shadow and an outline of its own''',
-        (tester) async {
+    testWidgets('''A caption gets a shadow and an outline of its own''', (
+      tester,
+    ) async {
       await bddSetUp(tester);
       await iAddATextLayer(tester);
       await iMoveTheSlider(tester, 'Opacity');

@@ -16,8 +16,9 @@ void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   group('''Home screen and navigation menu''', () {
-    testWidgets('''Home shows the new-project action and empty state''',
-        (tester) async {
+    testWidgets('''Home shows the new-project action and empty state''', (
+      tester,
+    ) async {
       await theAppIsFreshlyLaunched(tester);
       await theHomeScreenIsShown(tester);
       await iSee(tester, 'New project');

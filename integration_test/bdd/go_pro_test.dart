@@ -17,8 +17,9 @@ void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   group('''Go Pro upsell and entitlement''', () {
-    testWidgets('''A non-Pro user sees the upgrade and restore''',
-        (tester) async {
+    testWidgets('''A non-Pro user sees the upgrade and restore''', (
+      tester,
+    ) async {
       await theAppIsFreshlyLaunched(tester);
       await iOpenTheMenu(tester);
       await iSee(tester, 'Go Pro · remove ads');

@@ -57,7 +57,13 @@ it has to live inside one recorded picture, and `Opacity`/`ColorFiltered`/
 
 `EditorScreen` branches on `maxWidth > maxHeight`: the dock becomes a rail down
 the left, the tool panel a folding column beside it, the rest is canvas.
-Portrait is unchanged.
+Portrait is unchanged. Rotation is allowed by `supportedOrientations` in
+`main.dart` - it was locked to portrait, which made the whole layout dead code.
+
+A short viewport is now a real path, so **bottom sheets use `SheetBody`**
+(caps the height, scrolls, clears the keyboard and gesture bar) rather than a
+bare `Column`. `test/landscape_overflow_test.dart` pumps every screen and sheet
+at landscape sizes; add new ones to it.
 
 ## Milestones
 

@@ -26,8 +26,9 @@ void main() {
       await theHomeScreenIsShown(tester);
       await noUnhandledErrorOccurred(tester);
     });
-    testWidgets('''Advancing through every page reaches Home''',
-        (tester) async {
+    testWidgets('''Advancing through every page reaches Home''', (
+      tester,
+    ) async {
       await theAppIsLaunchedForTheFirstTime(tester);
       await iTap(tester, 'Next');
       await iTap(tester, 'Next');

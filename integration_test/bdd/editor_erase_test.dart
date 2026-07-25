@@ -31,12 +31,14 @@ void main() {
       await theSelectedPhotoHasAMask(tester);
       await noUnhandledErrorOccurred(tester);
     });
-    testWidgets('''Selecting the erase tool alone leaves the photo untouched''',
-        (tester) async {
-      await bddSetUp(tester);
-      await iTapTheTool(tester, 'Erase');
-      await theSelectedPhotoHasNoMask(tester);
-      await noUnhandledErrorOccurred(tester);
-    });
+    testWidgets(
+      '''Selecting the erase tool alone leaves the photo untouched''',
+      (tester) async {
+        await bddSetUp(tester);
+        await iTapTheTool(tester, 'Erase');
+        await theSelectedPhotoHasNoMask(tester);
+        await noUnhandledErrorOccurred(tester);
+      },
+    );
   });
 }

@@ -49,17 +49,19 @@ void main() {
       await theToolPanelIsShown(tester);
       await noUnhandledErrorOccurred(tester);
     });
-    testWidgets('''Tapping the tool you are already on folds the panel away''',
-        (tester) async {
-      await bddSetUp(tester);
-      await theDeviceIsRotatedToLandscape(tester);
-      await iTapTheDockButton(tester, 'Layers');
-      await theToolPanelIsShown(tester);
-      await iTapTheDockButton(tester, 'Layers');
-      await theToolPanelIsHidden(tester);
-      await iTapTheDockButton(tester, 'Layers');
-      await theToolPanelIsShown(tester);
-    });
+    testWidgets(
+      '''Tapping the tool you are already on folds the panel away''',
+      (tester) async {
+        await bddSetUp(tester);
+        await theDeviceIsRotatedToLandscape(tester);
+        await iTapTheDockButton(tester, 'Layers');
+        await theToolPanelIsShown(tester);
+        await iTapTheDockButton(tester, 'Layers');
+        await theToolPanelIsHidden(tester);
+        await iTapTheDockButton(tester, 'Layers');
+        await theToolPanelIsShown(tester);
+      },
+    );
     testWidgets('''Tools still work in landscape''', (tester) async {
       await bddSetUp(tester);
       await theDeviceIsRotatedToLandscape(tester);
@@ -69,8 +71,9 @@ void main() {
       await theSelectedPhotoHasBeenAdjusted(tester);
       await noUnhandledErrorOccurred(tester);
     });
-    testWidgets('''Back to portrait, the dock is horizontal again''',
-        (tester) async {
+    testWidgets('''Back to portrait, the dock is horizontal again''', (
+      tester,
+    ) async {
       await bddSetUp(tester);
       await theDeviceIsRotatedToLandscape(tester);
       await theToolDockIsAVerticalRail(tester);
