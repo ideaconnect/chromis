@@ -187,19 +187,50 @@ class HomeScreen extends ConsumerWidget {
             children: [
               const _Header(),
               const SizedBox(height: 18),
-              _StartCard(
-                icon: Icons.add,
-                title: 'New project',
-                subtitle: 'Blank canvas or a photo grid',
-                onTap: () => _newProject(context, ref),
-              ),
-              const SizedBox(height: 12),
-              _StartCard(
-                icon: Icons.photo_library_outlined,
-                title: 'Open a photo',
-                subtitle: "Canvas takes the photo's size",
-                onTap: () => _openPhoto(context, ref),
-              ),
+              // Side by side on a tablet: stacked, each is an 800-wide band
+              // with a 48px icon stranded at the left end, and the pair costs
+              // a third of the fold. A phone keeps them stacked - at 372 wide
+              // there is no room for two.
+              if (isTabletWidth(context))
+                IntrinsicHeight(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Expanded(
+                        child: _StartCard(
+                          icon: Icons.add,
+                          title: 'New project',
+                          subtitle: 'Blank canvas or a photo grid',
+                          onTap: () => _newProject(context, ref),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _StartCard(
+                          icon: Icons.photo_library_outlined,
+                          title: 'Open a photo',
+                          subtitle: "Canvas takes the photo's size",
+                          onTap: () => _openPhoto(context, ref),
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              else ...[
+                _StartCard(
+                  icon: Icons.add,
+                  title: 'New project',
+                  subtitle: 'Blank canvas or a photo grid',
+                  onTap: () => _newProject(context, ref),
+                ),
+                const SizedBox(height: 12),
+                _StartCard(
+                  icon: Icons.photo_library_outlined,
+                  title: 'Open a photo',
+                  subtitle: "Canvas takes the photo's size",
+                  onTap: () => _openPhoto(context, ref),
+                ),
+              ],
               const SizedBox(height: 22),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,

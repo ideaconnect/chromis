@@ -45,13 +45,11 @@ Future<void> _writeSettings({
 }
 
 Future<void> _boot(WidgetTester tester) async {
-  // A previous scenario may have left the surface rotated; every launch starts
+  // A previous scenario may have left the view rotated; every launch starts
   // from the device's real geometry. Only when it was actually overridden,
-  // though: calling setSurfaceSize at all perturbs the view metrics enough to
-  // change the layout (it cost the onboarding page 40px of height), and a
-  // feature that never rotates must be unaffected by this file.
+  // though - a feature that never rotates must be unaffected by this file.
   if (_surfaceOverridden) {
-    await tester.binding.setSurfaceSize(null);
+    tester.view.resetPhysicalSize();
     _surfaceOverridden = false;
   }
   _rotationBase = null;
@@ -66,7 +64,7 @@ Future<void> _boot(WidgetTester tester) async {
 // nothing about the layout that the constraints do not.
 // ---------------------------------------------------------------------------
 
-/// The device's unrotated logical size, captured on the first rotation so
+/// The device's unrotated PHYSICAL size, captured on the first rotation so
 /// going back to portrait restores exactly what launch had.
 Size? _rotationBase;
 
@@ -74,18 +72,22 @@ Size? _rotationBase;
 /// it has anything to restore.
 bool _surfaceOverridden = false;
 
+/// Rotates by resizing the VIEW, not `setSurfaceSize`.
+///
+/// setSurfaceSize only reconfigures the RenderView, so constraint-driven layout
+/// moves but MediaQuery keeps reporting the unrotated size - and anything keyed
+/// off MediaQuery (the tablet gate, sheet height caps, insets) would quietly
+/// stay in its old branch while the test claims to have rotated the device.
 Future<void> rotateSurface(
   WidgetTester tester, {
   required bool landscape,
 }) async {
   final view = tester.view;
-  _rotationBase ??= view.physicalSize / view.devicePixelRatio;
+  _rotationBase ??= view.physicalSize;
   final base = _rotationBase!;
   final short = math.min(base.width, base.height);
   final long = math.max(base.width, base.height);
-  await tester.binding.setSurfaceSize(
-    landscape ? Size(long, short) : Size(short, long),
-  );
+  view.physicalSize = landscape ? Size(long, short) : Size(short, long);
   _surfaceOverridden = true;
   await settle(tester);
 }

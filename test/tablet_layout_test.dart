@@ -6,6 +6,7 @@ import 'package:chromis/features/editor/state/editor_controller.dart';
 import 'package:chromis/features/editor/widgets/editor_canvas.dart';
 import 'package:chromis/features/editor/widgets/project_canvas.dart';
 import 'package:chromis/features/go_pro/go_pro_screen.dart';
+import 'package:chromis/features/home/home_screen.dart';
 import 'package:chromis/features/onboarding/onboarding_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -147,6 +148,24 @@ void main() {
         tester.getSize(find.byType(FilledButton).first).width,
         closeTo(412 - 40, 1),
         reason: 'phone portrait keeps the full-bleed button it ships with',
+      );
+    });
+
+    testWidgets('Home pairs its start cards on a tablet only', (tester) async {
+      await pump(tester, tabletLandscape, const HomeScreen());
+      final newProject = tester.getRect(find.text('New project'));
+      final openPhoto = tester.getRect(find.text('Open a photo'));
+      expect(
+        newProject.top,
+        closeTo(openPhoto.top, 1),
+        reason: 'on a tablet the two start cards sit side by side',
+      );
+
+      await pump(tester, phonePortrait, const HomeScreen());
+      expect(
+        tester.getRect(find.text('New project')).top,
+        lessThan(tester.getRect(find.text('Open a photo')).top - 20),
+        reason: 'a phone keeps them stacked - there is no room for two',
       );
     });
 
