@@ -94,7 +94,20 @@ class HomeScreen extends ConsumerWidget {
         pixels: await decodeImageSize(picked[i]),
       );
     }
+    // Persist as soon as there are photos in it. The editor only auto-saves on
+    // an edit made while IT is on screen, and these cells were filled before it
+    // mounted - so backing straight out of a fresh collage used to lose it,
+    // photos and all. An empty collage is still left unsaved, like a blank
+    // canvas: nothing has been chosen yet.
+    if (picked.isNotEmpty) await _persist(ref);
     if (context.mounted) unawaited(context.pushNamed(Routes.editor));
+  }
+
+  /// Saves whatever the editor currently holds and refreshes Home's list.
+  Future<void> _persist(WidgetRef ref) async {
+    final project = ref.read(editorControllerProvider).project;
+    await ref.read(projectRepositoryProvider).save(project);
+    ref.invalidate(savedProjectsProvider);
   }
 
   /// Starts a project FROM a photo: the canvas takes the photo's pixel size and
@@ -128,6 +141,9 @@ class HomeScreen extends ConsumerWidget {
         ),
       );
     }
+    // Same reason as the collage: the photo was placed before the editor
+    // mounted, so nothing would have saved it if the user simply went back.
+    await _persist(ref);
     if (context.mounted) unawaited(context.pushNamed(Routes.editor));
   }
 
@@ -192,29 +208,32 @@ class HomeScreen extends ConsumerWidget {
               // a third of the fold. A phone keeps them stacked - at 372 wide
               // there is no room for two.
               if (isTabletWidth(context))
-                IntrinsicHeight(
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Expanded(
-                        child: _StartCard(
-                          icon: Icons.add,
-                          title: 'New project',
-                          subtitle: 'Blank canvas or a photo grid',
-                          onTap: () => _newProject(context, ref),
-                        ),
+                // Not IntrinsicHeight: it measures a Text at its INTRINSIC
+                // width, so a subtitle that wraps at the real (halved) width
+                // overflows the height it reserved. Letting each card size
+                // itself costs nothing - they are identical until something
+                // wraps, and then uneven beats an overflow stripe.
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: _StartCard(
+                        icon: Icons.add,
+                        title: 'New project',
+                        subtitle: 'Blank canvas or a photo grid',
+                        onTap: () => _newProject(context, ref),
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _StartCard(
-                          icon: Icons.photo_library_outlined,
-                          title: 'Open a photo',
-                          subtitle: "Canvas takes the photo's size",
-                          onTap: () => _openPhoto(context, ref),
-                        ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _StartCard(
+                        icon: Icons.photo_library_outlined,
+                        title: 'Open a photo',
+                        subtitle: "Canvas takes the photo's size",
+                        onTap: () => _openPhoto(context, ref),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 )
               else ...[
                 _StartCard(

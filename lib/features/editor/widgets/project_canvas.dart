@@ -560,26 +560,35 @@ class _ImagePlaceholder extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.white.withValues(alpha: 0.14)),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(
-            Icons.image_outlined,
-            color: AppColors.textMuted,
-            size: 28,
+      // Scaled down rather than clipped: `side` follows the canvas scale, so in
+      // a Home thumbnail this box is a few dozen px while the icon and label
+      // are fixed - which overflowed. Same treatment as [_CellPlaceholder].
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Padding(
+          padding: const EdgeInsets.all(6),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.image_outlined,
+                color: AppColors.textMuted,
+                size: 28,
+              ),
+              const SizedBox(height: 6),
+              Text(
+                name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontFamily: AppFonts.ui,
+                  fontSize: 11,
+                  color: AppColors.textMuted,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 6),
-          Text(
-            name,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              fontFamily: AppFonts.ui,
-              fontSize: 11,
-              color: AppColors.textMuted,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
