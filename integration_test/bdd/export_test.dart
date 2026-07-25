@@ -10,7 +10,7 @@ import './../../test/step/i_create_a_new_blank_project.dart';
 import './../../test/step/a_photo_layer_is_added.dart';
 import './../../test/step/i_tap.dart';
 import './../../test/step/i_see.dart';
-import '../../test/step/the_export_output_summary_is_shown.dart';
+import './../../test/step/the_export_output_summary_is_shown.dart';
 import './../../test/step/no_unhandled_error_occurred.dart';
 
 void main() {

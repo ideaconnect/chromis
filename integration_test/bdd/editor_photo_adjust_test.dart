@@ -9,10 +9,10 @@ import './../../test/step/the_app_is_freshly_launched.dart';
 import './../../test/step/i_create_a_new_blank_project.dart';
 import './../../test/step/a_photo_layer_is_added.dart';
 import './../../test/step/i_tap_the_tool.dart';
-import '../../test/step/i_move_the_slider.dart';
-import '../../test/step/the_selected_photo_has_been_adjusted.dart';
+import './../../test/step/i_move_the_slider.dart';
+import './../../test/step/the_selected_photo_has_been_adjusted.dart';
 import './../../test/step/i_tap.dart';
-import '../../test/step/the_selected_photo_has_default_adjustments.dart';
+import './../../test/step/the_selected_photo_has_default_adjustments.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();

@@ -7,17 +7,17 @@ import 'package:integration_test/integration_test.dart';
 
 import './../../test/step/the_app_is_freshly_launched.dart';
 import './../../test/step/i_create_a_new_blank_project.dart';
-import '../../test/step/i_add_a_text_layer.dart';
+import './../../test/step/i_add_a_text_layer.dart';
 import './../../test/step/i_tap_the_tool.dart';
-import '../../test/step/the_project_has_layers.dart';
+import './../../test/step/the_project_has_layers.dart';
 import './../../test/step/i_see.dart';
 import './../../test/step/no_unhandled_error_occurred.dart';
-import '../../test/step/i_duplicate_the_selected_layer.dart';
-import '../../test/step/i_delete_the_selected_layer.dart';
-import '../../test/step/i_hide_the_selected_layer.dart';
-import '../../test/step/the_selected_layer_is_hidden.dart';
-import '../../test/step/i_undo_the_last_action.dart';
-import '../../test/step/i_redo_the_last_action.dart';
+import './../../test/step/i_duplicate_the_selected_layer.dart';
+import './../../test/step/i_delete_the_selected_layer.dart';
+import './../../test/step/i_hide_the_selected_layer.dart';
+import './../../test/step/the_selected_layer_is_hidden.dart';
+import './../../test/step/i_undo_the_last_action.dart';
+import './../../test/step/i_redo_the_last_action.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();

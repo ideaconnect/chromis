@@ -23,9 +23,11 @@ import '../editor/services/image_import.dart';
 import '../editor/state/editor_controller.dart';
 import '../editor/widgets/canvas_size_sheet.dart';
 import '../go_pro/iap.dart';
+import '../grid/widgets/grid_setup_sheet.dart';
 import 'project_delete.dart';
 import 'project_repository.dart';
 import 'widgets/app_drawer.dart';
+import 'widgets/new_project_sheet.dart';
 import 'widgets/project_tile.dart';
 
 /// Home screen: brand header, the "New project" hero action, quickstart chips
@@ -40,7 +42,13 @@ class HomeScreen extends ConsumerWidget {
   /// project's thumbnail decodes up front. The full list lives in All projects.
   static const _recentCount = 6;
 
+  /// "New project" asks what kind of document first, then branches to the
+  /// canvas-size sheet or the Photo Grid setup.
   Future<void> _newProject(BuildContext context, WidgetRef ref) async {
+    final mode = await showNewProjectModeSheet(context);
+    if (mode == null || !context.mounted) return;
+    if (mode == NewProjectMode.grid) return _newGridProject(context, ref);
+
     final size = await showCanvasSizeSheet(context, title: 'New project');
     if (size == null || !context.mounted) return;
     final project = Project.empty(
@@ -53,6 +61,40 @@ class HomeScreen extends ConsumerWidget {
     // Don't persist yet - the editor auto-saves on the first real edit, so an
     // abandoned blank project never litters Recent.
     unawaited(context.pushNamed(Routes.editor));
+  }
+
+  /// Creates a collage: pick the count/layout/size, then fill the whole grid
+  /// from one trip to the gallery. Cancelling the picker still opens the
+  /// editor on an empty collage - its cells are the invitation to add photos.
+  Future<void> _newGridProject(BuildContext context, WidgetRef ref) async {
+    final setup = await showGridSetupSheet(context);
+    if (setup == null || !context.mounted) return;
+    final project = Project.empty(
+      id: 'pe_${DateTime.now().microsecondsSinceEpoch}',
+      width: setup.width,
+      height: setup.height,
+      createdAt: DateTime.now(),
+    ).copyWith(grid: setup.grid);
+    final controller = ref.read(editorControllerProvider.notifier);
+    controller.loadProject(project);
+
+    final cellIds = setup.grid.cellIds;
+    List<String> picked;
+    try {
+      picked = await ref
+          .read(imageImportServiceProvider)
+          .pickMultipleFromGallery(limit: cellIds.length);
+    } catch (_) {
+      picked = const []; // permission denied / no picker: open it empty
+    }
+    for (var i = 0; i < picked.length && i < cellIds.length; i++) {
+      controller.addPhotoToCell(
+        assetPath: picked[i],
+        cellId: cellIds[i],
+        pixels: await decodeImageSize(picked[i]),
+      );
+    }
+    if (context.mounted) unawaited(context.pushNamed(Routes.editor));
   }
 
   /// Starts a project FROM a photo: the canvas takes the photo's pixel size and
@@ -142,8 +184,8 @@ class HomeScreen extends ConsumerWidget {
               const SizedBox(height: 18),
               _StartCard(
                 icon: Icons.add,
-                title: 'New blank project',
-                subtitle: 'Pick a canvas size - it stays fixed',
+                title: 'New project',
+                subtitle: 'Blank canvas or a photo grid',
                 onTap: () => _newProject(context, ref),
               ),
               const SizedBox(height: 12),

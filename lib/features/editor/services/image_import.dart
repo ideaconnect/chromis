@@ -23,6 +23,24 @@ class ImageImportService {
 
   Future<String?> pickFromCamera() => _pickAndStore(ImageSource.camera);
 
+  /// Picks up to [limit] photos in one go and stores them, returning their
+  /// asset paths in pick order. Used to fill a whole Photo Grid from a single
+  /// trip to the gallery; returns an empty list if the user cancels.
+  Future<List<String>> pickMultipleFromGallery({int? limit}) async {
+    final picked = await _picker.pickMultiImage(
+      maxWidth: _maxDimension,
+      maxHeight: _maxDimension,
+      imageQuality: _quality,
+      limit: limit,
+      requestFullMetadata: false,
+    );
+    final stored = <String>[];
+    for (final file in picked) {
+      stored.add(await storeXFile(file));
+    }
+    return stored;
+  }
+
   Future<String?> _pickAndStore(ImageSource source) async {
     final picked = await _picker.pickImage(
       source: source,

@@ -10,6 +10,7 @@ Feature: New-project canvas size sheet
   Scenario: Create from a preset
     Given the app is freshly launched
     When I tap {'New project'}
+    And I tap {'Blank canvas'}
     And I tap {'Story'}
     And I tap {'Create'}
     Then the editor is shown
@@ -18,6 +19,7 @@ Feature: New-project canvas size sheet
   Scenario: Create with a custom size
     Given the app is freshly launched
     When I tap {'New project'}
+    And I tap {'Blank canvas'}
     And I enter a custom canvas size of {1000} by {1600}
     And I tap {'Create'}
     Then the editor is shown

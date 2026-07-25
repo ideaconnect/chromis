@@ -63,10 +63,12 @@ void main() {
   ) async {
     await bootToHome(tester);
 
-    // Open the size sheet and create at the default preset (valid → Create is
-    // enabled immediately). This reaches the editor with a blank canvas, so no
-    // system photo picker is involved.
+    // Choose the blank-canvas mode, then create at the default preset (valid →
+    // Create is enabled immediately). This reaches the editor with a blank
+    // canvas, so no system photo picker is involved.
     await tester.tap(find.text('New project'));
+    await settle(tester);
+    await tester.tap(find.text('Blank canvas'));
     await settle(tester);
     expect(
       find.text('Create'),
@@ -89,6 +91,8 @@ void main() {
   ) async {
     await bootToHome(tester);
     await tester.tap(find.text('New project'));
+    await settle(tester);
+    await tester.tap(find.text('Blank canvas'));
     await settle(tester);
     await tester.tap(find.text('Create'));
     await settle(tester);

@@ -6,9 +6,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 
 import './../../test/step/the_app_is_freshly_launched.dart';
-import '../../test/step/i_open_the_menu.dart';
-import '../../test/step/i_tap.dart';
-import '../../test/step/i_see.dart';
+import './../../test/step/i_open_the_menu.dart';
+import './../../test/step/i_tap.dart';
+import './../../test/step/i_see.dart';
 import './../../test/step/no_unhandled_error_occurred.dart';
 
 void main() {

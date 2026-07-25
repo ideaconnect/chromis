@@ -11,11 +11,11 @@ import './../../test/step/i_tap_the_tool.dart';
 import './../../test/step/a_comic_bubble_layer_is_added.dart';
 import './../../test/step/no_unhandled_error_occurred.dart';
 import './../../test/step/i_tap.dart';
-import '../../test/step/i_enter_as_the_bubble_text.dart';
-import '../../test/step/the_selected_bubble_shape_is.dart';
-import '../../test/step/the_selected_bubble_text_is.dart';
-import '../../test/step/i_pick_a_different_color.dart';
-import '../../test/step/the_selected_bubble_color_changed.dart';
+import './../../test/step/i_enter_as_the_bubble_text.dart';
+import './../../test/step/the_selected_bubble_shape_is.dart';
+import './../../test/step/the_selected_bubble_text_is.dart';
+import './../../test/step/i_pick_a_different_color.dart';
+import './../../test/step/the_selected_bubble_color_changed.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();

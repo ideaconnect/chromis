@@ -3,10 +3,12 @@ import 'dart:ui';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/models/frame.dart';
+import '../../../core/models/grid.dart';
 import '../../../core/models/image_adjustments.dart';
 import '../../../core/models/layer.dart';
 import '../../../core/models/layer_transform.dart';
 import '../../../core/models/project.dart';
+import '../../../core/rendering/canvas_geometry.dart';
 import 'editor_state.dart';
 import 'editor_tool.dart';
 
@@ -194,6 +196,39 @@ class EditorController extends Notifier<EditorState> {
         name: resolved,
         assetPath: assetPath,
         transform: LayerTransform(position: center + Offset(cascade, cascade)),
+      ),
+    );
+  }
+
+  /// Places a photo into Photo Grid cell [cellId]: centred on the cell and
+  /// cover-scaled from [pixels] so it fills the cell edge to edge (the cell
+  /// clip hides the spill). Returns null when the project has no grid or no
+  /// such cell. Without [pixels] the photo lands at scale 1 - the caller could
+  /// not read its size, so leave it as imported rather than guessing.
+  ImageLayer? addPhotoToCell({
+    required String assetPath,
+    required String cellId,
+    Size? pixels,
+  }) {
+    final project = state.project;
+    final grid = project.grid;
+    if (grid == null) return null;
+    final rect = layoutGrid(
+      grid,
+      Size(project.canvasWidth.toDouble(), project.canvasHeight.toDouble()),
+    ).cells[cellId];
+    if (rect == null) return null;
+    final scale = pixels == null
+        ? 1.0
+        : photoCoverScale(pixels, rect.width, rect.height);
+    final name = _nextPhotoName();
+    return _addLayer(
+      () => ImageLayer(
+        id: _newId('l'),
+        name: name,
+        assetPath: assetPath,
+        cellId: cellId,
+        transform: LayerTransform(position: rect.center, scale: scale),
       ),
     );
   }

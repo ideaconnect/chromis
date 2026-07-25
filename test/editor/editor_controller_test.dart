@@ -1,10 +1,12 @@
-import 'dart:ui' show Offset, Rect, Color;
+import 'dart:ui' show Offset, Rect, Color, Size;
 
 import 'package:chromis/core/models/frame.dart';
+import 'package:chromis/core/models/grid.dart';
 import 'package:chromis/core/models/image_adjustments.dart';
 import 'package:chromis/core/models/layer.dart';
 import 'package:chromis/core/models/layer_transform.dart';
 import 'package:chromis/core/models/project.dart';
+import 'package:chromis/core/rendering/canvas_geometry.dart';
 import 'package:chromis/features/editor/state/editor_controller.dart';
 import 'package:chromis/features/editor/state/editor_state.dart';
 import 'package:chromis/features/editor/state/editor_tool.dart';
@@ -782,6 +784,93 @@ void main() {
       expect(controller.isMaskReferenced('mask.png'), isTrue);
       controller.renameLayer('l_0', 'final'); // 50th -> maskedDoc drops off
       expect(controller.isMaskReferenced('mask.png'), isFalse);
+    });
+  });
+
+  // ------------------------------------------------------------- photo grid
+  group('addPhotoToCell', () {
+    // Two equal columns over a 1080² canvas with the default 12px gap/margin:
+    // c0 spans x 12..528, c1 spans x 552..1068, both y 12..1068.
+    GridSpec twoColumns() => GridSpec(
+      root: GridSplit(
+        GridAxis.columns,
+        [1, 1],
+        const [GridLeaf('a'), GridLeaf('b')],
+      ).withCanonicalIds(),
+    );
+
+    Project collageSeed() => Project.empty(
+      id: 'p',
+      createdAt: DateTime(2024),
+    ).copyWith(grid: twoColumns());
+
+    test('centres the photo on its cell and cover-scales it', () {
+      final (:container, :controller) = open(collageSeed());
+      final cell = layoutGrid(
+        twoColumns(),
+        const Size(1080, 1080),
+      ).cells['c1']!;
+
+      final layer = controller.addPhotoToCell(
+        assetPath: '/fake/a.png',
+        cellId: 'c1',
+        pixels: const Size(2000, 1000),
+      );
+
+      expect(layer, isNotNull);
+      expect(layer!.cellId, 'c1');
+      expect(layer.transform.position, cell.center);
+      // Cover, not contain: the photo fills the cell and the clip hides the
+      // spill, so the scale matches photoCoverScale for that cell.
+      expect(
+        layer.transform.scale,
+        photoCoverScale(const Size(2000, 1000), cell.width, cell.height),
+      );
+      // A cover scale really does overflow the cell on the long axis.
+      expect(layer.transform.scale, greaterThan(1));
+      expect(read(container).selectedLayerId, layer.id);
+    });
+
+    test('is one undoable step', () {
+      final (:container, :controller) = open(collageSeed());
+      controller.addPhotoToCell(assetPath: '/fake/a.png', cellId: 'c0');
+      expect(read(container).layers, hasLength(1));
+      controller.undo();
+      expect(read(container).layers, isEmpty);
+    });
+
+    test('without pixel dimensions the photo lands unscaled', () {
+      // The caller could not read the source size - leave it as imported
+      // rather than guessing a scale.
+      final (:container, :controller) = open(collageSeed());
+      final layer = controller.addPhotoToCell(
+        assetPath: '/fake/a.png',
+        cellId: 'c0',
+      );
+      expect(layer!.transform.scale, 1);
+    });
+
+    test('refuses a project with no grid, or a cell the grid lacks', () {
+      final (:container, :controller) = open(defaultSeed());
+      expect(
+        controller.addPhotoToCell(assetPath: '/fake/a.png', cellId: 'c0'),
+        isNull,
+      );
+      expect(read(container).layers, isEmpty);
+
+      controller.loadProject(collageSeed());
+      expect(
+        controller.addPhotoToCell(assetPath: '/fake/a.png', cellId: 'c9'),
+        isNull,
+      );
+      expect(read(container).layers, isEmpty);
+    });
+
+    test('photos auto-number across cells', () {
+      final (:container, :controller) = open(collageSeed());
+      controller.addPhotoToCell(assetPath: '/fake/a.png', cellId: 'c0');
+      controller.addPhotoToCell(assetPath: '/fake/b.png', cellId: 'c1');
+      expect(read(container).layers.map((l) => l.name), ['Photo', 'Photo 2']);
     });
   });
 }

@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 
-import '../../test/step/the_app_is_launched_for_the_first_time.dart';
+import './../../test/step/the_app_is_launched_for_the_first_time.dart';
 import './../../test/step/i_see.dart';
 import './../../test/step/no_unhandled_error_occurred.dart';
 import './../../test/step/i_tap.dart';

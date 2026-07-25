@@ -9,15 +9,15 @@ import './../../test/step/the_app_is_freshly_launched.dart';
 import './../../test/step/i_create_a_new_blank_project.dart';
 import './../../test/step/i_tap_the_tool.dart';
 import './../../test/step/i_tap.dart';
-import '../../test/step/a_text_layer_is_added.dart';
-import '../../test/step/i_enter_as_the_caption.dart';
-import '../../test/step/the_selected_caption_is.dart';
-import '../../test/step/i_select_the_font.dart';
-import '../../test/step/the_selected_font_is.dart';
+import './../../test/step/a_text_layer_is_added.dart';
+import './../../test/step/i_enter_as_the_caption.dart';
+import './../../test/step/the_selected_caption_is.dart';
+import './../../test/step/i_select_the_font.dart';
+import './../../test/step/the_selected_font_is.dart';
 import './../../test/step/i_move_the_slider.dart';
-import '../../test/step/the_selected_text_size_changed.dart';
-import '../../test/step/i_pick_a_different_text_color.dart';
-import '../../test/step/the_selected_text_color_changed.dart';
+import './../../test/step/the_selected_text_size_changed.dart';
+import './../../test/step/i_pick_a_different_text_color.dart';
+import './../../test/step/the_selected_text_color_changed.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();

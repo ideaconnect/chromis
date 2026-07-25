@@ -11,7 +11,7 @@ import './../../test/step/i_see.dart';
 import './../../test/step/i_tap.dart';
 import './../../test/step/no_unhandled_error_occurred.dart';
 import './../../test/step/the_app_is_launched_as_pro.dart';
-import '../../test/step/i_do_not_see.dart';
+import './../../test/step/i_do_not_see.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
