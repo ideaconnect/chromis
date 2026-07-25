@@ -11,7 +11,7 @@ enum EditorTool {
 
   /// Filters, HDR, vignette, shadow, contour and blend mode - everything that
   /// changes how a layer *looks* rather than what it contains.
-  effects('Effects', 'Effects', Icons.auto_awesome_mosaic, ToolAccent.effects),
+  effects('Effects', 'Effects', Icons.auto_fix_high, ToolAccent.effects),
   text('Text', 'Text', Icons.text_fields, ToolAccent.text),
   erase('Erase', 'Manual erase', Icons.brush_outlined, ToolAccent.erase),
   cutout(

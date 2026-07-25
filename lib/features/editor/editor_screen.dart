@@ -759,7 +759,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         const SizedBox(height: 4),
         OutlinedButton.icon(
           onPressed: () => _controller.setTool(EditorTool.effects),
-          icon: const Icon(Icons.auto_awesome_mosaic, size: 17),
+          icon: const Icon(Icons.auto_fix_high, size: 17),
           label: const Text('Filters, HDR, vignette, shadow…'),
           style: OutlinedButton.styleFrom(
             foregroundColor: AppColors.teal,
@@ -3688,7 +3688,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         onTap: () => tool(EditorTool.adjust),
       ),
       _DockItem(
-        icon: Icons.auto_awesome_mosaic,
+        icon: Icons.auto_fix_high,
         label: 'Effects',
         active: editor.tool == EditorTool.effects,
         onTap: () => tool(EditorTool.effects),

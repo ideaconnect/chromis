@@ -33,7 +33,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           'Add layers, text, and comic bubbles.',
     ),
     _Page(
-      icon: Icons.auto_fix_high,
+      // Matches EditorTool.cutout, now that the wand means Effects.
+      icon: Icons.auto_awesome_outlined,
       gradient: AppColors.cutoutGradient,
       glow: AppColors.green,
       title: 'Cut out the background',
