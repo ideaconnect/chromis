@@ -68,6 +68,25 @@ sealed class GridNode {
     return walk(this);
   }
 
+  /// Whether [other] has the same structure - the same splits, axes and child
+  /// counts - ignoring weights and leaf ids. Dragging a divider changes weights
+  /// but never the shape, so this is how a layout stays recognizable as "the
+  /// template it came from" after the user has resized its cells.
+  bool hasSameShapeAs(GridNode other) {
+    final self = this;
+    if (self is GridLeaf) return other is GridLeaf;
+    self as GridSplit;
+    if (other is! GridSplit ||
+        other.axis != self.axis ||
+        other.children.length != self.children.length) {
+      return false;
+    }
+    for (var i = 0; i < self.children.length; i++) {
+      if (!self.children[i].hasSameShapeAs(other.children[i])) return false;
+    }
+    return true;
+  }
+
   Map<String, dynamic> toJson();
 
   factory GridNode.fromJson(Map<String, dynamic> json) {
