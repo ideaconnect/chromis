@@ -1,4 +1,6 @@
+import 'package:chromis/core/models/project.dart';
 import 'package:chromis/core/theme/app_theme.dart';
+import 'package:chromis/core/widgets/sheet_body.dart';
 import 'package:chromis/features/about/about_sheet.dart';
 import 'package:chromis/features/editor/editor_screen.dart';
 import 'package:chromis/features/editor/widgets/canvas_size_sheet.dart';
@@ -7,6 +9,7 @@ import 'package:chromis/features/grid/widgets/grid_setup_sheet.dart';
 import 'package:chromis/features/home/home_screen.dart';
 import 'package:chromis/features/home/widgets/app_drawer.dart';
 import 'package:chromis/features/home/widgets/new_project_sheet.dart';
+import 'package:chromis/features/home/widgets/project_tile.dart';
 import 'package:chromis/features/onboarding/onboarding_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -76,6 +79,20 @@ void main() {
     await tester.pump(const Duration(milliseconds: 400));
   }
 
+  /// Taps a dock/rail button, scrolling it into view first - the dock is a
+  /// scroll view and most of its buttons start off-screen in a short window.
+  /// The extra pump matters: ensureVisible only moves the offset, layout
+  /// catches up on the next frame, so tapping straight after aims at the old
+  /// position.
+  Future<void> tapDock(WidgetTester tester, String label) async {
+    final finder = find.byKey(ValueKey('dock-$label'));
+    await tester.ensureVisible(finder);
+    await tester.pump();
+    await tester.tap(finder);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+  }
+
   for (final entry in sizes.entries) {
     group(entry.key, () {
       final size = entry.value;
@@ -124,6 +141,65 @@ void main() {
         await pumpSheet(tester, size, showAboutSheet);
         expect(tester.takeException(), isNull);
         expect(find.text('Open-source licenses'), findsOneWidget);
+      });
+
+      // The editor's own sheets, which are opened from inside the screen
+      // rather than by a top-level `show…Sheet` function. The crop sheet
+      // shipped as a bare Column with no SafeArea, so its ratio chips sat
+      // under the system gesture bar even in portrait.
+      testWidgets('crop sheet', (tester) async {
+        await pumpScreen(tester, size, const EditorScreen());
+        await tapDock(tester, 'Crop');
+        expect(tester.takeException(), isNull);
+        expect(find.text('Crop to ratio'), findsOneWidget);
+        expect(find.byType(SheetBody), findsOneWidget);
+      });
+
+      testWidgets('add-layer menu', (tester) async {
+        await pumpScreen(tester, size, const EditorScreen());
+        await tapDock(tester, 'Layers');
+        await tester.tap(find.text('Add'));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 400));
+        expect(tester.takeException(), isNull);
+        expect(find.text('Add bubble'), findsOneWidget);
+        expect(find.byType(SheetBody), findsOneWidget);
+      });
+
+      testWidgets('project tile menu', (tester) async {
+        setSurface(tester, size);
+        await tester.pumpWidget(
+          ProviderScope(
+            child: MaterialApp(
+              theme: buildAppTheme(),
+              home: Scaffold(
+                body: Center(
+                  child: SizedBox(
+                    width: 160,
+                    height: 200,
+                    child: ProjectTile(
+                      project: Project.empty(
+                        id: 'p',
+                        createdAt: DateTime(2026),
+                      ),
+                      radius: 16,
+                      onTap: () {},
+                      onRename: () {},
+                      onDuplicate: () {},
+                      onDelete: () {},
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.longPress(find.byType(ProjectTile));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 400));
+        expect(tester.takeException(), isNull);
+        expect(find.text('Duplicate'), findsOneWidget);
+        expect(find.byType(SheetBody), findsOneWidget);
       });
 
       testWidgets('navigation drawer', (tester) async {

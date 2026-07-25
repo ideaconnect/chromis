@@ -17,6 +17,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_typography.dart';
 import '../../core/widgets/checkerboard.dart';
 import '../../core/widgets/responsive_center.dart';
+import '../../core/widgets/sheet_body.dart';
 import '../ads/ads_service.dart';
 import '../editor/state/editor_controller.dart';
 import '../go_pro/iap.dart';
@@ -154,6 +155,8 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
     if (ref.read(isProProvider)) return true;
     final choice = await showModalBottomSheet<_ExportGate>(
       context: context,
+      // So the sheet may use the height it needs; SheetBody caps and scrolls it.
+      isScrollControlled: true,
       backgroundColor: AppColors.panel,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
@@ -418,83 +421,63 @@ class _ExportGateSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(22, 14, 22, 22),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: AppColors.border,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-            const Icon(
-              Icons.play_circle_outline,
-              color: AppColors.cyan,
-              size: 36,
-            ),
-            const SizedBox(height: 12),
-            const Text(
-              'Watch a short ad to export',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontFamily: AppFonts.display,
-                fontWeight: FontWeight.w700,
-                fontSize: 18,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Free exports are supported by a short ad. Go Pro to export '
-              'without ads, forever.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontFamily: AppFonts.ui,
-                fontSize: 13,
-                height: 1.4,
-                color: AppColors.textMuted,
-              ),
-            ),
-            const SizedBox(height: 22),
-            FilledButton.icon(
-              onPressed: () => Navigator.pop(context, _ExportGate.watch),
-              icon: const Icon(Icons.play_arrow_rounded),
-              label: const Text('Watch & export'),
-              style: FilledButton.styleFrom(
-                backgroundColor: AppColors.cyan,
-                foregroundColor: AppColors.cutoutInk,
-                minimumSize: const Size.fromHeight(50),
-                textStyle: const TextStyle(
-                  fontFamily: AppFonts.display,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 15,
-                ),
-              ),
-            ),
-            const SizedBox(height: 8),
-            TextButton(
-              onPressed: () => Navigator.pop(context, _ExportGate.goPro),
-              child: const Text(
-                'Go Pro - no ads',
-                style: TextStyle(
-                  fontFamily: AppFonts.ui,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textSecondary,
-                ),
-              ),
-            ),
-          ],
+    return SheetBody(
+      padding: const EdgeInsets.fromLTRB(22, 14, 22, 22),
+      children: [
+        const SizedBox(height: 4),
+        const Icon(Icons.play_circle_outline, color: AppColors.cyan, size: 36),
+        const SizedBox(height: 12),
+        const Text(
+          'Watch a short ad to export',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontFamily: AppFonts.display,
+            fontWeight: FontWeight.w700,
+            fontSize: 18,
+            color: AppColors.textPrimary,
+          ),
         ),
-      ),
+        const SizedBox(height: 8),
+        const Text(
+          'Free exports are supported by a short ad. Go Pro to export '
+          'without ads, forever.',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontFamily: AppFonts.ui,
+            fontSize: 13,
+            height: 1.4,
+            color: AppColors.textMuted,
+          ),
+        ),
+        const SizedBox(height: 22),
+        FilledButton.icon(
+          onPressed: () => Navigator.pop(context, _ExportGate.watch),
+          icon: const Icon(Icons.play_arrow_rounded),
+          label: const Text('Watch & export'),
+          style: FilledButton.styleFrom(
+            backgroundColor: AppColors.cyan,
+            foregroundColor: AppColors.cutoutInk,
+            minimumSize: const Size.fromHeight(50),
+            textStyle: const TextStyle(
+              fontFamily: AppFonts.display,
+              fontWeight: FontWeight.w700,
+              fontSize: 15,
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        TextButton(
+          onPressed: () => Navigator.pop(context, _ExportGate.goPro),
+          child: const Text(
+            'Go Pro - no ads',
+            style: TextStyle(
+              fontFamily: AppFonts.ui,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textSecondary,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

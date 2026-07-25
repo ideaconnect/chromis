@@ -29,6 +29,7 @@ import '../../core/widgets/labeled_slider.dart';
 import '../../core/widgets/name_prompt.dart';
 import '../../core/widgets/pill_chip.dart';
 import '../../core/widgets/responsive_center.dart';
+import '../../core/widgets/sheet_body.dart';
 import '../../core/widgets/sm_toast.dart';
 import '../../core/widgets/text_caption.dart';
 import '../ads/ads_service.dart';
@@ -1847,47 +1848,31 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
   Future<void> _showModelInfo() async {
     await showModalBottomSheet<void>(
       context: context,
+      // So the sheet may use the height it needs; SheetBody caps and scrolls it.
+      isScrollControlled: true,
       backgroundColor: AppColors.card,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (ctx) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 10, 20, 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Center(
-                child: Container(
-                  width: 38,
-                  height: 4,
-                  margin: const EdgeInsets.only(bottom: 16),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.16),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                ),
+      builder: (ctx) => SheetBody(
+        children: [
+          const Padding(
+            padding: EdgeInsets.only(bottom: 14),
+            child: Text(
+              'Which AI model?',
+              style: TextStyle(
+                fontFamily: AppFonts.display,
+                fontWeight: FontWeight.w600,
+                fontSize: 18,
+                color: AppColors.green,
               ),
-              const Padding(
-                padding: EdgeInsets.only(bottom: 14),
-                child: Text(
-                  'Which AI model?',
-                  style: TextStyle(
-                    fontFamily: AppFonts.display,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 18,
-                    color: AppColors.green,
-                  ),
-                ),
-              ),
-              for (final m in SegModel.values) ...[
-                _modelInfoCard(m),
-                if (m != SegModel.values.last) const SizedBox(height: 12),
-              ],
-            ],
+            ),
           ),
-        ),
+          for (final m in SegModel.values) ...[
+            _modelInfoCard(m),
+            if (m != SegModel.values.last) const SizedBox(height: 12),
+          ],
+        ],
       ),
     );
   }
@@ -2322,32 +2307,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
               ];
             }
 
-            return Padding(
-              padding: EdgeInsets.fromLTRB(
-                20,
-                14,
-                20,
-                20 + MediaQuery.viewInsetsOf(ctx).bottom,
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Center(
-                    child: Container(
-                      width: 40,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: AppColors.elevated,
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  ...children,
-                ],
-              ),
-            );
+            return SheetBody(children: children);
           },
         ),
       ),
@@ -3017,29 +2977,29 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
   Future<void> _showFrameMenu(int index, int frameCount) async {
     final choice = await showModalBottomSheet<String>(
       context: context,
+      // So the sheet may use the height it needs; SheetBody caps and scrolls it.
+      isScrollControlled: true,
       backgroundColor: AppColors.panel,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
       ),
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _sheetTile(
-              ctx,
-              Icons.copy_all_outlined,
-              'Duplicate frame',
-              'duplicate',
-            ),
-            if (index > 0)
-              _sheetTile(ctx, Icons.arrow_back, 'Move left', 'move_left'),
-            if (index < frameCount - 1)
-              _sheetTile(ctx, Icons.arrow_forward, 'Move right', 'move_right'),
-            if (frameCount > 1)
-              _sheetTile(ctx, Icons.delete_outline, 'Delete frame', 'delete'),
-            const SizedBox(height: 8),
-          ],
-        ),
+      builder: (ctx) => SheetBody(
+        // No side padding: these tiles are meant to run edge to edge.
+        padding: const EdgeInsets.fromLTRB(0, 14, 0, 8),
+        children: [
+          _sheetTile(
+            ctx,
+            Icons.copy_all_outlined,
+            'Duplicate frame',
+            'duplicate',
+          ),
+          if (index > 0)
+            _sheetTile(ctx, Icons.arrow_back, 'Move left', 'move_left'),
+          if (index < frameCount - 1)
+            _sheetTile(ctx, Icons.arrow_forward, 'Move right', 'move_right'),
+          if (frameCount > 1)
+            _sheetTile(ctx, Icons.delete_outline, 'Delete frame', 'delete'),
+        ],
       ),
     );
     switch (choice) {
@@ -3296,32 +3256,27 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
   Future<void> _showAddMenu() async {
     final choice = await showModalBottomSheet<String>(
       context: context,
+      // So the sheet may use the height it needs; SheetBody caps and scrolls it.
+      isScrollControlled: true,
       backgroundColor: AppColors.panel,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
       ),
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _sheetTile(
-              ctx,
-              Icons.photo_camera_outlined,
-              'Take photo',
-              'camera',
-            ),
-            _sheetTile(
-              ctx,
-              Icons.photo_library_outlined,
-              'Choose photo',
-              'gallery',
-            ),
-            _sheetTile(ctx, Icons.content_paste, 'Paste image', 'paste'),
-            _sheetTile(ctx, Icons.title, 'Add text', 'text'),
-            _sheetTile(ctx, Icons.chat_bubble_outline, 'Add bubble', 'bubble'),
-            const SizedBox(height: 8),
-          ],
-        ),
+      builder: (ctx) => SheetBody(
+        // No side padding: these tiles are meant to run edge to edge.
+        padding: const EdgeInsets.fromLTRB(0, 14, 0, 8),
+        children: [
+          _sheetTile(ctx, Icons.photo_camera_outlined, 'Take photo', 'camera'),
+          _sheetTile(
+            ctx,
+            Icons.photo_library_outlined,
+            'Choose photo',
+            'gallery',
+          ),
+          _sheetTile(ctx, Icons.content_paste, 'Paste image', 'paste'),
+          _sheetTile(ctx, Icons.title, 'Add text', 'text'),
+          _sheetTile(ctx, Icons.chat_bubble_outline, 'Add bubble', 'bubble'),
+        ],
       ),
     );
     switch (choice) {
@@ -3457,129 +3412,110 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     ];
     showModalBottomSheet<void>(
       context: context,
+      // So the sheet may use the height it needs; SheetBody caps and scrolls it.
+      isScrollControlled: true,
       backgroundColor: AppColors.panel,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (sheetCtx) => Padding(
-        padding: EdgeInsets.fromLTRB(
-          20,
-          14,
-          20,
-          20 + MediaQuery.viewInsetsOf(sheetCtx).bottom,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: AppColors.elevated,
-                  borderRadius: BorderRadius.circular(2),
-                ),
+      builder: (sheetCtx) => SheetBody(
+        children: [
+          const Text(
+            'Crop to ratio',
+            style: TextStyle(
+              fontFamily: AppFonts.display,
+              fontWeight: FontWeight.w700,
+              fontSize: 17,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 3),
+          const Text(
+            'Drag a freeform box, or center-crop to a ratio',
+            style: TextStyle(
+              fontFamily: AppFonts.ui,
+              fontSize: 11.5,
+              color: AppColors.textSecondary,
+            ),
+          ),
+          const SizedBox(height: 16),
+          GestureDetector(
+            onTap: () {
+              Navigator.of(sheetCtx).pop();
+              _openFreeformCrop();
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: AppColors.cyan.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: AppColors.cyan),
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.crop, size: 18, color: AppColors.cyan),
+                  SizedBox(width: 8),
+                  Text(
+                    'Freeform crop',
+                    style: TextStyle(
+                      fontFamily: AppFonts.ui,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 13.5,
+                      color: AppColors.cyan,
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 16),
-            const Text(
-              'Crop to ratio',
-              style: TextStyle(
-                fontFamily: AppFonts.display,
-                fontWeight: FontWeight.w700,
-                fontSize: 17,
-                color: AppColors.textPrimary,
-              ),
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            'RATIOS',
+            style: TextStyle(
+              fontFamily: AppFonts.ui,
+              fontSize: 10.5,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.4,
+              color: AppColors.textMuted,
             ),
-            const SizedBox(height: 3),
-            const Text(
-              'Drag a freeform box, or center-crop to a ratio',
-              style: TextStyle(
-                fontFamily: AppFonts.ui,
-                fontSize: 11.5,
-                color: AppColors.textSecondary,
-              ),
-            ),
-            const SizedBox(height: 16),
-            GestureDetector(
-              onTap: () {
-                Navigator.of(sheetCtx).pop();
-                _openFreeformCrop();
-              },
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: AppColors.cyan.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: AppColors.cyan),
-                ),
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.crop, size: 18, color: AppColors.cyan),
-                    SizedBox(width: 8),
-                    Text(
-                      'Freeform crop',
-                      style: TextStyle(
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final r in ratios)
+                GestureDetector(
+                  onTap: () {
+                    Navigator.of(sheetCtx).pop();
+                    _applyCropAspect(r.$2);
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 11,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.card,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppColors.borderFaint),
+                    ),
+                    child: Text(
+                      r.$1,
+                      style: const TextStyle(
                         fontFamily: AppFonts.ui,
                         fontWeight: FontWeight.w800,
-                        fontSize: 13.5,
-                        color: AppColors.cyan,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'RATIOS',
-              style: TextStyle(
-                fontFamily: AppFonts.ui,
-                fontSize: 10.5,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 0.4,
-                color: AppColors.textMuted,
-              ),
-            ),
-            const SizedBox(height: 10),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                for (final r in ratios)
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.of(sheetCtx).pop();
-                      _applyCropAspect(r.$2);
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 11,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.card,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: AppColors.borderFaint),
-                      ),
-                      child: Text(
-                        r.$1,
-                        style: const TextStyle(
-                          fontFamily: AppFonts.ui,
-                          fontWeight: FontWeight.w800,
-                          fontSize: 13,
-                          color: AppColors.textSecondary,
-                        ),
+                        fontSize: 13,
+                        color: AppColors.textSecondary,
                       ),
                     ),
                   ),
-              ],
-            ),
-          ],
-        ),
+                ),
+            ],
+          ),
+        ],
       ),
     );
   }

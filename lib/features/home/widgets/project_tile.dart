@@ -4,6 +4,7 @@ import '../../../core/models/project.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/checkerboard.dart';
+import '../../../core/widgets/sheet_body.dart';
 import '../../editor/widgets/project_canvas.dart';
 
 /// A saved-project card: live canvas preview, name + layer count. Tap to open;
@@ -116,21 +117,21 @@ class ProjectTile extends StatelessWidget {
   Future<void> _showMenu(BuildContext context) async {
     final choice = await showModalBottomSheet<String>(
       context: context,
+      // So the sheet may use the height it needs; SheetBody caps and scrolls it.
+      isScrollControlled: true,
       backgroundColor: AppColors.panel,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
       ),
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _menuTile(ctx, Icons.open_in_full, 'Open', 'open'),
-            _menuTile(ctx, Icons.drive_file_rename_outline, 'Rename', 'rename'),
-            _menuTile(ctx, Icons.content_copy, 'Duplicate', 'duplicate'),
-            _menuTile(ctx, Icons.delete_outline, 'Delete', 'delete'),
-            const SizedBox(height: 8),
-          ],
-        ),
+      builder: (ctx) => SheetBody(
+        // No side padding: these tiles are meant to run edge to edge.
+        padding: const EdgeInsets.fromLTRB(0, 14, 0, 8),
+        children: [
+          _menuTile(ctx, Icons.open_in_full, 'Open', 'open'),
+          _menuTile(ctx, Icons.drive_file_rename_outline, 'Rename', 'rename'),
+          _menuTile(ctx, Icons.content_copy, 'Duplicate', 'duplicate'),
+          _menuTile(ctx, Icons.delete_outline, 'Delete', 'delete'),
+        ],
       ),
     );
     switch (choice) {
