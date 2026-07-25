@@ -164,12 +164,53 @@ Future<void> seedPhoto(WidgetTester tester) async {
   await settle(tester);
 }
 
-/// Tap a visible text label and let the UI settle. The primary interaction -
-/// the app is built from custom widgets wrapping Text, so find.text is the
-/// canonical finder.
+/// Brings [finder]'s target into the tree, scrolling if it is below the fold.
+///
+/// Every scrollable is tried, not just the first: a screen usually has more
+/// than one - a horizontal chip row, a tool panel, the page itself - and which
+/// comes first is an accident of the widget tree, not something a scenario
+/// should have to know. A lazy list is the reason this is needed at all: an
+/// off-screen item is not merely invisible, it does not exist yet, so no
+/// amount of ensureVisible will find it.
+Future<void> revealFinder(WidgetTester tester, Finder finder) async {
+  if (finder.evaluate().isNotEmpty) return;
+  final scrollables = find.byType(Scrollable);
+  final count = scrollables.evaluate().length;
+  for (var i = 0; i < count && finder.evaluate().isEmpty; i++) {
+    try {
+      await tester.scrollUntilVisible(
+        finder,
+        150,
+        scrollable: scrollables.at(i),
+        maxScrolls: 40,
+      );
+    } catch (_) {
+      // This one does not lead there; try the next.
+    }
+    await settle(tester);
+  }
+}
+
+/// Tap a text label and let the UI settle. The primary interaction - the app is
+/// built from custom widgets wrapping Text, so find.text is the canonical
+/// finder. Scrolls the label into existence first when it is off the fold,
+/// which a landscape phone makes routine.
 Future<void> tapText(WidgetTester tester, String label) async {
-  final f = find.text(label).first;
-  await tester.ensureVisible(f); // scroll it into view if the panel scrolled
+  final all = find.text(label);
+  await revealFinder(tester, all);
+  final f = all.first;
+  await scrollIntoView(tester, f);
   await tester.tap(f);
   await settle(tester);
+}
+
+/// Scrolls [finder] into view AND lets the frame settle.
+///
+/// `ensureVisible` alone is not enough: it moves the scroll offset, but the
+/// layout - and therefore the coordinates `tap` derives - only catches up on
+/// the next frame, so tapping straight afterwards aims at where the widget
+/// used to be and silently misses.
+Future<void> scrollIntoView(WidgetTester tester, Finder finder) async {
+  await tester.ensureVisible(finder);
+  await tester.pump();
 }

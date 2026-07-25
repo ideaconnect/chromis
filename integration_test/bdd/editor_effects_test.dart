@@ -11,16 +11,16 @@ import './../../test/step/a_photo_layer_is_added.dart';
 import './../../test/step/i_tap_the_tool.dart';
 import './../../test/step/i_see.dart';
 import './../../test/step/no_unhandled_error_occurred.dart';
-import '../../test/step/i_tap_the_filter.dart';
-import '../../test/step/the_selected_photo_has_the_filter.dart';
+import './../../test/step/i_tap_the_filter.dart';
+import './../../test/step/the_selected_photo_has_the_filter.dart';
 import './../../test/step/i_move_the_slider.dart';
-import '../../test/step/the_selected_photo_has_hdr.dart';
-import '../../test/step/the_selected_photo_has_a_vignette.dart';
-import '../../test/step/the_selected_layer_has_a_shadow.dart';
-import '../../test/step/the_selected_layer_has_an_outline.dart';
+import './../../test/step/the_selected_photo_has_hdr.dart';
+import './../../test/step/the_selected_photo_has_a_vignette.dart';
+import './../../test/step/the_selected_layer_has_a_shadow.dart';
+import './../../test/step/the_selected_layer_has_an_outline.dart';
 import './../../test/step/i_tap.dart';
-import '../../test/step/the_selected_layer_blends_with.dart';
-import '../../test/step/the_selected_photo_has_no_effects.dart';
+import './../../test/step/the_selected_layer_blends_with.dart';
+import './../../test/step/the_selected_photo_has_no_effects.dart';
 import './../../test/step/i_add_a_text_layer.dart';
 
 void main() {
@@ -107,7 +107,6 @@ void main() {
         (tester) async {
       await bddSetUp(tester);
       await iAddATextLayer(tester);
-      await iTapTheTool(tester, 'Effects');
       await iMoveTheSlider(tester, 'Opacity');
       await theSelectedLayerHasAShadow(tester);
       await iMoveTheSlider(tester, 'Thickness');

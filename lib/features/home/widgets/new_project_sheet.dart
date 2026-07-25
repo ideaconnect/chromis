@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../core/widgets/sheet_body.dart';
 
 /// What the user is starting: a plain canvas, or a Photo Grid (collage).
 enum NewProjectMode { blank, grid }
@@ -10,54 +11,41 @@ enum NewProjectMode { blank, grid }
 Future<NewProjectMode?> showNewProjectModeSheet(BuildContext context) {
   return showModalBottomSheet<NewProjectMode>(
     context: context,
+    // So the sheet may use the height it needs; SheetBody caps and scrolls it.
+    isScrollControlled: true,
     backgroundColor: AppColors.panel,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
     ),
-    builder: (ctx) => Padding(
+    builder: (ctx) => SheetBody(
       padding: const EdgeInsets.fromLTRB(20, 14, 20, 24),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Center(
-            child: Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: AppColors.elevated,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
+      children: [
+        const Text(
+          'What are you making?',
+          style: TextStyle(
+            fontFamily: AppFonts.display,
+            fontWeight: FontWeight.w700,
+            fontSize: 17,
+            color: AppColors.textPrimary,
           ),
-          const SizedBox(height: 16),
-          const Text(
-            'What are you making?',
-            style: TextStyle(
-              fontFamily: AppFonts.display,
-              fontWeight: FontWeight.w700,
-              fontSize: 17,
-              color: AppColors.textPrimary,
-            ),
-          ),
-          const SizedBox(height: 16),
-          _ModeCard(
-            mode: NewProjectMode.blank,
-            icon: Icons.crop_original,
-            title: 'Blank canvas',
-            subtitle: 'One canvas, add photos and layers freely',
-            onTap: () => Navigator.of(ctx).pop(NewProjectMode.blank),
-          ),
-          const SizedBox(height: 10),
-          _ModeCard(
-            mode: NewProjectMode.grid,
-            icon: Icons.grid_view,
-            title: 'Photo grid',
-            subtitle: 'A collage of 2 to 5 photos in a layout',
-            onTap: () => Navigator.of(ctx).pop(NewProjectMode.grid),
-          ),
-        ],
-      ),
+        ),
+        const SizedBox(height: 16),
+        _ModeCard(
+          mode: NewProjectMode.blank,
+          icon: Icons.crop_original,
+          title: 'Blank canvas',
+          subtitle: 'One canvas, add photos and layers freely',
+          onTap: () => Navigator.of(ctx).pop(NewProjectMode.blank),
+        ),
+        const SizedBox(height: 10),
+        _ModeCard(
+          mode: NewProjectMode.grid,
+          icon: Icons.grid_view,
+          title: 'Photo grid',
+          subtitle: 'A collage of 2 to 5 photos in a layout',
+          onTap: () => Navigator.of(ctx).pop(NewProjectMode.grid),
+        ),
+      ],
     ),
   );
 }

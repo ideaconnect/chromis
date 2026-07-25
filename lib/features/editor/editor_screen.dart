@@ -834,6 +834,9 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         SizedBox(
           height: 42,
           child: ListView.separated(
+            // Keyed so a test can hold on to the row while it scrolls: an
+            // anchor chip scrolls out of the tree and takes the finder with it.
+            key: const ValueKey('font-row'),
             scrollDirection: Axis.horizontal,
             itemCount: fonts.length + 1,
             separatorBuilder: (_, _) => const SizedBox(width: 9),
@@ -1073,6 +1076,9 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         SizedBox(
           height: 42,
           child: ListView.separated(
+            // Keyed so a test can hold on to the row while it scrolls: an
+            // anchor chip scrolls out of the tree and takes the finder with it.
+            key: const ValueKey('bubble-font-row'),
             scrollDirection: Axis.horizontal,
             itemCount: fonts.length + 1,
             separatorBuilder: (_, _) => const SizedBox(width: 9),

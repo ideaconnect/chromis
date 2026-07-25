@@ -93,53 +93,60 @@ class AppDrawer extends ConsumerWidget {
               ),
             ),
             const Divider(height: 1, color: AppColors.border),
-            const SizedBox(height: 8),
-            _DrawerItem(
-              icon: Icons.home_outlined,
-              label: 'Home & projects',
-              onTap: () {
-                Navigator.of(context).pop();
-                context.goNamed(Routes.home);
-              },
+            // The item list scrolls rather than pushing the footer off the
+            // bottom: a phone in landscape leaves barely 400px of drawer.
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.only(top: 8),
+                children: [
+                  _DrawerItem(
+                    icon: Icons.home_outlined,
+                    label: 'Home & projects',
+                    onTap: () {
+                      Navigator.of(context).pop();
+                      context.goNamed(Routes.home);
+                    },
+                  ),
+                  _DrawerItem(
+                    icon: Icons.add_photo_alternate_outlined,
+                    label: 'New project',
+                    onTap: () => _newProject(context, ref),
+                  ),
+                  _DrawerItem(
+                    icon: Icons.grid_view_rounded,
+                    label: 'All projects',
+                    onTap: () {
+                      Navigator.of(context).pop();
+                      context.pushNamed(Routes.allProjects);
+                    },
+                  ),
+                  _DrawerItem(
+                    icon: Icons.info_outline,
+                    label: 'About',
+                    onTap: () {
+                      Navigator.of(context).pop();
+                      showAboutSheet(context);
+                    },
+                  ),
+                  _DrawerItem(
+                    icon: Icons.privacy_tip_outlined,
+                    label: 'Privacy & Cookies',
+                    onTap: () {
+                      Navigator.of(context).pop();
+                      context.pushNamed(Routes.privacy);
+                    },
+                  ),
+                  _DrawerItem(
+                    icon: Icons.description_outlined,
+                    label: 'Licenses',
+                    onTap: () {
+                      Navigator.of(context).pop();
+                      context.pushNamed(Routes.licenses);
+                    },
+                  ),
+                ],
+              ),
             ),
-            _DrawerItem(
-              icon: Icons.add_photo_alternate_outlined,
-              label: 'New project',
-              onTap: () => _newProject(context, ref),
-            ),
-            _DrawerItem(
-              icon: Icons.grid_view_rounded,
-              label: 'All projects',
-              onTap: () {
-                Navigator.of(context).pop();
-                context.pushNamed(Routes.allProjects);
-              },
-            ),
-            _DrawerItem(
-              icon: Icons.info_outline,
-              label: 'About',
-              onTap: () {
-                Navigator.of(context).pop();
-                showAboutSheet(context);
-              },
-            ),
-            _DrawerItem(
-              icon: Icons.privacy_tip_outlined,
-              label: 'Privacy & Cookies',
-              onTap: () {
-                Navigator.of(context).pop();
-                context.pushNamed(Routes.privacy);
-              },
-            ),
-            _DrawerItem(
-              icon: Icons.description_outlined,
-              label: 'Licenses',
-              onTap: () {
-                Navigator.of(context).pop();
-                context.pushNamed(Routes.licenses);
-              },
-            ),
-            const Spacer(),
             // Pro users have already removed ads - don't keep selling it.
             if (!ref.watch(isProProvider))
               Padding(
@@ -229,13 +236,19 @@ class _GoProButton extends StatelessWidget {
                   size: 18,
                 ),
                 SizedBox(width: 8),
-                Text(
-                  'Go Pro · remove ads',
-                  style: TextStyle(
-                    fontFamily: AppFonts.display,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 13.5,
-                    color: AppColors.cutoutInk,
+                // Flexible so a large system font scale shrinks the label
+                // instead of overflowing the button, which is fixed-width.
+                Flexible(
+                  child: Text(
+                    'Go Pro · remove ads',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontFamily: AppFonts.display,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 13.5,
+                      color: AppColors.cutoutInk,
+                    ),
                   ),
                 ),
               ],

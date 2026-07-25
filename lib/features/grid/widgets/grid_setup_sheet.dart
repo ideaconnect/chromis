@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/models/grid.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../core/widgets/sheet_body.dart';
 import '../../editor/widgets/canvas_size_sheet.dart';
 import '../grid_templates.dart';
 import 'grid_template_strip.dart';
@@ -57,108 +58,92 @@ class _GridSetupSheetState extends State<_GridSetupSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 14, 20, 20),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Center(
-            child: Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: AppColors.elevated,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
+    return SheetBody(
+      children: [
+        const Text(
+          'Photo grid',
+          style: TextStyle(
+            fontFamily: AppFonts.display,
+            fontWeight: FontWeight.w700,
+            fontSize: 17,
+            color: AppColors.textPrimary,
           ),
-          const SizedBox(height: 16),
-          const Text(
-            'Photo grid',
+        ),
+        const SizedBox(height: 16),
+        const _SectionLabel('HOW MANY PHOTOS?'),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            for (var n = kMinGridPhotos; n <= kMaxGridPhotos; n++) ...[
+              Expanded(
+                child: _CountChip(
+                  count: n,
+                  selected: n == _count,
+                  onTap: () => _setCount(n),
+                ),
+              ),
+              if (n < kMaxGridPhotos) const SizedBox(width: 8),
+            ],
+          ],
+        ),
+        const SizedBox(height: 18),
+        const _SectionLabel('LAYOUT'),
+        const SizedBox(height: 8),
+        GridTemplateStrip(
+          templates: _templates,
+          selectedIndex: _template,
+          aspect: _aspect.width / _aspect.height,
+          onSelected: (i) => setState(() => _template = i),
+        ),
+        const SizedBox(height: 16),
+        const _SectionLabel('SIZE'),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (final preset in _aspects)
+              _AspectChip(
+                preset: preset,
+                selected: preset.label == _aspect.label,
+                onTap: () => setState(() => _aspect = preset),
+              ),
+          ],
+        ),
+        const SizedBox(height: 18),
+        FilledButton(
+          key: const ValueKey('grid-setup-create'),
+          onPressed: () => Navigator.of(context).pop((
+            width: _aspect.width,
+            height: _aspect.height,
+            grid: GridSpec(root: _templates[_template].root),
+          )),
+          style: FilledButton.styleFrom(
+            backgroundColor: AppColors.cyan,
+            foregroundColor: AppColors.cutoutInk,
+            minimumSize: const Size.fromHeight(50),
+          ),
+          child: const Text(
+            'Create',
             style: TextStyle(
               fontFamily: AppFonts.display,
               fontWeight: FontWeight.w700,
-              fontSize: 17,
-              color: AppColors.textPrimary,
+              fontSize: 15,
             ),
           ),
-          const SizedBox(height: 16),
-          const _SectionLabel('HOW MANY PHOTOS?'),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              for (var n = kMinGridPhotos; n <= kMaxGridPhotos; n++) ...[
-                Expanded(
-                  child: _CountChip(
-                    count: n,
-                    selected: n == _count,
-                    onTap: () => _setCount(n),
-                  ),
-                ),
-                if (n < kMaxGridPhotos) const SizedBox(width: 8),
-              ],
-            ],
+        ),
+        const SizedBox(height: 8),
+        const Text(
+          'Pick your photos next - you can change the layout, count and '
+          'border any time.',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontFamily: AppFonts.ui,
+            fontSize: 11,
+            color: AppColors.textMuted,
           ),
-          const SizedBox(height: 18),
-          const _SectionLabel('LAYOUT'),
-          const SizedBox(height: 8),
-          GridTemplateStrip(
-            templates: _templates,
-            selectedIndex: _template,
-            aspect: _aspect.width / _aspect.height,
-            onSelected: (i) => setState(() => _template = i),
-          ),
-          const SizedBox(height: 16),
-          const _SectionLabel('SIZE'),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              for (final preset in _aspects)
-                _AspectChip(
-                  preset: preset,
-                  selected: preset.label == _aspect.label,
-                  onTap: () => setState(() => _aspect = preset),
-                ),
-            ],
-          ),
-          const SizedBox(height: 18),
-          FilledButton(
-            key: const ValueKey('grid-setup-create'),
-            onPressed: () => Navigator.of(context).pop((
-              width: _aspect.width,
-              height: _aspect.height,
-              grid: GridSpec(root: _templates[_template].root),
-            )),
-            style: FilledButton.styleFrom(
-              backgroundColor: AppColors.cyan,
-              foregroundColor: AppColors.cutoutInk,
-              minimumSize: const Size.fromHeight(50),
-            ),
-            child: const Text(
-              'Create',
-              style: TextStyle(
-                fontFamily: AppFonts.display,
-                fontWeight: FontWeight.w700,
-                fontSize: 15,
-              ),
-            ),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'Pick your photos next - you can change the layout, count and '
-            'border any time.',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontFamily: AppFonts.ui,
-              fontSize: 11,
-              color: AppColors.textMuted,
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

@@ -26,13 +26,15 @@ Feature: Editor in landscape
     Then the tool panel is shown
     And no unhandled error occurred
 
+  # The raw dock-button step, not "I tap the ... tool": that one re-opens the
+  # panel afterwards, which is the behaviour under observation here.
   Scenario: Tapping the tool you are already on folds the panel away
     When the device is rotated to landscape
-    And I tap the {'Layers'} tool
+    And I tap the {'Layers'} dock button
     Then the tool panel is shown
-    When I tap the {'Layers'} tool
+    When I tap the {'Layers'} dock button
     Then the tool panel is hidden
-    When I tap the {'Layers'} tool
+    When I tap the {'Layers'} dock button
     Then the tool panel is shown
 
   Scenario: Tools still work in landscape

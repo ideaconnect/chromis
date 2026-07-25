@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../../../core/models/project.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../core/widgets/sheet_body.dart';
 
 /// A canvas dimension preset offered in the size sheet.
 class CanvasPreset {
@@ -117,115 +118,94 @@ class _CanvasSizeSheetState extends State<_CanvasSizeSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(
-        left: 20,
-        right: 20,
-        top: 14,
-        bottom: 20 + MediaQuery.viewInsetsOf(context).bottom,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Center(
-            child: Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: AppColors.elevated,
-                borderRadius: BorderRadius.circular(2),
-              ),
+    return SheetBody(
+      children: [
+        Text(
+          widget.title,
+          style: const TextStyle(
+            fontFamily: AppFonts.display,
+            fontWeight: FontWeight.w700,
+            fontSize: 17,
+            color: AppColors.textPrimary,
+          ),
+        ),
+        const SizedBox(height: 14),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [for (final p in _presets) _presetChip(p)],
+        ),
+        const SizedBox(height: 18),
+        const Text(
+          'CUSTOM (PIXELS)',
+          style: TextStyle(
+            fontFamily: AppFonts.ui,
+            fontSize: 10.5,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 0.4,
+            color: AppColors.textMuted,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(child: _numField(_w, 'Width')),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 10),
+              child: Text('×', style: TextStyle(color: AppColors.textMuted)),
             ),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            widget.title,
-            style: const TextStyle(
-              fontFamily: AppFonts.display,
-              fontWeight: FontWeight.w700,
-              fontSize: 17,
-              color: AppColors.textPrimary,
-            ),
-          ),
-          const SizedBox(height: 14),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [for (final p in _presets) _presetChip(p)],
-          ),
-          const SizedBox(height: 18),
-          const Text(
-            'CUSTOM (PIXELS)',
-            style: TextStyle(
-              fontFamily: AppFonts.ui,
-              fontSize: 10.5,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 0.4,
-              color: AppColors.textMuted,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(child: _numField(_w, 'Width')),
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 10),
-                child: Text('×', style: TextStyle(color: AppColors.textMuted)),
-              ),
-              Expanded(child: _numField(_h, 'Height')),
-            ],
-          ),
-          if (widget.allowScaleContent) ...[
-            const SizedBox(height: 6),
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              value: _scale,
-              activeThumbColor: AppColors.cyan,
-              onChanged: (v) => setState(() => _scale = v),
-              title: const Text(
-                'Scale layers to fit',
-                style: TextStyle(
-                  fontFamily: AppFonts.ui,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-              subtitle: const Text(
-                'Resample the whole composition to the new size',
-                style: TextStyle(
-                  fontFamily: AppFonts.ui,
-                  fontSize: 11,
-                  color: AppColors.textMuted,
-                ),
-              ),
-            ),
+            Expanded(child: _numField(_h, 'Height')),
           ],
-          const SizedBox(height: 14),
-          FilledButton(
-            onPressed: _valid
-                ? () => Navigator.of(
-                    context,
-                  ).pop((width: _wv, height: _hv, scaleContent: _scale))
-                : null,
-            style: FilledButton.styleFrom(
-              backgroundColor: AppColors.cyan,
-              foregroundColor: AppColors.cutoutInk,
-              disabledBackgroundColor: AppColors.elevated,
-              minimumSize: const Size.fromHeight(50),
+        ),
+        if (widget.allowScaleContent) ...[
+          const SizedBox(height: 6),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            value: _scale,
+            activeThumbColor: AppColors.cyan,
+            onChanged: (v) => setState(() => _scale = v),
+            title: const Text(
+              'Scale layers to fit',
+              style: TextStyle(
+                fontFamily: AppFonts.ui,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary,
+              ),
             ),
-            child: Text(
-              widget.confirmLabel,
-              style: const TextStyle(
-                fontFamily: AppFonts.display,
-                fontWeight: FontWeight.w700,
-                fontSize: 15,
+            subtitle: const Text(
+              'Resample the whole composition to the new size',
+              style: TextStyle(
+                fontFamily: AppFonts.ui,
+                fontSize: 11,
+                color: AppColors.textMuted,
               ),
             ),
           ),
         ],
-      ),
+        const SizedBox(height: 14),
+        FilledButton(
+          onPressed: _valid
+              ? () => Navigator.of(
+                  context,
+                ).pop((width: _wv, height: _hv, scaleContent: _scale))
+              : null,
+          style: FilledButton.styleFrom(
+            backgroundColor: AppColors.cyan,
+            foregroundColor: AppColors.cutoutInk,
+            disabledBackgroundColor: AppColors.elevated,
+            minimumSize: const Size.fromHeight(50),
+          ),
+          child: Text(
+            widget.confirmLabel,
+            style: const TextStyle(
+              fontFamily: AppFonts.display,
+              fontWeight: FontWeight.w700,
+              fontSize: 15,
+            ),
+          ),
+        ),
+      ],
     );
   }
 

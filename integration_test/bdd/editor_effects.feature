@@ -67,9 +67,11 @@ Feature: Editor layer effects
     Then the selected photo has no effects
     And no unhandled error occurred
 
+  # No second tap on Effects here: the Background is already on that tool, and
+  # adding a layer selects it, so the panel follows. Tapping the active tool
+  # would fold the panel away in landscape.
   Scenario: A caption gets a shadow and an outline of its own
     When I add a text layer
-    And I tap the {'Effects'} tool
     And I move the {'Opacity'} slider
     Then the selected layer has a shadow
     When I move the {'Thickness'} slider

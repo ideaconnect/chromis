@@ -1,4 +1,3 @@
-import 'package:chromis/core/theme/app_typography.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -11,19 +10,20 @@ Future<void> iSelectTheFont(WidgetTester tester, String param1) async {
     // The font row is a lazy horizontal ListView, so a chip past the right
     // edge is not in the tree yet - scroll until it builds.
     //
-    // Target the scrollable that actually HOLDS a font chip, not simply the
-    // first horizontal one: the panel's caption TextField carries its own
-    // horizontal Scrollable and sits above the row, so "the first horizontal
-    // scrollable" scrolls the text field and the chip never appears. That is a
-    // real failure on any screen wide enough to push the last font off the
-    // edge, which is how it was found (Pixel 10 Pro emulator).
-    final row = find.ancestor(
-      of: find.text(AppFonts.bundledFonts.first),
-      matching: find.byWidgetPredicate(
-        (w) => w is Scrollable && w.axis == Axis.horizontal,
-      ),
+    // Found by the row's OWN key. Two earlier attempts each failed on the
+    // device: "the first horizontal scrollable" is the caption TextField,
+    // which sits above the row and carries one of its own; and "an ancestor of
+    // a font chip" evaporates on the first drag, because the anchor chip is
+    // exactly what scrolls out of the tree.
+    final row = find.descendant(
+      of: find.byKey(const ValueKey('font-row')),
+      matching: find.byType(Scrollable),
     );
     if (row.evaluate().isNotEmpty) {
+      // And the row has to be on screen before it can be dragged: the panel
+      // scrolls too, and a horizontal drag aimed at a row that has scrolled out
+      // of it lands on whatever is behind.
+      await scrollIntoView(tester, row.first);
       try {
         await tester.scrollUntilVisible(
           f,
@@ -35,7 +35,7 @@ Future<void> iSelectTheFont(WidgetTester tester, String param1) async {
       await settle(tester);
     }
   }
-  await tester.ensureVisible(f.first);
+  await scrollIntoView(tester, f.first);
   await tester.tap(f.first);
   await settle(tester);
 }

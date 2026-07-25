@@ -6,6 +6,7 @@ import '../../app/router.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_typography.dart';
 import '../../core/widgets/app_logo.dart';
+import '../../core/widgets/sheet_body.dart';
 import '../go_pro/iap.dart';
 import 'about_data.dart';
 
@@ -14,6 +15,8 @@ import 'about_data.dart';
 Future<void> showAboutSheet(BuildContext context) {
   return showModalBottomSheet<void>(
     context: context,
+    // So the sheet may use the height it needs; SheetBody caps and scrolls it.
+    isScrollControlled: true,
     backgroundColor: AppColors.panel,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
@@ -35,80 +38,63 @@ class _AboutSheet extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 14, 20, 20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+    return SheetBody(
+      children: [
+        const SizedBox(height: 2),
+        const Row(
           children: [
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: AppColors.elevated,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-            const SizedBox(height: 18),
-            const Row(
-              children: [
-                AppLogo(size: 46, radius: 14),
-                SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        AboutInfo.appName,
-                        style: TextStyle(
-                          fontFamily: AppFonts.display,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 18,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                      Text(
-                        'v${AboutInfo.appVersion} · ${AboutInfo.publisher}',
-                        style: TextStyle(
-                          fontFamily: AppFonts.ui,
-                          fontSize: 11.5,
-                          color: AppColors.textMuted,
-                        ),
-                      ),
-                    ],
+            AppLogo(size: 46, radius: 14),
+            SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    AboutInfo.appName,
+                    style: TextStyle(
+                      fontFamily: AppFonts.display,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 18,
+                      color: AppColors.textPrimary,
+                    ),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            if (!ref.watch(isProProvider)) ...[
-              _AboutRow(
-                icon: Icons.workspace_premium_outlined,
-                label: 'Go Pro · remove ads',
-                sub: 'One-time upgrade - no ads, ever',
-                onTap: () => _go(context, Routes.goPro),
+                  Text(
+                    'v${AboutInfo.appVersion} · ${AboutInfo.publisher}',
+                    style: TextStyle(
+                      fontFamily: AppFonts.ui,
+                      fontSize: 11.5,
+                      color: AppColors.textMuted,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 10),
-            ],
-            _AboutRow(
-              icon: Icons.verified_user_outlined,
-              label: 'Privacy & Cookies',
-              sub: 'On-device editing · how ads work',
-              onTap: () => _go(context, Routes.privacy),
-            ),
-            const SizedBox(height: 10),
-            _AboutRow(
-              icon: Icons.article_outlined,
-              label: 'Open-source licenses',
-              sub: 'The great work we build on',
-              onTap: () => _go(context, Routes.licenses),
             ),
           ],
         ),
-      ),
+        const SizedBox(height: 20),
+        if (!ref.watch(isProProvider)) ...[
+          _AboutRow(
+            icon: Icons.workspace_premium_outlined,
+            label: 'Go Pro · remove ads',
+            sub: 'One-time upgrade - no ads, ever',
+            onTap: () => _go(context, Routes.goPro),
+          ),
+          const SizedBox(height: 10),
+        ],
+        _AboutRow(
+          icon: Icons.verified_user_outlined,
+          label: 'Privacy & Cookies',
+          sub: 'On-device editing · how ads work',
+          onTap: () => _go(context, Routes.privacy),
+        ),
+        const SizedBox(height: 10),
+        _AboutRow(
+          icon: Icons.article_outlined,
+          label: 'Open-source licenses',
+          sub: 'The great work we build on',
+          onTap: () => _go(context, Routes.licenses),
+        ),
+      ],
     );
   }
 }

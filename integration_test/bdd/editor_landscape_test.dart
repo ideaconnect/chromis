@@ -16,6 +16,7 @@ import './../../test/step/i_hide_the_tool_panel.dart';
 import './../../test/step/the_tool_panel_is_hidden.dart';
 import './../../test/step/i_show_the_tool_panel.dart';
 import './../../test/step/the_tool_panel_is_shown.dart';
+import './../../test/step/i_tap_the_dock_button.dart';
 import './../../test/step/i_tap_the_tool.dart';
 import './../../test/step/i_move_the_slider.dart';
 import './../../test/step/the_selected_photo_has_been_adjusted.dart';
@@ -52,11 +53,11 @@ void main() {
         (tester) async {
       await bddSetUp(tester);
       await theDeviceIsRotatedToLandscape(tester);
-      await iTapTheTool(tester, 'Layers');
+      await iTapTheDockButton(tester, 'Layers');
       await theToolPanelIsShown(tester);
-      await iTapTheTool(tester, 'Layers');
+      await iTapTheDockButton(tester, 'Layers');
       await theToolPanelIsHidden(tester);
-      await iTapTheTool(tester, 'Layers');
+      await iTapTheDockButton(tester, 'Layers');
       await theToolPanelIsShown(tester);
     });
     testWidgets('''Tools still work in landscape''', (tester) async {

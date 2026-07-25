@@ -34,7 +34,7 @@ Future<void> iTapTheFilter(WidgetTester tester, String param1) async {
       await settle(tester);
     }
   }
-  await tester.ensureVisible(tile.first);
+  await scrollIntoView(tester, tile.first);
   await tester.tap(tile.first);
   await settle(tester);
 }
