@@ -982,6 +982,71 @@ void main() {
       expect(read(container).layers.map((l) => l.cellId), ['c0', 'c1', 'c2']);
     });
 
+    test('a divider drag resizes exactly two cells and is one undo step', () {
+      final (:container, :controller) = open(collageSeed(3));
+      for (final id in ['c0', 'c1', 'c2']) {
+        controller.addPhotoToCell(assetPath: '/fake/$id.png', cellId: id);
+      }
+      const canvas = Size(1080, 1080);
+      final before = layoutGrid(gridOf(container), canvas).cells;
+      final divider = layoutGrid(gridOf(container), canvas).dividers.first;
+
+      controller.beginDividerDrag();
+      controller.dragDivider(divider, 60);
+      controller.dragDivider(divider, 120); // same drag, absolute delta
+      controller.endDividerDrag();
+
+      final after = layoutGrid(gridOf(container), canvas).cells;
+      expect(after['c0']!.width, greaterThan(before['c0']!.width));
+      expect(after['c1']!.width, lessThan(before['c1']!.width));
+      expect(after['c2'], before['c2']); // untouched by construction
+      // The whole drag collapses into one history entry.
+      controller.undo();
+      expect(layoutGrid(gridOf(container), canvas).cells, before);
+    });
+
+    test('a drag maps from its start, so it never drifts', () {
+      const canvas = Size(1080, 1080);
+      Rect dragTo(double px, List<double> steps) {
+        final (:container, :controller) = open(collageSeed());
+        final divider = layoutGrid(gridOf(container), canvas).dividers.first;
+        controller.beginDividerDrag();
+        for (final step in steps) {
+          controller.dragDivider(divider, step);
+        }
+        controller.dragDivider(divider, px);
+        controller.endDividerDrag();
+        return layoutGrid(gridOf(container), canvas).cells['c0']!;
+      }
+
+      // Many intermediate frames must land exactly where one jump does.
+      expect(
+        dragTo(100, const [10, 25, 40, 55, 70, 85]).width,
+        closeTo(dragTo(100, const []).width, 1e-9),
+      );
+    });
+
+    test('a drag carries the cells photos with them', () {
+      final (:container, :controller) = open(collageSeed());
+      final photo = controller.addPhotoToCell(
+        assetPath: '/fake/a.png',
+        cellId: 'c0',
+        pixels: const Size(1000, 1000),
+      )!;
+      const canvas = Size(1080, 1080);
+      final divider = layoutGrid(gridOf(container), canvas).dividers.first;
+
+      controller.beginDividerDrag();
+      controller.dragDivider(divider, 200);
+      controller.endDividerDrag();
+
+      final moved = byId(container, photo.id);
+      final cell = layoutGrid(gridOf(container), canvas).cells['c0']!;
+      expect(moved.transform.position, cell.center);
+      // The cell grew, so the photo grew with it and still covers.
+      expect(moved.transform.scale, greaterThan(photo.transform.scale));
+    });
+
     test('grid ops are inert on a project without a grid', () {
       final (:container, :controller) = open(defaultSeed());
       final before = read(container).project;

@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/models/frame.dart';
+import '../../../core/models/grid.dart';
 import '../../../core/models/layer.dart';
 import '../../../core/models/layer_transform.dart';
 import '../../../core/theme/app_colors.dart';
@@ -66,6 +67,37 @@ class _EditorCanvasState extends ConsumerState<EditorCanvas> {
   Offset? _startFocal;
   String? _gestureLayerId;
 
+  /// Non-null while a Photo Grid divider is being dragged. The gesture grabs
+  /// the divider instead of a layer, and the delta is measured from
+  /// [_dividerStart] so the controller can map from its drag-start snapshot.
+  GridDivider? _dragDivider;
+  Offset? _dividerStart;
+
+  /// Where the finger actually landed, in logical units.
+  ///
+  /// A scale gesture is only recognized AFTER the pointer has travelled past
+  /// the pan slop (~36 logical px), so `onScaleStart`'s focal point is already
+  /// displaced - by more than a divider's touch band is wide. Hit-testing that
+  /// point would make a divider almost impossible to grab, so the grab is
+  /// resolved against the pointer-down position instead.
+  Offset? _pointerDownLogical;
+
+  /// Touch radius around a divider, in SCREEN px. Converted to logical units
+  /// per canvas: a fixed logical slop would be a few pixels wide on a 1080-px
+  /// canvas shown at ~400.
+  static const double _dividerTouchPx = 16;
+
+  /// Tools where a canvas gesture already means "manipulate" rather than
+  /// "paint". Only there are divider handles live, so a brush stroke or an
+  /// object pick can never be stolen by a divider (same gating idea as the
+  /// on-canvas delete handle below).
+  static const Set<EditorTool> _dividerTools = {
+    EditorTool.grid,
+    EditorTool.layers,
+    EditorTool.adjust,
+    EditorTool.text,
+  };
+
   /// Non-null while a brush stroke is being drawn (Erase tool). Points are in
   /// 512-logical canvas units.
   List<Offset>? _strokePoints;
@@ -75,6 +107,45 @@ class _EditorCanvasState extends ConsumerState<EditorCanvas> {
 
   bool _isErasing(EditorState editor) =>
       editor.tool == EditorTool.erase && editor.selectedLayer is ImageLayer;
+
+  /// The grid layout for the current document, or null when it is not a
+  /// collage. Cheap (O(cells)) and pure, so it is recomputed per use rather
+  /// than cached into state that could go stale.
+  GridLayout? _layoutOf(EditorState editor) {
+    final grid = editor.project.grid;
+    if (grid == null) return null;
+    return layoutGrid(
+      grid,
+      Size(
+        editor.project.canvasWidth.toDouble(),
+        editor.project.canvasHeight.toDouble(),
+      ),
+    );
+  }
+
+  /// The divider under [point] (logical units), or null. Among dividers within
+  /// the touch slop, the nearest one wins, so overlapping slop near a corner
+  /// cannot grab the wrong axis.
+  GridDivider? _dividerAt(Offset point, double scale, EditorState editor) {
+    if (!_dividerTools.contains(editor.tool)) return null;
+    final layout = _layoutOf(editor);
+    if (layout == null) return null;
+    final slop = _dividerTouchPx / scale;
+    GridDivider? best;
+    var bestDistance = slop;
+    for (final divider in layout.dividers) {
+      if (!divider.band.inflate(slop).contains(point)) continue;
+      final centre = divider.band.center;
+      final distance = divider.axis == GridAxis.columns
+          ? (point.dx - centre.dx).abs()
+          : (point.dy - centre.dy).abs();
+      if (distance <= bestDistance) {
+        best = divider;
+        bestDistance = distance;
+      }
+    }
+    return best;
+  }
 
   /// Loads (and caches) the pixel dimensions of [path] from the encoded image
   /// header. Fire-and-forget: until it lands, hit-testing falls back to the
@@ -117,66 +188,102 @@ class _EditorCanvasState extends ConsumerState<EditorCanvas> {
         // scale maps logical (W×H) units to pixels with no letterbox offset.
         final scale = constraints.maxWidth / editor.project.canvasWidth;
         final selected = editor.selectedLayer;
-        return GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTapUp: (d) => _onTap(d.localPosition / scale, editor),
-          onScaleStart: (d) => _onScaleStart(d.localFocalPoint / scale, editor),
-          onScaleUpdate: (d) => _onScaleUpdate(d, scale),
-          onScaleEnd: (_) => _onScaleEnd(),
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              const Checkerboard(
-                cell: 12,
-                base: Color(0xFF0E1B2A),
-                tile: Color(0xFF15263A),
-              ),
-              if (widget.onionFrame != null)
-                Opacity(
-                  opacity: 0.25,
-                  child: ProjectCanvas(
-                    frame: widget.onionFrame!,
+        return Listener(
+          onPointerDown: (e) => _pointerDownLogical = e.localPosition / scale,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTapUp: (d) => _onTap(d.localPosition / scale, editor, scale),
+            onScaleStart: (d) => _onScaleStart(d, editor, scale),
+            onScaleUpdate: (d) => _onScaleUpdate(d, scale),
+            onScaleEnd: (_) => _onScaleEnd(),
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                const Checkerboard(
+                  cell: 12,
+                  base: Color(0xFF0E1B2A),
+                  tile: Color(0xFF15263A),
+                ),
+                if (widget.onionFrame != null)
+                  Opacity(
+                    opacity: 0.25,
+                    child: ProjectCanvas(
+                      frame: widget.onionFrame!,
+                      width: editor.project.canvasWidth,
+                      height: editor.project.canvasHeight,
+                      grid: editor.project.grid,
+                    ),
+                  ),
+                // A collage always renders - its empty cells are the invitation
+                // to add photos, so the whole-canvas drop placeholder would only
+                // cover them up.
+                if (editor.layers.isEmpty && !editor.project.isGrid)
+                  Center(child: widget.dropPlaceholder)
+                else
+                  ProjectCanvas(
+                    frame: editor.currentFrame,
                     width: editor.project.canvasWidth,
                     height: editor.project.canvasHeight,
                     grid: editor.project.grid,
+                    showCellPlaceholders: true,
                   ),
-                ),
-              // A collage always renders - its empty cells are the invitation
-              // to add photos, so the whole-canvas drop placeholder would only
-              // cover them up.
-              if (editor.layers.isEmpty && !editor.project.isGrid)
-                Center(child: widget.dropPlaceholder)
-              else
-                ProjectCanvas(
-                  frame: editor.currentFrame,
-                  width: editor.project.canvasWidth,
-                  height: editor.project.canvasHeight,
-                  grid: editor.project.grid,
-                  showCellPlaceholders: true,
-                ),
-              if (selected != null && editor.tool != EditorTool.frames) ...[
-                _selectionOverlay(selected, scale),
-                // Bubbles get a draggable knob at the tail tip (#78) - except
-                // caption boxes, which have no tail (#80).
-                if (selected is BubbleLayer &&
-                    selected.shape != BubbleShape.caption)
-                  _tailHandle(selected, scale),
-                // Delete the selected layer right on the canvas - previously
-                // removal only existed on the Layers-panel rows, so anything
-                // added while on Adjust/Text felt undeletable. Hidden for
-                // Erase/Cut-out, where canvas taps mean brush dabs / object
-                // picks and a stray × would be destructive.
-                if (const {
-                  EditorTool.layers,
-                  EditorTool.adjust,
-                  EditorTool.text,
-                }.contains(editor.tool))
-                  _deleteHandle(selected, scale),
+                // Divider handles sit above the composition but below the layer
+                // selection chrome.
+                if (_dividerTools.contains(editor.tool))
+                  for (final divider
+                      in _layoutOf(editor)?.dividers ?? const <GridDivider>[])
+                    _dividerHandle(divider, scale),
+                if (selected != null && editor.tool != EditorTool.frames) ...[
+                  _selectionOverlay(selected, scale),
+                  // Bubbles get a draggable knob at the tail tip (#78) - except
+                  // caption boxes, which have no tail (#80).
+                  if (selected is BubbleLayer &&
+                      selected.shape != BubbleShape.caption)
+                    _tailHandle(selected, scale),
+                  // Delete the selected layer right on the canvas - previously
+                  // removal only existed on the Layers-panel rows, so anything
+                  // added while on Adjust/Text felt undeletable. Hidden for
+                  // Erase/Cut-out, where canvas taps mean brush dabs / object
+                  // picks and a stray × would be destructive.
+                  if (const {
+                    EditorTool.layers,
+                    EditorTool.adjust,
+                    EditorTool.text,
+                  }.contains(editor.tool))
+                    _deleteHandle(selected, scale),
+                ],
               ],
-            ],
+            ),
           ),
         );
       },
+    );
+  }
+
+  // --------------------------------------------------------- divider handle
+  /// A grab pill centred on a divider. Purely an affordance - the drag itself
+  /// is handled by the canvas-wide recognizer, which checks dividers before
+  /// layers, so the pill never has to win a gesture arena.
+  Widget _dividerHandle(GridDivider divider, double scale) {
+    final centre = divider.band.center * scale;
+    final columns = divider.axis == GridAxis.columns;
+    final width = columns ? 5.0 : 30.0;
+    final height = columns ? 30.0 : 5.0;
+    return Positioned(
+      key: ValueKey('grid-${divider.key}'),
+      left: centre.dx - width / 2,
+      top: centre.dy - height / 2,
+      width: width,
+      height: height,
+      child: IgnorePointer(
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: AppColors.cyan,
+            borderRadius: BorderRadius.circular(3),
+            border: Border.all(color: const Color(0x66041018)),
+          ),
+        ),
+      ),
     );
   }
 
@@ -302,12 +409,14 @@ class _EditorCanvasState extends ConsumerState<EditorCanvas> {
   }
 
   // ------------------------------------------------------------ gestures
-  void _onTap(Offset pointLogical, EditorState editor) {
+  void _onTap(Offset pointLogical, EditorState editor, double scale) {
     // Erase tool: a tap lays down a single dab on the selected photo.
     if (_isErasing(editor)) {
       widget.onEraseStroke?.call([pointLogical]);
       return;
     }
+    // A tap that lands on a divider is a mis-aimed drag, not a deselect.
+    if (_dividerAt(pointLogical, scale, editor) != null) return;
     // Cut-out tool in Remove-object mode: the tap picks an object (#83).
     if (widget.onObjectTap != null &&
         editor.tool == EditorTool.cutout &&
@@ -328,11 +437,31 @@ class _EditorCanvasState extends ConsumerState<EditorCanvas> {
     }
   }
 
-  void _onScaleStart(Offset focalLogical, EditorState editor) {
+  void _onScaleStart(ScaleStartDetails d, EditorState editor, double scale) {
+    final focalLogical = d.localFocalPoint / scale;
     // Erase tool: start collecting a brush stroke on the selected photo,
     // instead of moving/scaling a layer.
     if (_isErasing(editor)) {
       _strokePoints = [focalLogical];
+      return;
+    }
+    // A grab near a Photo Grid divider resizes the columns/rows instead of
+    // moving a layer - checked BEFORE the layer hit test, since cell photos
+    // overflow their cell and would otherwise swallow every divider.
+    //
+    // Resolved against the pointer-down position, not the focal point: by the
+    // time a scale gesture is recognized the finger has already travelled past
+    // the pan slop, which is wider than the divider's touch band. Single-finger
+    // only - during a pinch the recorded point may belong to the second finger.
+    final grab =
+        (d.pointerCount <= 1 ? _pointerDownLogical : null) ?? focalLogical;
+    final divider = _dividerAt(grab, scale, editor);
+    if (divider != null) {
+      _dragDivider = divider;
+      // The divider tracks the finger from where it landed, so the handle ends
+      // up under the fingertip instead of trailing it by the slop.
+      _dividerStart = grab;
+      _controller.beginDividerDrag();
       return;
     }
     final target =
@@ -350,6 +479,20 @@ class _EditorCanvasState extends ConsumerState<EditorCanvas> {
   void _onScaleUpdate(ScaleUpdateDetails d, double scale) {
     if (_strokePoints != null) {
       _strokePoints!.add(d.localFocalPoint / scale);
+      return;
+    }
+    final divider = _dragDivider;
+    final dividerStart = _dividerStart;
+    if (divider != null && dividerStart != null) {
+      final point = d.localFocalPoint / scale;
+      // Delta from the drag START, not the previous frame: the controller maps
+      // from its snapshot, so an absolute delta is what keeps it drift-free.
+      _controller.dragDivider(
+        divider,
+        divider.axis == GridAxis.columns
+            ? point.dx - dividerStart.dx
+            : point.dy - dividerStart.dy,
+      );
       return;
     }
     final id = _gestureLayerId;
@@ -373,6 +516,12 @@ class _EditorCanvasState extends ConsumerState<EditorCanvas> {
     if (stroke != null) {
       _strokePoints = null;
       if (stroke.isNotEmpty) widget.onEraseStroke?.call(stroke);
+      return;
+    }
+    if (_dragDivider != null) {
+      _dragDivider = null;
+      _dividerStart = null;
+      _controller.endDividerDrag();
       return;
     }
     _gestureLayerId = null;

@@ -737,6 +737,30 @@ class EditorController extends Notifier<EditorState> {
     );
   }
 
+  /// The document as it was when the current divider drag started. Every update
+  /// maps from THIS, not from the previous frame, so a long drag cannot
+  /// accumulate float drift or slowly distort a pan the user made inside a cell.
+  Project? _dividerDragStart;
+
+  void beginDividerDrag() => _dividerDragStart = state.project;
+
+  /// Moves [divider] by [deltaPx] **measured from the drag start**, in
+  /// canvas-logical units. Weight moves between the two adjacent cells only;
+  /// every other cell keeps its rect, and both cells' content follows.
+  void dragDivider(GridDivider divider, double deltaPx) {
+    final base = _dividerDragStart ?? state.project;
+    final grid = base.grid;
+    if (grid == null) return;
+    final next = moveDivider(grid, divider, deltaPx);
+    if (next == state.project.grid) return;
+    _commit(applyGridSpec(base, next), coalesce: 'grid:${divider.key}');
+  }
+
+  void endDividerDrag() {
+    _dividerDragStart = null;
+    endEdit();
+  }
+
   /// Rotates the photos one cell forward, so a collage can be rearranged
   /// without dragging anything.
   void shuffleGridPhotos() {
