@@ -5,12 +5,16 @@ import 'package:flutter/material.dart';
 
 import '../../../core/models/frame.dart';
 import '../../../core/models/grid.dart';
+import '../../../core/models/image_adjustments.dart';
 import '../../../core/models/layer.dart';
+import '../../../core/models/layer_effects.dart';
 import '../../../core/models/project.dart';
 import '../../../core/rendering/canvas_geometry.dart';
 import '../../../core/rendering/color_matrix.dart';
+import '../../../core/rendering/layer_effects_painter.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../core/widgets/layer_effects_box.dart';
 import '../../../core/widgets/text_caption.dart';
 import 'bubble_view.dart';
 
@@ -86,12 +90,18 @@ class ProjectCanvas extends StatelessWidget {
         }
         final scale = fitW / logicalW;
         final dpr = MediaQuery.maybeDevicePixelRatioOf(context) ?? 1.0;
+        Widget stack = Stack(
+          children: _children(scale, dpr, logicalW, logicalH),
+        );
+        // A blending layer must see the composition beneath it and nothing
+        // else. Without this group it would blend into whatever the editor
+        // paints behind the canvas, and the export - which starts transparent -
+        // would not match what the user is looking at.
+        if (frame.layers.any((l) => l.visible && !l.effects.blend.isNormal)) {
+          stack = CompositeGroup(child: stack);
+        }
         return Center(
-          child: SizedBox(
-            width: fitW,
-            height: fitH,
-            child: Stack(children: _children(scale, dpr, logicalW, logicalH)),
-          ),
+          child: SizedBox(width: fitW, height: fitH, child: stack),
         );
       },
     );
@@ -172,19 +182,24 @@ class ProjectCanvas extends StatelessWidget {
     Offset origin = Offset.zero,
   ]) {
     final t = layer.transform;
+    final shadow = layer.effects.shadow;
+    Widget content = _content(layer, scale, dpr);
+    // Inside the transforms, so the shadow rotates and scales with the layer -
+    // exactly where `ProjectRenderer` paints it.
+    if (shadow.isVisible) {
+      content = LayerShadowBox(shadow: shadow, scale: scale, child: content);
+    }
     return Positioned(
       left: t.position.dx * scale - origin.dx,
       top: t.position.dy * scale - origin.dy,
       child: FractionalTranslation(
         translation: const Offset(-0.5, -0.5),
-        child: Opacity(
-          opacity: layer.opacity.clamp(0.0, 1.0),
+        child: LayerBlendBox(
+          blend: layer.effects.blend,
+          opacity: layer.opacity,
           child: Transform.rotate(
             angle: t.rotation,
-            child: Transform.scale(
-              scale: t.scale,
-              child: _content(layer, scale, dpr),
-            ),
+            child: Transform.scale(scale: t.scale, child: content),
           ),
         ),
       ),
@@ -199,6 +214,9 @@ class ProjectCanvas extends StatelessWidget {
         fontSize: layer.fontSize * scale,
         color: layer.color,
         rotation: 0, // rotation handled by the enclosing Transform
+        strokeWidth: layer.strokeWidth,
+        strokeColor: layer.strokeColor,
+        strokeOpacity: layer.strokeOpacity,
         // Scale the outline/shadow/tracking with the canvas so the preview and
         // thumbnails match the 512-px export (ProjectRenderer._paintText).
         scale: scale,
@@ -242,18 +260,20 @@ class ProjectCanvas extends StatelessWidget {
     // assets) - fall back to the plain photo in that case.
     final maskPath = layer.maskPath;
     final hasMask = maskPath != null && _exists(maskPath);
-    // A mask OR a per-layer crop needs the painter path (Image.file can't
-    // source-crop); a plain uncropped photo keeps the cached Image.file path.
-    if (hasMask || layer.isCropped) {
+    // A mask, a per-layer crop, or any effect that has to reach the pixels
+    // (vignette, HDR, contour) needs the painter path - `Image.file` can only
+    // carry a colour filter. A plain photo keeps the cached Image.file path.
+    if (hasMask || layer.needsPainter) {
       return _MaskedImage(
         imagePath: layer.assetPath,
         maskPath: hasMask ? maskPath : null,
         cropRect: layer.cropRect,
         side: base,
         decodeTarget: target,
-        colorFilter: colorFilter,
-        outlineWidthPx: hasMask ? layer.outlineWidth * scale : 0,
-        outlineColor: layer.outlineColor,
+        adjustments: layer.adjustments,
+        vignette: layer.vignette,
+        stroke: layer.effects.stroke,
+        strokeWidthPx: layer.effects.stroke.width * scale,
       );
     }
 
@@ -302,9 +322,10 @@ class _MaskedImage extends StatefulWidget {
     required this.side,
     required this.decodeTarget,
     this.cropRect = const Rect.fromLTRB(0, 0, 1, 1),
-    this.colorFilter,
-    this.outlineWidthPx = 0,
-    this.outlineColor = const Color(0xFFFFFFFF),
+    this.adjustments = ImageAdjustments.identity,
+    this.vignette = Vignette.none,
+    this.stroke = LayerStroke.none,
+    this.strokeWidthPx = 0,
   });
 
   final String imagePath;
@@ -320,9 +341,12 @@ class _MaskedImage extends StatefulWidget {
   /// Visible source sub-rect (normalized 0..1); the whole image by default.
   final Rect cropRect;
 
-  final ColorFilter? colorFilter;
-  final double outlineWidthPx;
-  final Color outlineColor;
+  final ImageAdjustments adjustments;
+  final Vignette vignette;
+  final LayerStroke stroke;
+
+  /// [stroke]'s width already scaled into this canvas's pixel space.
+  final double strokeWidthPx;
 
   @override
   State<_MaskedImage> createState() => _MaskedImageState();
@@ -424,33 +448,39 @@ class _MaskedImageState extends State<_MaskedImage> {
         base: base,
         mask: _mask,
         cropRect: widget.cropRect,
-        colorFilter: widget.colorFilter,
-        outlineWidthPx: widget.outlineWidthPx,
-        outlineColor: widget.outlineColor,
+        adjustments: widget.adjustments,
+        vignette: widget.vignette,
+        stroke: widget.stroke,
+        strokeWidthPx: widget.strokeWidthPx,
       ),
     );
   }
 }
 
-/// Paints [base] fitted (contain) into the box, then multiplies its alpha by
-/// [mask] via `BlendMode.dstIn`. [mask] shares the photo's aspect ratio, so it
-/// maps onto the same destination rect.
+/// Draws one photo layer's pixels: [base] fitted (contain) into the box, with
+/// the effect chain applied by [paintImageLayer] - the SAME function
+/// `ProjectRenderer` calls, which is what makes the preview and the export
+/// agree by construction rather than by two painters being kept in sync by
+/// hand. [mask] shares the photo's aspect ratio, so it maps onto the same
+/// destination rect.
 class _MaskedImagePainter extends CustomPainter {
   _MaskedImagePainter({
     required this.base,
     this.mask,
     this.cropRect = const Rect.fromLTRB(0, 0, 1, 1),
-    this.colorFilter,
-    this.outlineWidthPx = 0,
-    this.outlineColor = const Color(0xFFFFFFFF),
+    this.adjustments = ImageAdjustments.identity,
+    this.vignette = Vignette.none,
+    this.stroke = LayerStroke.none,
+    this.strokeWidthPx = 0,
   });
 
   final ui.Image base;
   final ui.Image? mask;
   final Rect cropRect;
-  final ColorFilter? colorFilter;
-  final double outlineWidthPx;
-  final Color outlineColor;
+  final ImageAdjustments adjustments;
+  final Vignette vignette;
+  final LayerStroke stroke;
+  final double strokeWidthPx;
 
   /// Pixel source rect for the normalized [cropRect] over a [w]×[h] image.
   static Rect _crop(Rect c, int w, int h) =>
@@ -464,70 +494,21 @@ class _MaskedImagePainter extends CustomPainter {
       fitted.destination,
       Offset.zero & size,
     );
-
-    final basePaint = Paint()..filterQuality = FilterQuality.medium;
-    if (colorFilter != null) basePaint.colorFilter = colorFilter;
-
     final maskImage = mask;
-    if (maskImage == null) {
-      canvas.drawImageRect(base, srcRect, dest, basePaint);
-      return;
-    }
-
-    final maskSrc = _crop(cropRect, maskImage.width, maskImage.height);
-    // Die-cut contour behind the subject.
-    if (outlineWidthPx > 0) {
-      _paintDieCut(canvas, srcRect, maskSrc, dest);
-    }
-    canvas.saveLayer(dest, Paint());
-    canvas.drawImageRect(base, srcRect, dest, basePaint);
-    canvas.drawImageRect(
-      maskImage,
-      maskSrc,
-      dest,
-      Paint()
-        ..blendMode = BlendMode.dstIn
-        ..filterQuality = FilterQuality.medium,
+    paintImageLayer(
+      canvas,
+      base: base,
+      mask: maskImage,
+      srcRect: srcRect,
+      maskSrc: maskImage == null
+          ? null
+          : _crop(cropRect, maskImage.width, maskImage.height),
+      dest: dest,
+      adjustments: adjustments,
+      vignette: vignette,
+      stroke: stroke,
+      strokeWidthPx: strokeWidthPx,
     );
-    canvas.restore();
-  }
-
-  /// Solid [outlineColor] silhouette of the subject, grown by [outlineWidthPx]
-  /// via a morphological dilate, painted before the subject. Mirrors
-  /// ProjectRenderer._paintDieCut so preview and export match.
-  void _paintDieCut(Canvas canvas, Rect srcRect, Rect maskSrc, Rect dest) {
-    final inflated = dest.inflate(outlineWidthPx + 2);
-    canvas.saveLayer(
-      inflated,
-      Paint()
-        ..imageFilter = ui.ImageFilter.dilate(
-          radiusX: outlineWidthPx,
-          radiusY: outlineWidthPx,
-        ),
-    );
-    canvas.saveLayer(dest, Paint());
-    canvas.drawImageRect(
-      base,
-      srcRect,
-      dest,
-      Paint()..filterQuality = FilterQuality.medium,
-    );
-    canvas.drawImageRect(
-      mask!,
-      maskSrc,
-      dest,
-      Paint()
-        ..blendMode = BlendMode.dstIn
-        ..filterQuality = FilterQuality.medium,
-    );
-    canvas.drawRect(
-      dest,
-      Paint()
-        ..color = outlineColor
-        ..blendMode = BlendMode.srcIn,
-    );
-    canvas.restore();
-    canvas.restore();
   }
 
   @override
@@ -535,9 +516,10 @@ class _MaskedImagePainter extends CustomPainter {
       old.base != base ||
       old.mask != mask ||
       old.cropRect != cropRect ||
-      old.colorFilter != colorFilter ||
-      old.outlineWidthPx != outlineWidthPx ||
-      old.outlineColor != outlineColor;
+      old.adjustments != adjustments ||
+      old.vignette != vignette ||
+      old.stroke != stroke ||
+      old.strokeWidthPx != strokeWidthPx;
 }
 
 /// The "tap to add a photo" hint drawn inside an empty Photo Grid cell. Editor

@@ -10,8 +10,8 @@ import '../../core/models/frame.dart';
 import '../../core/models/grid.dart';
 import '../../core/models/layer.dart';
 import '../../core/rendering/canvas_geometry.dart';
-import '../../core/rendering/color_matrix.dart';
-import '../../core/theme/app_colors.dart';
+import '../../core/rendering/layer_effects_painter.dart';
+import '../../core/widgets/text_caption.dart';
 import '../editor/widgets/bubble_view.dart';
 
 /// Flattens a project [Frame] to a transparent raster image at an arbitrary
@@ -61,27 +61,41 @@ abstract final class ProjectRenderer {
 
       void paintLayer(Layer layer) {
         final t = layer.transform;
+        final effects = layer.effects;
+        final opacity = layer.opacity.clamp(0.0, 1.0);
+        if (opacity <= 0) return;
         canvas.save();
         canvas.translate(t.position.dx * scale, t.position.dy * scale);
-        canvas.rotate(t.rotation);
-        canvas.scale(t.scale);
-        final opacity = layer.opacity.clamp(0.0, 1.0);
-        final fade = opacity < 1.0;
-        if (fade) {
+        // Opacity and blend as one group around the whole layer, outside the
+        // rotate/scale - the same nesting `ProjectCanvas` builds with
+        // LayerBlendBox, so the two surfaces composite identically.
+        final grouped = !effects.blend.isNormal || opacity < 1.0;
+        if (grouped) {
           canvas.saveLayer(
             null,
-            Paint()..color = Color.fromRGBO(0, 0, 0, opacity),
+            Paint()
+              ..blendMode = effects.blend.mode
+              ..color = Color.fromRGBO(0, 0, 0, opacity),
           );
         }
-        switch (layer) {
-          case ImageLayer():
-            _paintImage(canvas, layer, scale, decoded);
-          case TextLayer():
-            _paintText(canvas, layer, scale);
-          case BubbleLayer():
-            _paintBubble(canvas, layer, scale);
+        canvas.rotate(t.rotation);
+        canvas.scale(t.scale);
+        void paintContent() {
+          switch (layer) {
+            case ImageLayer():
+              _paintImage(canvas, layer, scale, decoded);
+            case TextLayer():
+              _paintText(canvas, layer, scale);
+            case BubbleLayer():
+              _paintBubble(canvas, layer, scale);
+          }
         }
-        if (fade) canvas.restore();
+
+        // Inside the transforms, so the shadow rotates and scales with the
+        // layer (LayerShadowBox sits in the same place on the widget side).
+        paintLayerShadow(canvas, effects.shadow, scale, paintContent);
+        paintContent();
+        if (grouped) canvas.restore();
         canvas.restore();
       }
 
@@ -265,42 +279,24 @@ abstract final class ProjectRenderer {
     final srcRect = _cropRect(layer.cropRect, base.width, base.height);
     final fitted = applyBoxFit(BoxFit.contain, srcRect.size, box.size);
     final dest = Alignment.center.inscribe(fitted.destination, box);
-    final basePaint = Paint()..filterQuality = FilterQuality.high;
-    if (!layer.adjustments.isIdentity) {
-      basePaint.colorFilter = ColorFilter.matrix(
-        layer.adjustments.toColorMatrix(),
-      );
-    }
     final mask = layer.maskPath == null ? null : decoded[layer.maskPath];
-    if (mask == null) {
-      canvas.drawImageRect(base, srcRect, dest, basePaint);
-      return;
-    }
-    final maskSrc = _cropRect(layer.cropRect, mask.width, mask.height);
-    // Die-cut contour (behind the subject), so a white ring shows at the edges.
-    if (layer.hasOutline) {
-      _paintDieCut(
-        canvas,
-        base,
-        mask,
-        srcRect,
-        maskSrc,
-        dest,
-        layer.outlineColor,
-        layer.outlineWidth * scale,
-      );
-    }
-    canvas.saveLayer(dest, Paint());
-    canvas.drawImageRect(base, srcRect, dest, basePaint);
-    canvas.drawImageRect(
-      mask,
-      maskSrc,
-      dest,
-      Paint()
-        ..blendMode = BlendMode.dstIn
-        ..filterQuality = FilterQuality.high,
+    // The one shared effect chain - see layer_effects_painter.dart. The canvas
+    // preview reaches the very same function through `_MaskedImagePainter`.
+    paintImageLayer(
+      canvas,
+      base: base,
+      mask: mask,
+      srcRect: srcRect,
+      maskSrc: mask == null
+          ? null
+          : _cropRect(layer.cropRect, mask.width, mask.height),
+      dest: dest,
+      adjustments: layer.adjustments,
+      vignette: layer.vignette,
+      stroke: layer.effects.stroke,
+      strokeWidthPx: layer.effects.stroke.width * scale,
+      quality: FilterQuality.high,
     );
-    canvas.restore();
   }
 
   /// The pixel source rect for a normalized [crop] over a [w]×[h] image.
@@ -311,61 +307,12 @@ abstract final class ProjectRenderer {
     crop.height * h,
   );
 
-  /// Paints a solid [color] die-cut silhouette of the cut-out subject, grown by
-  /// [radiusPx] via a morphological dilate - drawn *before* the subject so only
-  /// the surrounding ring remains visible. Shared technique with the on-canvas
-  /// painter (`_MaskedImagePainter`).
-  static void _paintDieCut(
-    Canvas canvas,
-    ui.Image base,
-    ui.Image mask,
-    Rect srcRect,
-    Rect maskSrc,
-    Rect dest,
-    Color color,
-    double radiusPx,
-  ) {
-    if (radiusPx <= 0) return;
-    final inflated = dest.inflate(radiusPx + 2);
-    canvas.saveLayer(
-      inflated,
-      Paint()
-        ..imageFilter = ui.ImageFilter.dilate(
-          radiusX: radiusPx,
-          radiusY: radiusPx,
-        ),
-    );
-    // Subject alpha silhouette (base ∩ mask), then flattened to a solid color.
-    canvas.saveLayer(dest, Paint());
-    canvas.drawImageRect(
-      base,
-      srcRect,
-      dest,
-      Paint()..filterQuality = FilterQuality.high,
-    );
-    canvas.drawImageRect(
-      mask,
-      maskSrc,
-      dest,
-      Paint()
-        ..blendMode = BlendMode.dstIn
-        ..filterQuality = FilterQuality.high,
-    );
-    canvas.drawRect(
-      dest,
-      Paint()
-        ..color = color
-        ..blendMode = BlendMode.srcIn,
-    );
-    canvas.restore();
-    canvas.restore();
-  }
-
   static void _paintText(Canvas canvas, TextLayer layer, double scale) {
-    final strokeColor =
-        (layer.color == Colors.white || layer.color == AppColors.amber)
-        ? const Color(0xFF14101A)
-        : Colors.white;
+    final strokeColor = TextCaption.resolveStrokeColor(
+      layer.color,
+      layer.strokeColor,
+      layer.strokeOpacity,
+    );
     final style = TextStyle(
       fontFamily: layer.fontFamily,
       fontSize: layer.fontSize * scale,
@@ -376,8 +323,10 @@ abstract final class ProjectRenderer {
       letterSpacing: 1 * scale,
       fontWeight: FontWeight.w700,
     );
-    // Emoji / props (#61) render as a plain glyph - no caption stroke/shadow.
-    if (layer.decorative) {
+    // Emoji / props (#61), and captions with the outline turned off, render as
+    // a plain glyph - no caption stroke, and no shadow either (the outline is
+    // what carried it; a layer shadow does that job properly now).
+    if (!layer.hasStroke) {
       final glyph = TextPainter(
         text: TextSpan(
           text: layer.text,
@@ -395,7 +344,7 @@ abstract final class ProjectRenderer {
         style: style.copyWith(
           foreground: Paint()
             ..style = PaintingStyle.stroke
-            ..strokeWidth = 3.5 * scale
+            ..strokeWidth = layer.strokeWidth * scale
             ..strokeJoin = StrokeJoin.round
             ..color = strokeColor,
           shadows: [

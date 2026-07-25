@@ -2,6 +2,7 @@ import 'dart:ui';
 
 import 'package:chromis/core/models/image_adjustments.dart';
 import 'package:chromis/core/models/layer.dart';
+import 'package:chromis/core/models/layer_effects.dart';
 import 'package:chromis/core/models/layer_transform.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -28,8 +29,9 @@ ImageLayer fullImage() => const ImageLayer(
     saturation: 1.5,
     hue: 30,
   ),
-  outlineWidth: 4,
-  outlineColor: Color(0xFF00FF00),
+  effects: LayerEffects(
+    stroke: LayerStroke(width: 4, color: Color(0xFF00FF00)),
+  ),
   cropRect: Rect.fromLTRB(0.1, 0.2, 0.8, 0.9),
 );
 
@@ -75,10 +77,11 @@ void main() {
       expect(l.opacity, 1.0);
       expect(l.maskPath, isNull);
       expect(l.adjustments, ImageAdjustments.identity);
-      expect(l.outlineWidth, 0);
-      expect(l.outlineColor, const Color(0xFFFFFFFF));
+      expect(l.effects, LayerEffects.none);
+      expect(l.effects.stroke.width, 0);
+      expect(l.effects.stroke.color, const Color(0xFFFFFFFF));
       expect(l.cropRect, _fullRect);
-      expect(l.hasOutline, isFalse);
+      expect(l.effects.stroke.isVisible, isFalse);
       expect(l.isCropped, isFalse);
     });
 
@@ -115,18 +118,9 @@ void main() {
         o,
       );
 
-      expect(o.copyWith(outlineWidth: 12).outlineWidth, 12);
-      expect(
-        o.copyWith(outlineWidth: 12).copyWith(outlineWidth: o.outlineWidth),
-        o,
-      );
-
-      const oc = Color(0xFF010203);
-      expect(o.copyWith(outlineColor: oc).outlineColor, oc);
-      expect(
-        o.copyWith(outlineColor: oc).copyWith(outlineColor: o.outlineColor),
-        o,
-      );
+      const wide = LayerEffects(stroke: LayerStroke(width: 12));
+      expect(o.copyWith(effects: wide).effects.stroke.width, 12);
+      expect(o.copyWith(effects: wide).copyWith(effects: o.effects), o);
 
       const cr = Rect.fromLTRB(0, 0, 0.4, 0.4);
       expect(o.copyWith(cropRect: cr).cropRect, cr);
@@ -144,20 +138,21 @@ void main() {
       );
     });
 
-    test(
-      'toJson -> fromJson round-trips, incl. crop list and outlineColor',
-      () {
-        final o = fullImage();
-        final json = o.toJson();
-        // Documented serialized shape.
-        expect(json['type'], 'image');
-        expect(json['crop'], [0.1, 0.2, 0.8, 0.9]);
-        expect(json['outlineColor'], 0xFF00FF00);
-        // Round-trips through both the subtype and the dispatcher.
-        expect(ImageLayer.fromJson(json), o);
-        expect(Layer.fromJson(json), o);
-      },
-    );
+    test('toJson -> fromJson round-trips, incl. crop list and stroke', () {
+      final o = fullImage();
+      final json = o.toJson();
+      // Documented serialized shape.
+      expect(json['type'], 'image');
+      expect(json['crop'], [0.1, 0.2, 0.8, 0.9]);
+      expect((json['effects'] as Map)['stroke'], {
+        'width': 4.0,
+        'color': 0xFF00FF00,
+        'opacity': 1.0,
+      });
+      // Round-trips through both the subtype and the dispatcher.
+      expect(ImageLayer.fromJson(json), o);
+      expect(Layer.fromJson(json), o);
+    });
 
     test('fromJson applies documented defaults for missing optional keys', () {
       final json = <String, dynamic>{
@@ -166,15 +161,13 @@ void main() {
         'name': 'n',
         'transform': const LayerTransform().toJson(),
         'assetPath': '/p',
-        // visible, opacity, adjustments, outlineWidth, outlineColor, crop, mask
-        // all omitted.
+        // visible, opacity, adjustments, effects, crop, mask all omitted.
       };
       final l = ImageLayer.fromJson(json);
       expect(l.visible, isTrue);
       expect(l.opacity, 1.0);
       expect(l.adjustments, ImageAdjustments.identity);
-      expect(l.outlineWidth, 0);
-      expect(l.outlineColor, const Color(0xFFFFFFFF));
+      expect(l.effects, LayerEffects.none);
       expect(l.maskPath, isNull);
       expect(l.cropRect, _fullRect);
     });
@@ -204,17 +197,19 @@ void main() {
       );
     });
 
-    test('isCropped and hasOutline reflect their fields', () {
+    test('isCropped and stroke visibility reflect their fields', () {
       const base = ImageLayer(id: 'i', name: 'n', assetPath: '/p');
       expect(base.isCropped, isFalse);
-      expect(base.hasOutline, isFalse);
+      expect(base.effects.stroke.isVisible, isFalse);
       expect(base.copyWith(cropRect: _fullRect).isCropped, isFalse);
       expect(
         base.copyWith(cropRect: const Rect.fromLTRB(0, 0, 0.5, 1)).isCropped,
         isTrue,
       );
-      expect(base.copyWith(outlineWidth: 0).hasOutline, isFalse);
-      expect(base.copyWith(outlineWidth: 2).hasOutline, isTrue);
+      const off = LayerEffects();
+      const on = LayerEffects(stroke: LayerStroke(width: 2));
+      expect(base.copyWith(effects: off).effects.stroke.isVisible, isFalse);
+      expect(base.copyWith(effects: on).effects.stroke.isVisible, isTrue);
     });
 
     test('== and hashCode distinguish cropRect / adjustments / transform / '
@@ -224,7 +219,11 @@ void main() {
         o.copyWith(cropRect: const Rect.fromLTRB(0, 0, 0.5, 0.5)),
         o.copyWith(adjustments: const ImageAdjustments(brightness: 2)),
         o.copyWith(transform: const LayerTransform(scale: 3)),
-        o.copyWith(outlineColor: const Color(0xFF010203)),
+        o.copyWith(
+          effects: const LayerEffects(
+            stroke: LayerStroke(width: 4, color: Color(0xFF010203)),
+          ),
+        ),
         o.copyWith(maskPath: '/different.png'),
       ];
       for (final v in variants) {

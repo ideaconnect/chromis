@@ -4,6 +4,7 @@ import 'dart:ui';
 import 'package:chromis/core/models/frame.dart';
 import 'package:chromis/core/models/image_adjustments.dart';
 import 'package:chromis/core/models/layer.dart';
+import 'package:chromis/core/models/layer_effects.dart';
 import 'package:chromis/core/models/layer_transform.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -31,8 +32,9 @@ void main() {
       saturation: 1.2,
       hue: 30,
     ),
-    outlineWidth: 4,
-    outlineColor: Color(0xFF00FF00),
+    effects: LayerEffects(
+      stroke: LayerStroke(width: 4, color: Color(0xFF00FF00)),
+    ),
     cropRect: Rect.fromLTRB(0.1, 0.1, 0.9, 0.9),
   );
 

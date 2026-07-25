@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:flutter/foundation.dart';
 
 import 'image_adjustments.dart';
+import 'layer_effects.dart';
 import 'layer_transform.dart';
 
 /// A single element on a canvas: an image or a text caption. (Comic bubbles
@@ -17,6 +18,7 @@ sealed class Layer {
     this.visible = true,
     this.opacity = 1.0,
     this.cellId,
+    this.effects = LayerEffects.none,
   });
 
   final String id;
@@ -32,13 +34,17 @@ sealed class Layer {
   /// span the collage. Always null in an ordinary (non-collage) project.
   final String? cellId;
 
+  /// Blend mode, drop shadow and contour - the effects every layer type shares.
+  final LayerEffects effects;
+
   /// Discriminator written into JSON.
   String get type;
 
   Map<String, dynamic> toJson();
 
-  /// Base fields shared by every layer variant. `cellId` is written only when
-  /// set, so manifests of non-collage projects are unchanged.
+  /// Base fields shared by every layer variant. `cellId` and `effects` are
+  /// written only when set, so manifests of projects that use neither are
+  /// unchanged.
   Map<String, dynamic> baseJson() => {
     'type': type,
     'id': id,
@@ -47,7 +53,13 @@ sealed class Layer {
     'visible': visible,
     'opacity': opacity,
     if (cellId != null) 'cellId': cellId,
+    if (!effects.isNone) 'effects': effects.toJson(),
   };
+
+  /// Reads the shared [effects] block, absent in pre-effects manifests.
+  static LayerEffects effectsFromJson(Object? json) => json == null
+      ? LayerEffects.none
+      : LayerEffects.fromJson((json as Map).cast<String, dynamic>());
 
   factory Layer.fromJson(Map<String, dynamic> json) {
     final type = json['type'] as String;
@@ -75,10 +87,10 @@ final class ImageLayer extends Layer {
     super.visible = true,
     super.opacity = 1.0,
     super.cellId,
+    super.effects,
     this.maskPath,
     this.adjustments = ImageAdjustments.identity,
-    this.outlineWidth = 0,
-    this.outlineColor = const Color(0xFFFFFFFF),
+    this.vignette = Vignette.none,
     this.cropRect = const Rect.fromLTRB(0, 0, 1, 1),
   });
 
@@ -92,22 +104,25 @@ final class ImageLayer extends Layer {
 
   final ImageAdjustments adjustments;
 
-  /// Die-cut contour width in logical (512-canvas) pixels. `0` disables the
-  /// outline. Only meaningful for a cut-out layer (one with a [maskPath]).
-  final double outlineWidth;
-
-  /// The die-cut contour color (white by default).
-  final Color outlineColor;
+  /// Edge falloff painted inside the photo's own alpha.
+  final Vignette vignette;
 
   /// The visible sub-rectangle of the source image, in normalized (0..1) image
   /// coordinates. Defaults to the whole image; a per-layer crop shrinks it.
   final Rect cropRect;
 
-  /// Whether a die-cut outline is currently drawn.
-  bool get hasOutline => outlineWidth > 0;
-
   /// Whether a non-trivial per-layer crop is applied.
   bool get isCropped => cropRect != const Rect.fromLTRB(0, 0, 1, 1);
+
+  /// Whether this photo needs the painter path rather than a plain cached
+  /// `Image.file`: a mask, a source crop, or any effect that has to reach the
+  /// pixels (vignette, HDR's local-contrast pass, a contour stroke).
+  bool get needsPainter =>
+      maskPath != null ||
+      isCropped ||
+      vignette.isVisible ||
+      !adjustments.isMatrixOnly ||
+      effects.stroke.isVisible;
 
   @override
   String get type => 'image';
@@ -120,12 +135,12 @@ final class ImageLayer extends Layer {
     double? opacity,
     String? cellId,
     bool clearCell = false,
+    LayerEffects? effects,
     String? assetPath,
     String? maskPath,
     bool clearMask = false,
     ImageAdjustments? adjustments,
-    double? outlineWidth,
-    Color? outlineColor,
+    Vignette? vignette,
     Rect? cropRect,
   }) {
     return ImageLayer(
@@ -135,11 +150,11 @@ final class ImageLayer extends Layer {
       visible: visible ?? this.visible,
       opacity: opacity ?? this.opacity,
       cellId: clearCell ? null : (cellId ?? this.cellId),
+      effects: effects ?? this.effects,
       assetPath: assetPath ?? this.assetPath,
       maskPath: clearMask ? null : (maskPath ?? this.maskPath),
       adjustments: adjustments ?? this.adjustments,
-      outlineWidth: outlineWidth ?? this.outlineWidth,
-      outlineColor: outlineColor ?? this.outlineColor,
+      vignette: vignette ?? this.vignette,
       cropRect: cropRect ?? this.cropRect,
     );
   }
@@ -150,8 +165,7 @@ final class ImageLayer extends Layer {
     'assetPath': assetPath,
     'maskPath': maskPath,
     'adjustments': adjustments.toJson(),
-    'outlineWidth': outlineWidth,
-    'outlineColor': outlineColor.toARGB32(),
+    if (vignette.isVisible) 'vignette': vignette.toJson(),
     'crop': [cropRect.left, cropRect.top, cropRect.right, cropRect.bottom],
   };
 
@@ -165,14 +179,34 @@ final class ImageLayer extends Layer {
       visible: json['visible'] as bool? ?? true,
       opacity: (json['opacity'] as num?)?.toDouble() ?? 1.0,
       cellId: json['cellId'] as String?,
+      effects: _effectsWithLegacyOutline(json),
       assetPath: json['assetPath'] as String,
       maskPath: json['maskPath'] as String?,
       adjustments: ImageAdjustments.fromJson(
         (json['adjustments'] as Map?)?.cast<String, dynamic>() ?? const {},
       ),
-      outlineWidth: (json['outlineWidth'] as num?)?.toDouble() ?? 0,
-      outlineColor: Color(json['outlineColor'] as int? ?? 0xFFFFFFFF),
+      vignette: json['vignette'] == null
+          ? Vignette.none
+          : Vignette.fromJson(
+              (json['vignette'] as Map).cast<String, dynamic>(),
+            ),
       cropRect: _cropFromJson(json['crop']),
+    );
+  }
+
+  /// The die-cut outline used to be two fields of its own; it is now the
+  /// general-purpose [LayerEffects.stroke], which also works on photos with no
+  /// cut-out mask. Projects saved before the move are migrated on read.
+  static LayerEffects _effectsWithLegacyOutline(Map<String, dynamic> json) {
+    final effects = Layer.effectsFromJson(json['effects']);
+    if (json['effects'] != null) return effects;
+    final width = (json['outlineWidth'] as num?)?.toDouble() ?? 0;
+    if (width <= 0) return effects;
+    return effects.copyWith(
+      stroke: LayerStroke(
+        width: width,
+        color: Color(json['outlineColor'] as int? ?? 0xFFFFFFFF),
+      ),
     );
   }
 
@@ -197,11 +231,11 @@ final class ImageLayer extends Layer {
       other.visible == visible &&
       other.opacity == opacity &&
       other.cellId == cellId &&
+      other.effects == effects &&
       other.assetPath == assetPath &&
       other.maskPath == maskPath &&
       other.adjustments == adjustments &&
-      other.outlineWidth == outlineWidth &&
-      other.outlineColor == outlineColor &&
+      other.vignette == vignette &&
       other.cropRect == cropRect;
 
   @override
@@ -212,11 +246,11 @@ final class ImageLayer extends Layer {
     visible,
     opacity,
     cellId,
+    effects,
     assetPath,
     maskPath,
     adjustments,
-    outlineWidth,
-    outlineColor,
+    vignette,
     cropRect,
   );
 }
@@ -232,15 +266,36 @@ final class TextLayer extends Layer {
     super.visible = true,
     super.opacity = 1.0,
     super.cellId,
+    super.effects,
     this.fontSize = 40,
     this.color = const Color(0xFFFFFFFF),
+    this.strokeWidth = defaultStrokeWidth,
+    this.strokeColor,
+    this.strokeOpacity = 1.0,
     this.decorative = false,
   });
+
+  /// The caption outline the design ships with, in 512-canvas units.
+  static const double defaultStrokeWidth = 3.5;
 
   final String text;
   final String fontFamily;
   final double fontSize;
   final Color color;
+
+  /// Outline thickness in 512-canvas units; 0 removes the outline (and with it
+  /// the caption's baked-in drop shadow - a layer shadow does that job now).
+  final double strokeWidth;
+
+  /// Outline color, or null to keep the automatic contrast pick: a dark
+  /// outline under light fills, white under everything else.
+  final Color? strokeColor;
+
+  /// 0.0 … 1.0
+  final double strokeOpacity;
+
+  bool get hasStroke =>
+      !decorative && strokeWidth > 0.01 && strokeOpacity > 0.001;
 
   /// When true this layer is a plain glyph (emoji / prop from the glyph
   /// library, #61) - rendered without the caption stroke + drop shadow so an
@@ -258,10 +313,15 @@ final class TextLayer extends Layer {
     double? opacity,
     String? cellId,
     bool clearCell = false,
+    LayerEffects? effects,
     String? text,
     String? fontFamily,
     double? fontSize,
     Color? color,
+    double? strokeWidth,
+    Color? strokeColor,
+    bool autoStrokeColor = false,
+    double? strokeOpacity,
     bool? decorative,
   }) {
     return TextLayer(
@@ -271,10 +331,14 @@ final class TextLayer extends Layer {
       visible: visible ?? this.visible,
       opacity: opacity ?? this.opacity,
       cellId: clearCell ? null : (cellId ?? this.cellId),
+      effects: effects ?? this.effects,
       text: text ?? this.text,
       fontFamily: fontFamily ?? this.fontFamily,
       fontSize: fontSize ?? this.fontSize,
       color: color ?? this.color,
+      strokeWidth: strokeWidth ?? this.strokeWidth,
+      strokeColor: autoStrokeColor ? null : (strokeColor ?? this.strokeColor),
+      strokeOpacity: strokeOpacity ?? this.strokeOpacity,
       decorative: decorative ?? this.decorative,
     );
   }
@@ -286,6 +350,9 @@ final class TextLayer extends Layer {
     'fontFamily': fontFamily,
     'fontSize': fontSize,
     'color': color.toARGB32(),
+    if (strokeWidth != defaultStrokeWidth) 'strokeWidth': strokeWidth,
+    if (strokeColor != null) 'strokeColor': strokeColor!.toARGB32(),
+    if (strokeOpacity != 1.0) 'strokeOpacity': strokeOpacity,
     'decorative': decorative,
   };
 
@@ -299,10 +366,17 @@ final class TextLayer extends Layer {
       visible: json['visible'] as bool? ?? true,
       opacity: (json['opacity'] as num?)?.toDouble() ?? 1.0,
       cellId: json['cellId'] as String?,
+      effects: Layer.effectsFromJson(json['effects']),
       text: json['text'] as String,
       fontFamily: json['fontFamily'] as String,
       fontSize: (json['fontSize'] as num?)?.toDouble() ?? 40,
       color: Color(json['color'] as int),
+      strokeWidth:
+          (json['strokeWidth'] as num?)?.toDouble() ?? defaultStrokeWidth,
+      strokeColor: json['strokeColor'] == null
+          ? null
+          : Color(json['strokeColor'] as int),
+      strokeOpacity: (json['strokeOpacity'] as num?)?.toDouble() ?? 1.0,
       decorative: json['decorative'] as bool? ?? false,
     );
   }
@@ -316,10 +390,14 @@ final class TextLayer extends Layer {
       other.visible == visible &&
       other.opacity == opacity &&
       other.cellId == cellId &&
+      other.effects == effects &&
       other.text == text &&
       other.fontFamily == fontFamily &&
       other.fontSize == fontSize &&
       other.color == color &&
+      other.strokeWidth == strokeWidth &&
+      other.strokeColor == strokeColor &&
+      other.strokeOpacity == strokeOpacity &&
       other.decorative == decorative;
 
   @override
@@ -330,10 +408,14 @@ final class TextLayer extends Layer {
     visible,
     opacity,
     cellId,
+    effects,
     text,
     fontFamily,
     fontSize,
     color,
+    strokeWidth,
+    strokeColor,
+    strokeOpacity,
     decorative,
   );
 }
@@ -357,6 +439,7 @@ final class BubbleLayer extends Layer {
     super.visible = true,
     super.opacity = 1.0,
     super.cellId,
+    super.effects,
   });
 
   final String text;
@@ -382,6 +465,7 @@ final class BubbleLayer extends Layer {
     double? opacity,
     String? cellId,
     bool clearCell = false,
+    LayerEffects? effects,
     String? text,
     BubbleShape? shape,
     String? fontFamily,
@@ -398,6 +482,7 @@ final class BubbleLayer extends Layer {
       visible: visible ?? this.visible,
       opacity: opacity ?? this.opacity,
       cellId: clearCell ? null : (cellId ?? this.cellId),
+      effects: effects ?? this.effects,
       text: text ?? this.text,
       shape: shape ?? this.shape,
       fontFamily: fontFamily ?? this.fontFamily,
@@ -433,6 +518,7 @@ final class BubbleLayer extends Layer {
       visible: json['visible'] as bool? ?? true,
       opacity: (json['opacity'] as num?)?.toDouble() ?? 1.0,
       cellId: json['cellId'] as String?,
+      effects: Layer.effectsFromJson(json['effects']),
       text: json['text'] as String? ?? '',
       shape: BubbleShape.values.firstWhere(
         (s) => s.name == json['shape'],
@@ -459,6 +545,7 @@ final class BubbleLayer extends Layer {
       other.visible == visible &&
       other.opacity == opacity &&
       other.cellId == cellId &&
+      other.effects == effects &&
       other.text == text &&
       other.shape == shape &&
       other.fontFamily == fontFamily &&
@@ -476,6 +563,7 @@ final class BubbleLayer extends Layer {
     visible,
     opacity,
     cellId,
+    effects,
     text,
     shape,
     fontFamily,

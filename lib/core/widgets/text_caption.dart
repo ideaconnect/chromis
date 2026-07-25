@@ -15,6 +15,8 @@ class TextCaption extends StatelessWidget {
     this.color = Colors.white,
     this.rotation = -0.087, // ~ -5deg
     this.strokeWidth = 3.5,
+    this.strokeColor,
+    this.strokeOpacity = 1.0,
     this.scale = 1.0,
     this.decorative = false,
   });
@@ -24,7 +26,15 @@ class TextCaption extends StatelessWidget {
   final double fontSize;
   final Color color;
   final double rotation;
+
+  /// Outline thickness in 512-canvas units; 0 draws the fill alone.
   final double strokeWidth;
+
+  /// Explicit outline color, or null for the automatic contrast pick.
+  final Color? strokeColor;
+
+  /// 0.0 … 1.0
+  final double strokeOpacity;
 
   /// Canvas scale (`side / 512`) so the outline thickness, drop-shadow offset
   /// and letter tracking stay proportional to [fontSize] - matching the 512-px
@@ -38,10 +48,22 @@ class TextCaption extends StatelessWidget {
   /// A plain glyph with no outline/shadow - used for emoji & prop layers (#61).
   final bool decorative;
 
-  /// Light fills (white / amber) get a dark outline; everything else white.
-  Color get _strokeColor => (color == Colors.white || color == AppColors.amber)
-      ? const Color(0xFF14101A)
-      : Colors.white;
+  /// The outline color actually used: [strokeColor] when set, else the
+  /// automatic contrast pick - light fills (white / amber) get a dark outline,
+  /// everything else white. Shared with `ProjectRenderer._paintText`.
+  static Color resolveStrokeColor(Color fill, Color? explicit, double opacity) {
+    final base =
+        explicit ??
+        ((fill == Colors.white || fill == AppColors.amber)
+            ? const Color(0xFF14101A)
+            : Colors.white);
+    return opacity >= 1
+        ? base
+        : base.withValues(alpha: base.a * opacity.clamp(0.0, 1.0));
+  }
+
+  bool get _hasStroke =>
+      !decorative && strokeWidth > 0.01 && strokeOpacity > 0.001;
 
   @override
   Widget build(BuildContext context) {
@@ -53,8 +75,10 @@ class TextCaption extends StatelessWidget {
       fontWeight: FontWeight.w700,
     );
 
-    if (decorative) {
-      // Emoji / prop: a plain glyph in its own colors.
+    // Emoji / prop, or a caption with its outline turned off: a plain glyph.
+    // With no outline there is no drop shadow either - the outline is what
+    // carried it, and a layer shadow does that job properly now.
+    if (!_hasStroke) {
       return Transform.rotate(
         angle: rotation,
         child: Text(text, style: baseStyle.copyWith(color: color)),
@@ -74,7 +98,7 @@ class TextCaption extends StatelessWidget {
                 ..style = PaintingStyle.stroke
                 ..strokeWidth = strokeWidth * scale
                 ..strokeJoin = StrokeJoin.round
-                ..color = _strokeColor,
+                ..color = resolveStrokeColor(color, strokeColor, strokeOpacity),
               shadows: [
                 Shadow(
                   color: const Color(0x40000000),
