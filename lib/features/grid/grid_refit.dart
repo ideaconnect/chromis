@@ -128,6 +128,11 @@ Layer _withTransform(Layer layer, LayerTransform transform) => switch (layer) {
   BubbleLayer() => layer.copyWith(transform: transform),
 };
 
+/// [layer] reassigned to [cellId] with [transform]. Shared with the controller
+/// so cell reassignment has one definition.
+Layer assignCell(Layer layer, String cellId, LayerTransform transform) =>
+    _withCell(layer, cellId, transform);
+
 Layer _withCell(Layer layer, String cellId, LayerTransform transform) =>
     switch (layer) {
       ImageLayer() => layer.copyWith(cellId: cellId, transform: transform),

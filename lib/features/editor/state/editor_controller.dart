@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -760,6 +761,51 @@ class EditorController extends Notifier<EditorState> {
     _dividerDragStart = null;
     endEdit();
   }
+
+  /// Moves layer [layerId] into cell [targetCell], swapping places with
+  /// whatever already lives there. One undoable step.
+  ///
+  /// The moved layer is re-centred on its new cell (a drop reads as "put this
+  /// photo here"), while the displaced content keeps its relative placement.
+  void moveLayerToCell(String layerId, String targetCell) {
+    final project = state.project;
+    final grid = project.grid;
+    if (grid == null) return;
+    final layer = state.layers.where((l) => l.id == layerId).firstOrNull;
+    final from = layer?.cellId;
+    if (layer == null || from == null || from == targetCell) return;
+    final cells = layoutGrid(
+      grid,
+      Size(project.canvasWidth.toDouble(), project.canvasHeight.toDouble()),
+    ).cells;
+    final source = cells[from];
+    final target = cells[targetCell];
+    if (source == null || target == null) return;
+
+    _mutateLayers(
+      (layers) => [
+        for (final l in layers)
+          if (l.id == layerId)
+            assignCell(
+              l,
+              targetCell,
+              l.transform.copyWith(
+                position: target.center,
+                scale: l.transform.scale * _coverFactor(source, target),
+              ),
+            )
+          else if (l.cellId == targetCell)
+            assignCell(l, from, refitToCell(l.transform, target, source))
+          else if (l.cellId == from)
+            assignCell(l, targetCell, refitToCell(l.transform, source, target))
+          else
+            l,
+      ],
+    );
+  }
+
+  static double _coverFactor(Rect from, Rect to) =>
+      math.max(to.width / from.width, to.height / from.height);
 
   /// Rotates the photos one cell forward, so a collage can be rearranged
   /// without dragging anything.

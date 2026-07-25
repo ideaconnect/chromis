@@ -349,6 +349,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                   children: [
                     EditorCanvas(
                       onEmptyTap: () => _pickPhoto(ImageSource.gallery),
+                      onEmptyCellTap: _pickPhotoIntoCell,
                       dropPlaceholder: const DropPlaceholder(),
                       onEraseStroke: _applyEraseStroke,
                       // Non-null only while the cutout tool's Remove-object
@@ -2696,6 +2697,39 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
   }
 
   /// Imports a photo from the given [source] and adds it as an image layer.
+  /// The Photo Grid cell a newly imported photo should land in: the selected
+  /// layer's cell, else the first empty one. Null on an ordinary project, or
+  /// when the collage has no empty cell and nothing is selected - the photo
+  /// then becomes a free layer above the grid.
+  String? _targetCell() {
+    final editor = ref.read(editorControllerProvider);
+    final grid = editor.project.grid;
+    if (grid == null) return null;
+    final selected = editor.selectedLayer?.cellId;
+    if (selected != null) return selected;
+    final taken = editor.layers.map((l) => l.cellId).toSet();
+    for (final id in grid.cellIds) {
+      if (!taken.contains(id)) return id;
+    }
+    return null;
+  }
+
+  /// Imports a photo straight into Photo Grid cell [cellId] - the empty-cell
+  /// tap on the canvas.
+  Future<void> _pickPhotoIntoCell(String cellId) async {
+    try {
+      final path = await ref.read(imageImportServiceProvider).pickFromGallery();
+      if (path == null) return; // cancelled
+      _controller.addPhotoToCell(
+        assetPath: path,
+        cellId: cellId,
+        pixels: await _decodeImageSize(path),
+      );
+    } catch (_) {
+      if (mounted) _toast('Could not import photo');
+    }
+  }
+
   Future<void> _pickPhoto(ImageSource source) async {
     final service = ref.read(imageImportServiceProvider);
     try {
@@ -2703,6 +2737,16 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
           ? await service.pickFromCamera()
           : await service.pickFromGallery();
       if (path == null) return; // cancelled
+      // In a collage a photo belongs to a cell, cover-scaled to fill it.
+      final cell = _targetCell();
+      if (cell != null) {
+        _controller.addPhotoToCell(
+          assetPath: path,
+          cellId: cell,
+          pixels: await _decodeImageSize(path),
+        );
+        return;
+      }
       // Importing a photo NEVER resizes the canvas - a blank project keeps the
       // size the user chose. (To start with the canvas sized to a photo, use
       // "Open a photo" on Home.) The first photo is placed scaled to FIT.

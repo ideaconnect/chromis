@@ -28,6 +28,7 @@ class EditorCanvas extends ConsumerStatefulWidget {
     super.key,
     required this.onEmptyTap,
     required this.dropPlaceholder,
+    this.onEmptyCellTap,
     this.onEraseStroke,
     this.onObjectTap,
     this.onionFrame,
@@ -35,6 +36,10 @@ class EditorCanvas extends ConsumerStatefulWidget {
 
   /// Tapped when the canvas has no layers (kick off image import).
   final VoidCallback onEmptyTap;
+
+  /// Tapped with the id of an EMPTY Photo Grid cell - the cell is the
+  /// invitation to add a photo, so a tap imports straight into it.
+  final void Function(String cellId)? onEmptyCellTap;
 
   /// Placeholder shown on an empty canvas.
   final Widget dropPlaceholder;
@@ -424,11 +429,19 @@ class _EditorCanvasState extends ConsumerState<EditorCanvas> {
       widget.onObjectTap!(pointLogical);
       return;
     }
-    if (editor.layers.isEmpty) {
-      widget.onEmptyTap();
-      return;
+    final hit = _hitTest(editor.layers, pointLogical, editor);
+    if (hit == null) {
+      // An empty collage cell is the invitation to add a photo.
+      final cell = _layoutOf(editor)?.cellAt(pointLogical);
+      if (cell != null && !editor.layers.any((l) => l.cellId == cell)) {
+        widget.onEmptyCellTap?.call(cell);
+        return;
+      }
+      if (editor.layers.isEmpty && !editor.project.isGrid) {
+        widget.onEmptyTap();
+        return;
+      }
     }
-    final hit = _hitTest(editor.layers, pointLogical);
     _controller.selectLayer(hit?.id);
     // Tapping a bubble opens its editor right away - previously the bubble
     // panel appeared only if the Text tool happened to be active (#82).
@@ -465,7 +478,7 @@ class _EditorCanvasState extends ConsumerState<EditorCanvas> {
       return;
     }
     final target =
-        _hitTest(editor.layers, focalLogical) ?? editor.selectedLayer;
+        _hitTest(editor.layers, focalLogical, editor) ?? editor.selectedLayer;
     if (target == null) {
       _gestureLayerId = null;
       return;
@@ -501,12 +514,49 @@ class _EditorCanvasState extends ConsumerState<EditorCanvas> {
     if (id == null || start == null || startFocal == null) return;
     final focalLogical = d.localFocalPoint / scale;
     final delta = focalLogical - startFocal;
-    _controller.updateTransform(
-      id,
-      LayerTransform(
-        position: start.position + delta,
-        scale: (start.scale * d.scale).clamp(0.2, 6.0),
-        rotation: start.rotation + d.rotation,
+    final editor = ref.read(editorControllerProvider);
+    final layer = editor.layers.where((l) => l.id == id).firstOrNull;
+    var next = LayerTransform(
+      position: start.position + delta,
+      scale: (start.scale * d.scale).clamp(0.2, 6.0),
+      rotation: start.rotation + d.rotation,
+    );
+    if (layer != null) {
+      final cell = _layoutOf(editor)?.cells[layer.cellId];
+      if (cell != null) next = _clampToCell(layer, next, cell);
+    }
+    _controller.updateTransform(id, next);
+  }
+
+  /// Keeps a cell PHOTO covering its cell: it may be panned and zoomed inside
+  /// the cell, but not out of it. Without this a photo can be dragged aside
+  /// leaving a hole in the collage, which reads as a bug rather than an edit.
+  ///
+  /// Applies to image layers only - a caption or bubble placed in a cell is
+  /// meant to be small, and is simply clipped.
+  LayerTransform _clampToCell(Layer layer, LayerTransform next, Rect cell) {
+    if (layer is! ImageLayer) return next;
+    final unit = _sizeOfAt(layer, 1);
+    if (unit.width <= 0 || unit.height <= 0) return next;
+    final minScale = math.max(
+      cell.width / unit.width,
+      cell.height / unit.height,
+    );
+    final scale = math.max(next.scale, minScale);
+    final half = Offset(unit.width * scale / 2, unit.height * scale / 2);
+    // Valid centres are those keeping both edges outside the cell; the bounds
+    // cross over when the layer is smaller than the cell, so centre it there.
+    double axis(double value, double lo, double hi, double halfExtent) {
+      final min = hi - halfExtent;
+      final max = lo + halfExtent;
+      return min > max ? (lo + hi) / 2 : value.clamp(min, max);
+    }
+
+    return next.copyWith(
+      scale: scale,
+      position: Offset(
+        axis(next.position.dx, cell.left, cell.right, half.dx),
+        axis(next.position.dy, cell.top, cell.bottom, half.dy),
       ),
     );
   }
@@ -524,14 +574,34 @@ class _EditorCanvasState extends ConsumerState<EditorCanvas> {
       _controller.endDividerDrag();
       return;
     }
+    final id = _gestureLayerId;
     _gestureLayerId = null;
     _controller.endEdit();
+    if (id != null) _dropIntoCell(id);
+  }
+
+  /// A layer dropped with its centre over a DIFFERENT cell moves there,
+  /// swapping with whatever was in it - the direct way to rearrange a collage.
+  void _dropIntoCell(String layerId) {
+    final editor = ref.read(editorControllerProvider);
+    final layer = editor.layers.where((l) => l.id == layerId).firstOrNull;
+    if (layer == null || layer.cellId == null) return;
+    final target = _layoutOf(editor)?.cellAt(layer.transform.position);
+    if (target != null && target != layer.cellId) {
+      _controller.moveLayerToCell(layerId, target);
+    }
   }
 
   // ------------------------------------------------------------ hit-testing
-  Layer? _hitTest(List<Layer> layers, Offset p) {
+  Layer? _hitTest(List<Layer> layers, Offset p, EditorState editor) {
+    // A cell photo is cover-scaled, so it overflows its cell; only the visible
+    // (clipped) part may answer a tap, or a photo would swallow taps meant for
+    // the neighbouring cell.
+    final cells = _layoutOf(editor)?.cells;
     for (final layer in layers.reversed) {
       if (!layer.visible) continue;
+      final cell = cells?[layer.cellId];
+      if (cell != null && !cell.contains(p)) continue;
       final size = _sizeOf(layer);
       final c = layer.transform.position;
       // Rotate the point into the layer's local (un-rotated) frame.
@@ -549,6 +619,15 @@ class _EditorCanvasState extends ConsumerState<EditorCanvas> {
       }
     }
     return null;
+  }
+
+  /// [_sizeOf] at an explicit [scale] rather than the layer's own - used by the
+  /// cell cover clamp, which needs the size the layer WOULD have.
+  Size _sizeOfAt(Layer layer, double scale) {
+    final own = layer.transform.scale;
+    final size = _sizeOf(layer);
+    if (own == 0) return size;
+    return Size(size.width / own * scale, size.height / own * scale);
   }
 
   /// The layer's bounding size in 512-logical units, including its own scale.
