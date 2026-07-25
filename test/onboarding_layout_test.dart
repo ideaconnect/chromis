@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'support/surface.dart';
+
 /// The first-run intro has to survive a short viewport. Its artwork, title and
 /// body add up to a fixed height, so a phone in landscape - or a portrait phone
 /// whose system insets leave less room than the design assumed - used to
@@ -12,8 +14,7 @@ import 'package:flutter_test/flutter_test.dart';
 /// test surface.
 void main() {
   Future<void> pumpAt(WidgetTester tester, Size size) async {
-    await tester.binding.setSurfaceSize(size);
-    addTearDown(() => tester.binding.setSurfaceSize(null));
+    setSurface(tester, size);
     await tester.pumpWidget(
       ProviderScope(
         child: MaterialApp(

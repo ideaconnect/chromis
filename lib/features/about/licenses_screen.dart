@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_typography.dart';
+import '../../core/widgets/responsive_center.dart';
 import 'about_data.dart';
 
 /// Curated third-party attributions, grouped by category, with a link to
@@ -19,39 +20,44 @@ class LicensesScreen extends StatelessWidget {
           children: [
             _topBar(context, 'Open-source licenses'),
             Expanded(
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(20, 4, 20, 28),
-                children: [
-                  const Text(
-                    'Chromis is built on wonderful open-source work. '
-                    'Thank you to everyone who made it.',
-                    style: TextStyle(
-                      fontFamily: AppFonts.ui,
-                      fontSize: 13,
-                      height: 1.45,
-                      color: AppColors.textMuted,
+              // Capped so the measure stays readable: uncapped, every row
+              // ran the full width of a tablet (and of a phone in landscape),
+              // stranding a label at one edge and its value at the other.
+              child: ResponsiveCenter(
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(20, 4, 20, 28),
+                  children: [
+                    const Text(
+                      'Chromis is built on wonderful open-source work. '
+                      'Thank you to everyone who made it.',
+                      style: TextStyle(
+                        fontFamily: AppFonts.ui,
+                        fontSize: 13,
+                        height: 1.45,
+                        color: AppColors.textMuted,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 18),
-                  for (final category in categories) ...[
-                    _SectionHeader(category),
-                    const SizedBox(height: 10),
-                    for (final n in licenseNotices.where(
-                      (n) => n.category == category,
-                    ))
-                      _NoticeCard(n),
                     const SizedBox(height: 18),
-                  ],
-                  OutlinedButton.icon(
-                    onPressed: () => showLicensePage(
-                      context: context,
-                      applicationName: AboutInfo.appName,
-                      applicationVersion: AboutInfo.appVersion,
+                    for (final category in categories) ...[
+                      _SectionHeader(category),
+                      const SizedBox(height: 10),
+                      for (final n in licenseNotices.where(
+                        (n) => n.category == category,
+                      ))
+                        _NoticeCard(n),
+                      const SizedBox(height: 18),
+                    ],
+                    OutlinedButton.icon(
+                      onPressed: () => showLicensePage(
+                        context: context,
+                        applicationName: AboutInfo.appName,
+                        applicationVersion: AboutInfo.appVersion,
+                      ),
+                      icon: const Icon(Icons.article_outlined, size: 18),
+                      label: const Text('View full license texts'),
                     ),
-                    icon: const Icon(Icons.article_outlined, size: 18),
-                    label: const Text('View full license texts'),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ],

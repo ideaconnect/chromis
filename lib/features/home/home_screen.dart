@@ -176,7 +176,12 @@ class HomeScreen extends ConsumerWidget {
       drawer: const AppDrawer(),
       bottomNavigationBar: const _HomeAdBanner(),
       body: SafeArea(
+        // A tablet gets a wider column and one more recent per row; a phone is
+        // untouched (the gate is shortestSide, so a landscape phone is still a
+        // phone). 840 rather than the full width because the two start cards
+        // are single-row heroes - much wider and they read as stretched bands.
         child: ResponsiveCenter(
+          maxWidth: isTabletWidth(context) ? 840 : 560,
           child: ListView(
             padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
             children: [
@@ -234,7 +239,7 @@ class HomeScreen extends ConsumerWidget {
                 data: (projects) => projects.isEmpty
                     ? const _EmptyRecent()
                     : GridView.count(
-                        crossAxisCount: 2,
+                        crossAxisCount: isTabletWidth(context) ? 3 : 2,
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
                         mainAxisSpacing: 14,
@@ -633,43 +638,59 @@ class _HomeAdBannerState extends ConsumerState<_HomeAdBanner> {
       top: false,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(12, 0, 12, 6),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            GestureDetector(
-              onTap: () => context.pushNamed(Routes.goPro),
-              behavior: HitTestBehavior.opaque,
-              child: const Padding(
-                padding: EdgeInsets.only(bottom: 4, right: 2),
-                child: Align(
-                  alignment: Alignment.centerRight,
-                  child: Text(
-                    'Remove ads →',
-                    style: TextStyle(
-                      fontFamily: AppFonts.ui,
-                      fontSize: 10.5,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textSecondary,
+        // Capped to the same column the page body uses. As the Scaffold's
+        // bottomNavigationBar this gets a TIGHT full-width constraint, so
+        // uncapped the card became a screen-wide empty panel with a 320x50 ad
+        // marooned in the middle and the "Remove ads" link stranded in the far
+        // corner, hundreds of px from the content it belongs to.
+        //
+        // Align with heightFactor 1, NOT ResponsiveCenter: its Center expands
+        // to the height it is offered, and a bottomNavigationBar is offered the
+        // whole screen - which swallowed the page and left the ad floating in
+        // the middle of it.
+        child: Align(
+          heightFactor: 1,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 560),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                GestureDetector(
+                  onTap: () => context.pushNamed(Routes.goPro),
+                  behavior: HitTestBehavior.opaque,
+                  child: const Padding(
+                    padding: EdgeInsets.only(bottom: 4, right: 2),
+                    child: Align(
+                      alignment: Alignment.centerRight,
+                      child: Text(
+                        'Remove ads →',
+                        style: TextStyle(
+                          fontFamily: AppFonts.ui,
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
                     ),
                   ),
                 ),
-              ),
+                Container(
+                  height: 52,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: AppColors.card,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.borderFaint),
+                  ),
+                  child: SizedBox(
+                    width: ad.size.width.toDouble(),
+                    height: ad.size.height.toDouble(),
+                    child: AdWidget(ad: ad),
+                  ),
+                ),
+              ],
             ),
-            Container(
-              height: 52,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: AppColors.card,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.borderFaint),
-              ),
-              child: SizedBox(
-                width: ad.size.width.toDouble(),
-                height: ad.size.height.toDouble(),
-                child: AdWidget(ad: ad),
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );

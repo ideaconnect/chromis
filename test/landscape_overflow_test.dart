@@ -12,6 +12,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'support/surface.dart';
+
 /// Every screen and sheet has to survive a landscape phone.
 ///
 /// The app used to be locked to portrait, so nothing below had ever been laid
@@ -36,8 +38,7 @@ void main() {
   };
 
   Future<void> pumpScreen(WidgetTester tester, Size size, Widget home) async {
-    await tester.binding.setSurfaceSize(size);
-    addTearDown(() => tester.binding.setSurfaceSize(null));
+    setSurface(tester, size);
     await tester.pumpWidget(
       ProviderScope(
         child: MaterialApp(theme: buildAppTheme(), home: home),
@@ -52,8 +53,7 @@ void main() {
     Size size,
     void Function(BuildContext) open,
   ) async {
-    await tester.binding.setSurfaceSize(size);
-    addTearDown(() => tester.binding.setSurfaceSize(null));
+    setSurface(tester, size);
     await tester.pumpWidget(
       ProviderScope(
         child: MaterialApp(
@@ -127,8 +127,7 @@ void main() {
       });
 
       testWidgets('navigation drawer', (tester) async {
-        await tester.binding.setSurfaceSize(size);
-        addTearDown(() => tester.binding.setSurfaceSize(null));
+        setSurface(tester, size);
         final key = GlobalKey<ScaffoldState>();
         await tester.pumpWidget(
           ProviderScope(

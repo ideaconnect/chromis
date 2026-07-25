@@ -6,6 +6,7 @@ import '../../core/settings/settings_store.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_typography.dart';
 import '../../core/widgets/gradient_button.dart';
+import '../../core/widgets/responsive_center.dart';
 
 /// First-run intro: start → cut out → export. Three swipeable pages that
 /// explain the flow. Completing or skipping records the flag and routes Home.
@@ -115,14 +116,21 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             _Dots(count: _pages.length, active: _page),
             Padding(
               padding: const EdgeInsets.fromLTRB(24, 20, 24, 20),
-              child: SizedBox(
-                width: double.infinity,
-                child: GradientButton(
-                  label: _isLast ? 'Get started' : 'Next',
-                  icon: _isLast ? Icons.check_rounded : null,
-                  busy: _finishing,
-                  onPressed: _next,
-                  glowColor: _pages[_page].glow,
+              // Capped: at full width on a tablet the CTA is a screen-wide
+              // gradient bar around a 60px label, and its glow smears across
+              // the whole bottom edge. Narrower than the text measure on
+              // purpose - a primary button reads as a button, not a banner.
+              child: ResponsiveCenter(
+                maxWidth: 420,
+                child: SizedBox(
+                  width: double.infinity,
+                  child: GradientButton(
+                    label: _isLast ? 'Get started' : 'Next',
+                    icon: _isLast ? Icons.check_rounded : null,
+                    busy: _finishing,
+                    onPressed: _next,
+                    glowColor: _pages[_page].glow,
+                  ),
                 ),
               ),
             ),

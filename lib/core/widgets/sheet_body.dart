@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
+import 'responsive_center.dart';
 
 /// Standard body for the app's bottom sheets: the grab handle, the usual
 /// padding, and - the part that matters - a scroll view bounded to the height
@@ -38,18 +39,23 @@ class SheetBody extends StatelessWidget {
       ),
       child: SafeArea(
         top: false,
-        child: SingleChildScrollView(
-          padding: padding.copyWith(
-            bottom: padding.bottom + media.viewInsets.bottom,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const _GrabHandle(),
-              const SizedBox(height: 16),
-              ...children,
-            ],
+        // Capped as well as scrolled: a sheet spanning a 1280-wide tablet puts
+        // its chips and buttons in one enormous row and the grab handle a foot
+        // away from the content. A no-op on any screen narrower than the cap.
+        child: ResponsiveCenter(
+          child: SingleChildScrollView(
+            padding: padding.copyWith(
+              bottom: padding.bottom + media.viewInsets.bottom,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const _GrabHandle(),
+                const SizedBox(height: 16),
+                ...children,
+              ],
+            ),
           ),
         ),
       ),

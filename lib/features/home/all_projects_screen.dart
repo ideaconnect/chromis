@@ -71,6 +71,11 @@ class _AllProjectsScreenState extends ConsumerState<AllProjectsScreen> {
     ref.invalidate(savedProjectsProvider);
   }
 
+  /// The content column width. Deliberately the same number Home uses, so
+  /// "See all" does not jump from a 3-column grid to a 2-column one.
+  static double _columnWidth(BuildContext context) =>
+      isTabletWidth(context) ? 840 : 560;
+
   @override
   Widget build(BuildContext context) {
     final tokens = context.tokens;
@@ -82,6 +87,7 @@ class _AllProjectsScreenState extends ConsumerState<AllProjectsScreen> {
           children: [
             _topBar(context),
             ResponsiveCenter(
+              maxWidth: _columnWidth(context),
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(20, 2, 20, 12),
                 child: _searchField(),
@@ -89,6 +95,7 @@ class _AllProjectsScreenState extends ConsumerState<AllProjectsScreen> {
             ),
             Expanded(
               child: ResponsiveCenter(
+                maxWidth: _columnWidth(context),
                 child: projectsAsync.when(
                   loading: () =>
                       const Center(child: CircularProgressIndicator()),
@@ -116,7 +123,7 @@ class _AllProjectsScreenState extends ConsumerState<AllProjectsScreen> {
                       );
                     }
                     return GridView.count(
-                      crossAxisCount: 2,
+                      crossAxisCount: isTabletWidth(context) ? 3 : 2,
                       padding: const EdgeInsets.fromLTRB(20, 4, 20, 28),
                       mainAxisSpacing: 14,
                       crossAxisSpacing: 14,

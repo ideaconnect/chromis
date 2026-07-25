@@ -28,6 +28,7 @@ import '../../core/widgets/gradient_button.dart';
 import '../../core/widgets/labeled_slider.dart';
 import '../../core/widgets/name_prompt.dart';
 import '../../core/widgets/pill_chip.dart';
+import '../../core/widgets/responsive_center.dart';
 import '../../core/widgets/sm_toast.dart';
 import '../../core/widgets/text_caption.dart';
 import '../ads/ads_service.dart';
@@ -366,7 +367,13 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         child: ConstrainedBox(
           // Portrait caps the canvas so it never dominates a tall phone;
           // landscape gives it everything the rail and panel left over.
-          constraints: BoxConstraints(maxWidth: wide ? double.infinity : 460),
+          //
+          // The 460 is a PHONE number. On a tablet in portrait it left the
+          // photo floating in a small box with ~150px of dead margin on each
+          // side of an 800-wide screen, so a tablet gets the room instead.
+          constraints: BoxConstraints(
+            maxWidth: wide || isTabletWidth(context) ? double.infinity : 460,
+          ),
           child: AspectRatio(
             aspectRatio: editor.project.canvasAspect,
             child: DecoratedBox(
@@ -461,7 +468,12 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         ),
       ),
       padding: const EdgeInsets.fromLTRB(18, 16, 18, 12),
-      child: SingleChildScrollView(child: _panelBody(editor)),
+      // The bar itself spans the screen (it is the panel's surface), but its
+      // controls stay a readable column - a slider stretched across a tablet
+      // is harder to aim, not easier.
+      child: ResponsiveCenter(
+        child: SingleChildScrollView(child: _panelBody(editor)),
+      ),
     );
   }
 

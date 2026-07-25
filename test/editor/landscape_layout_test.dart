@@ -9,6 +9,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../support/surface.dart';
+
 /// The editor's landscape layout: the dock becomes a rail down the left edge,
 /// the tool panel a column beside it that folds away on demand, and whatever is
 /// left over goes to the canvas - which is the reason to turn the phone in the
@@ -32,8 +34,7 @@ void main() {
     Size size, {
     Size project = const Size(1080, 1080),
   }) async {
-    await tester.binding.setSurfaceSize(size);
-    addTearDown(() => tester.binding.setSurfaceSize(null));
+    setSurface(tester, size);
     final container = ProviderContainer();
     addTearDown(container.dispose);
     container

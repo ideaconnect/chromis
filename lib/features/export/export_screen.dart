@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:math' as math;
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
@@ -10,10 +11,12 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../app/router.dart';
+import '../../core/models/project.dart';
 import '../../core/platform/platform_services.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_typography.dart';
 import '../../core/widgets/checkerboard.dart';
+import '../../core/widgets/responsive_center.dart';
 import '../ads/ads_service.dart';
 import '../editor/state/editor_controller.dart';
 import '../go_pro/iap.dart';
@@ -172,128 +175,169 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
     final outH = (project.canvasHeight * _scale).round();
     return Scaffold(
       appBar: AppBar(title: const Text('Export & share')),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
-        children: [
-          // Preview tile: the actual composition over a transparency checker.
-          AspectRatio(
-            aspectRatio: project.canvasAspect,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  const Checkerboard(
-                    cell: 14,
-                    base: Color(0xFF0E1B2A),
-                    tile: Color(0xFF15263A),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          // Side by side when the screen is wider than it is tall. Stacked,
+          // the preview is an AspectRatio given the full width, so a square
+          // project became a 1240-px-tall tile in a 700-px viewport and every
+          // control - format, resolution, Save - started below the fold. Keyed
+          // exactly like the editor's landscape branch.
+          if (constraints.maxWidth > constraints.maxHeight) {
+            return Row(
+              children: [
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 12, 10, 20),
+                    child: Center(child: _preview(project)),
                   ),
-                  FutureBuilder<ui.Image>(
-                    future: _previewFuture,
-                    builder: (context, snap) {
-                      final image = snap.data;
-                      if (image == null) return const SizedBox.shrink();
-                      return RawImage(image: image, fit: BoxFit.contain);
-                    },
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 20),
-          const _Label('FORMAT'),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              _chip(
-                'PNG',
-                'transparent',
-                _fmt == _Fmt.png,
-                () => setState(() => _fmt = _Fmt.png),
-              ),
-              const SizedBox(width: 8),
-              _chip(
-                'JPG',
-                'flattened',
-                _fmt == _Fmt.jpg,
-                () => setState(() => _fmt = _Fmt.jpg),
-              ),
-              const SizedBox(width: 8),
-              _chip(
-                'WebP',
-                'smaller',
-                _fmt == _Fmt.webp,
-                () => setState(() => _fmt = _Fmt.webp),
-              ),
-            ],
-          ),
-          const SizedBox(height: 18),
-          const _Label('RESOLUTION'),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              for (final p in const [1.0, 0.75, 0.5, 0.25]) ...[
-                _chip(
-                  '${(p * 100).round()}%',
-                  '${(project.canvasWidth * p).round()}px',
-                  _scale == p,
-                  () => setState(() => _scale = p),
                 ),
-                if (p != 0.25) const SizedBox(width: 8),
+                SizedBox(
+                  width: math.min(420, constraints.maxWidth * 0.42),
+                  child: ListView(
+                    padding: const EdgeInsets.fromLTRB(10, 12, 20, 28),
+                    children: _controls(project, outW, outH),
+                  ),
+                ),
               ],
-            ],
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Output · $outW × $outH px · ${_fmtInfo.ext.toUpperCase()}'
-            '${_fmtInfo.alpha ? ' (transparent)' : ''}',
-            style: const TextStyle(
-              fontFamily: AppFonts.ui,
-              fontSize: 11.5,
-              color: AppColors.textMuted,
+            );
+          }
+          return ResponsiveCenter(
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
+              children: [
+                _preview(project),
+                const SizedBox(height: 20),
+                ..._controls(project, outW, outH),
+              ],
             ),
-          ),
-          const SizedBox(height: 20),
-          FilledButton.icon(
-            onPressed: _busy ? null : _save,
-            icon: _busy
-                ? const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.download),
-            label: const Text('Save to device'),
-            style: FilledButton.styleFrom(
-              backgroundColor: AppColors.cyan,
-              foregroundColor: AppColors.cutoutInk,
-              minimumSize: const Size.fromHeight(50),
-              textStyle: const TextStyle(
-                fontFamily: AppFonts.display,
-                fontWeight: FontWeight.w700,
-                fontSize: 15,
-              ),
+          );
+        },
+      ),
+    );
+  }
+
+  /// The composition over a transparency checker.
+  Widget _preview(Project project) {
+    return AspectRatio(
+      aspectRatio: project.canvasAspect,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            const Checkerboard(
+              cell: 14,
+              base: Color(0xFF0E1B2A),
+              tile: Color(0xFF15263A),
             ),
-          ),
-          const SizedBox(height: 10),
-          OutlinedButton.icon(
-            onPressed: _busy ? null : _share,
-            icon: const Icon(Icons.ios_share, size: 18),
-            label: const Text('Share'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: AppColors.textPrimary,
-              minimumSize: const Size.fromHeight(50),
-              side: const BorderSide(color: AppColors.border),
-              textStyle: const TextStyle(
-                fontFamily: AppFonts.ui,
-                fontWeight: FontWeight.w700,
-                fontSize: 14,
-              ),
+            FutureBuilder<ui.Image>(
+              future: _previewFuture,
+              builder: (context, snap) {
+                final image = snap.data;
+                if (image == null) return const SizedBox.shrink();
+                return RawImage(image: image, fit: BoxFit.contain);
+              },
             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Format, resolution, the output summary and the two actions.
+  List<Widget> _controls(Project project, int outW, int outH) {
+    return [
+      const _Label('FORMAT'),
+      const SizedBox(height: 8),
+      Row(
+        children: [
+          _chip(
+            'PNG',
+            'transparent',
+            _fmt == _Fmt.png,
+            () => setState(() => _fmt = _Fmt.png),
+          ),
+          const SizedBox(width: 8),
+          _chip(
+            'JPG',
+            'flattened',
+            _fmt == _Fmt.jpg,
+            () => setState(() => _fmt = _Fmt.jpg),
+          ),
+          const SizedBox(width: 8),
+          _chip(
+            'WebP',
+            'smaller',
+            _fmt == _Fmt.webp,
+            () => setState(() => _fmt = _Fmt.webp),
           ),
         ],
       ),
-    );
+      const SizedBox(height: 18),
+      const _Label('RESOLUTION'),
+      const SizedBox(height: 8),
+      Row(
+        children: [
+          for (final p in const [1.0, 0.75, 0.5, 0.25]) ...[
+            _chip(
+              '${(p * 100).round()}%',
+              '${(project.canvasWidth * p).round()}px',
+              _scale == p,
+              () => setState(() => _scale = p),
+            ),
+            if (p != 0.25) const SizedBox(width: 8),
+          ],
+        ],
+      ),
+      const SizedBox(height: 16),
+      Text(
+        'Output · $outW × $outH px · ${_fmtInfo.ext.toUpperCase()}'
+        '${_fmtInfo.alpha ? ' (transparent)' : ''}',
+        style: const TextStyle(
+          fontFamily: AppFonts.ui,
+          fontSize: 11.5,
+          color: AppColors.textMuted,
+        ),
+      ),
+      const SizedBox(height: 20),
+      FilledButton.icon(
+        onPressed: _busy ? null : _save,
+        icon: _busy
+            ? const SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : const Icon(Icons.download),
+        label: const Text('Save to device'),
+        style: FilledButton.styleFrom(
+          backgroundColor: AppColors.cyan,
+          foregroundColor: AppColors.cutoutInk,
+          minimumSize: const Size.fromHeight(50),
+          textStyle: const TextStyle(
+            fontFamily: AppFonts.display,
+            fontWeight: FontWeight.w700,
+            fontSize: 15,
+          ),
+        ),
+      ),
+      const SizedBox(height: 10),
+      OutlinedButton.icon(
+        onPressed: _busy ? null : _share,
+        icon: const Icon(Icons.ios_share, size: 18),
+        label: const Text('Share'),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: AppColors.textPrimary,
+          minimumSize: const Size.fromHeight(50),
+          side: const BorderSide(color: AppColors.border),
+          textStyle: const TextStyle(
+            fontFamily: AppFonts.ui,
+            fontWeight: FontWeight.w700,
+            fontSize: 14,
+          ),
+        ),
+      ),
+    ];
   }
 
   Widget _chip(String title, String sub, bool active, VoidCallback? onTap) {
