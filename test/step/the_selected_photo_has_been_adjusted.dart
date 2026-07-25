@@ -9,7 +9,7 @@ Future<void> theSelectedPhotoHasBeenAdjusted(WidgetTester tester) async {
   expect(
     l.adjustments != ImageAdjustments.identity ||
         l.opacity != 1.0 ||
-        l.outlineWidth > 0,
+        l.effects.stroke.isVisible,
     isTrue,
   );
 }

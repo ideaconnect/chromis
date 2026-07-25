@@ -16,6 +16,7 @@ import '../../core/models/frame.dart';
 import '../../core/models/grid.dart';
 import '../../core/models/image_adjustments.dart';
 import '../../core/models/layer.dart';
+import '../../core/models/layer_effects.dart';
 import '../../core/models/layer_transform.dart';
 import '../../core/models/project.dart';
 import '../../core/rendering/canvas_geometry.dart';
@@ -28,6 +29,7 @@ import '../../core/widgets/labeled_slider.dart';
 import '../../core/widgets/name_prompt.dart';
 import '../../core/widgets/pill_chip.dart';
 import '../../core/widgets/sm_toast.dart';
+import '../../core/widgets/text_caption.dart';
 import '../ads/ads_service.dart';
 import '../fonts/custom_fonts.dart';
 import '../go_pro/iap.dart';
@@ -47,12 +49,14 @@ import '../segmentation/segmentation_engine.dart';
 import '../segmentation/segmentation_registry.dart';
 import 'mask_mapper.dart';
 import 'services/image_import.dart';
+import 'services/layer_flattener.dart';
 import 'state/editor_controller.dart';
 import 'state/editor_state.dart';
 import 'state/editor_tool.dart';
 import 'widgets/canvas_size_sheet.dart';
 import 'widgets/crop_overlay.dart';
 import 'widgets/editor_canvas.dart';
+import 'widgets/filter_strip.dart';
 import 'widgets/project_canvas.dart';
 
 /// Editor: top bar, model-driven project canvas, a contextual panel that swaps
@@ -85,6 +89,9 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       false; // Fill (MI-GAN inpaint) vs Erase in remove-object mode
   bool _inpainting = false; // MI-GAN generative fill in progress
   bool _samBusy = false; // MobileSAM object segmentation in progress (#86)
+  bool _merging = false; // flatten / merge-down render in progress
+  // Landscape only: whether the tool column beside the rail is showing.
+  bool _sidePanelOpen = true;
   // Set when the SAM engine hard-fails (precompute/segmentAt threw): a broken
   // ORT runtime never heals mid-session, so later taps short-circuit to the
   // capability toast instead of re-paying the full decode + encoder attempt.
@@ -296,20 +303,33 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
+            final topBar = _TopBar(
+              title: editor.project.name,
+              layerCount: editor.layers.length,
+              canUndo: _controller.canUndo,
+              canRedo: _controller.canRedo,
+              onExport: () => context.pushNamed(Routes.export),
+              onUndo: _controller.undo,
+              onRedo: _controller.redo,
+              onRename: _renameProject,
+              onCanvasSize: _showCanvasSize,
+            );
+            // Landscape turns the layout on its side: the dock becomes a rail
+            // down the left edge, the tool panel a column beside it that folds
+            // away on demand, and everything left over goes to the canvas -
+            // which is the whole point of turning the phone.
+            if (constraints.maxWidth > constraints.maxHeight) {
+              return Column(
+                children: [
+                  topBar,
+                  Expanded(child: _landscapeBody(editor, constraints)),
+                ],
+              );
+            }
             final panelMax = math.min(300.0, constraints.maxHeight * 0.5);
             return Column(
               children: [
-                _TopBar(
-                  title: editor.project.name,
-                  layerCount: editor.layers.length,
-                  canUndo: _controller.canUndo,
-                  canRedo: _controller.canRedo,
-                  onExport: () => context.pushNamed(Routes.export),
-                  onUndo: _controller.undo,
-                  onRedo: _controller.redo,
-                  onRename: _renameProject,
-                  onCanvasSize: _showCanvasSize,
-                ),
+                topBar,
                 Expanded(child: _canvas(editor)),
                 _panel(editor, panelMax),
                 _toolBar(editor),
@@ -321,14 +341,32 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     );
   }
 
+  /// Rail | folding panel | canvas.
+  Widget _landscapeBody(EditorState editor, BoxConstraints constraints) {
+    final panelWidth = math.min(320.0, constraints.maxWidth * 0.36);
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _toolRail(editor),
+        if (_sidePanelOpen)
+          SizedBox(width: panelWidth, child: _sidePanel(editor)),
+        Expanded(child: _canvas(editor, wide: true)),
+      ],
+    );
+  }
+
   // ---------------------------------------------------------------- canvas
-  Widget _canvas(EditorState editor) {
+  Widget _canvas(EditorState editor, {bool wide = false}) {
     final tokens = context.tokens;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 14),
+      padding: wide
+          ? const EdgeInsets.fromLTRB(14, 10, 16, 12)
+          : const EdgeInsets.fromLTRB(20, 8, 20, 14),
       child: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 460),
+          // Portrait caps the canvas so it never dominates a tall phone;
+          // landscape gives it everything the rail and panel left over.
+          constraints: BoxConstraints(maxWidth: wide ? double.infinity : 460),
           child: AspectRatio(
             aspectRatio: editor.project.canvasAspect,
             child: DecoratedBox(
@@ -367,6 +405,8 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                             ? 'Filling in the background…'
                             : 'Finding the object…',
                       ),
+                    if (_merging)
+                      const _RemovingOverlay(label: 'Merging layers…'),
                     // Which frame you're editing - shown in every tool while the
                     // project is animated (per-frame editing indicator, #36).
                     if (editor.project.frameCount > 1)
@@ -425,9 +465,48 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     );
   }
 
+  /// The landscape twin of [_panel]: a full-height column between the rail and
+  /// the canvas, with its own collapse control so the canvas can take the whole
+  /// width when you just want to look at the photo.
+  Widget _sidePanel(EditorState editor) {
+    final tokens = context.tokens;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: AppColors.panel,
+        border: Border(right: BorderSide(color: tokens.border)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Align(
+            alignment: Alignment.centerRight,
+            child: IconButton(
+              key: const ValueKey('collapse-panel'),
+              tooltip: 'Hide tool panel',
+              iconSize: 18,
+              visualDensity: VisualDensity.compact,
+              onPressed: () => setState(() => _sidePanelOpen = false),
+              icon: const Icon(
+                Icons.keyboard_double_arrow_left,
+                color: AppColors.textMuted,
+              ),
+            ),
+          ),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              child: _panelBody(editor),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _panelBody(EditorState editor) {
     return switch (editor.tool) {
       EditorTool.adjust => _adjustPanel(editor),
+      EditorTool.effects => _effectsPanel(editor),
       EditorTool.text =>
         editor.selectedLayer is BubbleLayer
             ? _bubblePanel(editor)
@@ -558,12 +637,10 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
               PillChip(
                 label: 'Reset',
                 onTap: () {
-                  _controller.updateImageAdjustments(
-                    id,
-                    ImageAdjustments.identity,
-                  );
+                  // Only this panel's own sliders - the chosen filter / HDR
+                  // survive, and Effects has its own Reset for those.
+                  _controller.updateImageAdjustments(id, adj.resetSliders());
                   _controller.setOpacity(id, 1);
-                  _controller.updateImageOutline(id, width: 0);
                 },
               ),
             ],
@@ -654,17 +731,16 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
           onChanged: (v) => _controller.setOpacity(id, v / 100),
           onChangeEnd: _endSliderEdit,
         ),
-        LabeledSlider(
-          label: 'Cutout outline',
-          value: selected.outlineWidth,
-          min: 0,
-          max: 40,
-          accent: AppColors.violetLight,
-          valueLabel: selected.outlineWidth < 0.5
-              ? 'Off'
-              : selected.outlineWidth.round().toString(),
-          onChanged: (v) => _controller.updateImageOutline(id, width: v),
-          onChangeEnd: _endSliderEdit,
+        const SizedBox(height: 4),
+        OutlinedButton.icon(
+          onPressed: () => _controller.setTool(EditorTool.effects),
+          icon: const Icon(Icons.auto_awesome_mosaic, size: 17),
+          label: const Text('Filters, HDR, vignette, shadow…'),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: AppColors.teal,
+            side: const BorderSide(color: AppColors.border),
+            minimumSize: const Size.fromHeight(38),
+          ),
         ),
       ],
     );
@@ -819,6 +895,58 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
               ),
           ],
         ),
+        const SizedBox(height: 14),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const _PanelHint('OUTLINE'),
+            if (selected.strokeColor != null)
+              PillChip(
+                key: const ValueKey('text-stroke-auto'),
+                label: 'Auto color',
+                onTap: () => _controller.updateTextStroke(id, autoColor: true),
+              ),
+          ],
+        ),
+        LabeledSlider(
+          label: 'Thickness',
+          value: selected.strokeWidth,
+          min: 0,
+          max: 16,
+          accent: AppColors.pink,
+          valueColor: AppColors.textMuted,
+          valueLabel: selected.strokeWidth < 0.05
+              ? 'Off'
+              : selected.strokeWidth.toStringAsFixed(1),
+          onChanged: (v) => _controller.updateTextStroke(id, width: v),
+          onChangeEnd: _endSliderEdit,
+        ),
+        if (selected.hasStroke) ...[
+          LabeledSlider(
+            label: 'Outline opacity',
+            value: selected.strokeOpacity * 100,
+            min: 0,
+            max: 100,
+            accent: AppColors.pink,
+            valueColor: AppColors.textMuted,
+            valueLabel: '${(selected.strokeOpacity * 100).round()}%',
+            onChanged: (v) =>
+                _controller.updateTextStroke(id, opacity: v / 100),
+            onChangeEnd: _endSliderEdit,
+          ),
+          const SizedBox(height: 4),
+          _swatchRow(
+            'Color',
+            // Show the automatic pick as the current swatch until the user
+            // chooses one, so the row never looks unrelated to the canvas.
+            TextCaption.resolveStrokeColor(
+              selected.color,
+              selected.strokeColor,
+              1,
+            ),
+            (c) => _controller.updateTextStroke(id, color: c),
+          ),
+        ],
       ],
     );
   }
@@ -1162,6 +1290,247 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
           'Color',
           grid.borderColor,
           (c) => _controller.setGridBorder(color: c),
+        ),
+      ],
+    );
+  }
+
+  // ------------------------------------------------------------ Effects
+  /// Everything that changes how a layer *looks*: one-tap filters, HDR,
+  /// vignette, drop shadow, contour and blend mode.
+  ///
+  /// Photo-only sections (filter / HDR / vignette describe pixels) are hidden
+  /// for text and bubble layers rather than shown disabled - a greyed-out
+  /// filter strip under a caption teaches nothing.
+  Widget _effectsPanel(EditorState editor) {
+    final selected = editor.selectedLayer;
+    final accent = context.tokens.accent(ToolAccent.effects);
+    if (selected == null) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _panelHeader(
+            EditorTool.effects,
+            trailing: PillChip(
+              label: 'Add',
+              icon: Icons.add,
+              onTap: _showAddMenu,
+            ),
+          ),
+          _emptyHint(
+            'Select a layer to give it a look.\nFilters, HDR and vignette for '
+            'photos; shadow, outline and blending for anything.',
+          ),
+        ],
+      );
+    }
+    final id = selected.id;
+    final image = selected is ImageLayer ? selected : null;
+    final effects = selected.effects;
+    final shadow = effects.shadow;
+    final stroke = effects.stroke;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _panelHeader(
+          EditorTool.effects,
+          trailing: PillChip(
+            key: const ValueKey('effects-reset'),
+            label: 'Reset',
+            onTap: () => _controller.resetLayerEffects(id),
+          ),
+        ),
+        if (image != null) ...[
+          const _PanelHint('FILTER'),
+          const SizedBox(height: 8),
+          FilterStrip(
+            assetPath: image.assetPath,
+            selected: image.adjustments.filter,
+            onPick: (f) => _controller.setPhotoFilter(id, f),
+          ),
+          if (image.adjustments.hasFilter)
+            LabeledSlider(
+              label: 'Strength',
+              value: image.adjustments.filterStrength * 100,
+              min: 0,
+              max: 100,
+              accent: accent,
+              valueLabel:
+                  '${(image.adjustments.filterStrength * 100).round()}%',
+              onChanged: (v) => _controller.setFilterStrength(id, v / 100),
+              onChangeEnd: _endSliderEdit,
+            ),
+          const SizedBox(height: 10),
+          const _PanelHint('HDR'),
+          LabeledSlider(
+            label: 'Tone + detail',
+            value: image.adjustments.hdr * 100,
+            min: 0,
+            max: 100,
+            accent: AppColors.greenLight,
+            valueLabel: image.adjustments.hdr < 0.005
+                ? 'Off'
+                : '${(image.adjustments.hdr * 100).round()}%',
+            onChanged: (v) => _controller.setHdr(id, v / 100),
+            onChangeEnd: _endSliderEdit,
+          ),
+          const SizedBox(height: 6),
+          const _PanelHint('VIGNETTE'),
+          LabeledSlider(
+            label: 'Amount',
+            value: image.vignette.amount * 100,
+            min: 0,
+            max: 100,
+            accent: AppColors.violet,
+            valueLabel: image.vignette.amount < 0.005
+                ? 'Off'
+                : '${(image.vignette.amount * 100).round()}%',
+            onChanged: (v) => _controller.updateVignette(id, amount: v / 100),
+            onChangeEnd: _endSliderEdit,
+          ),
+          if (image.vignette.isVisible) ...[
+            LabeledSlider(
+              label: 'Size',
+              value: image.vignette.size * 100,
+              min: 5,
+              max: 95,
+              accent: AppColors.violet,
+              valueLabel: '${(image.vignette.size * 100).round()}%',
+              onChanged: (v) => _controller.updateVignette(id, size: v / 100),
+              onChangeEnd: _endSliderEdit,
+            ),
+            LabeledSlider(
+              label: 'Softness',
+              value: image.vignette.softness * 100,
+              min: 0,
+              max: 100,
+              accent: AppColors.violet,
+              valueLabel: '${(image.vignette.softness * 100).round()}%',
+              onChanged: (v) =>
+                  _controller.updateVignette(id, softness: v / 100),
+              onChangeEnd: _endSliderEdit,
+            ),
+            const SizedBox(height: 4),
+            _swatchRow(
+              'Color',
+              image.vignette.color,
+              (c) => _controller.updateVignette(id, color: c),
+            ),
+          ],
+          const SizedBox(height: 12),
+        ],
+        const _PanelHint('SHADOW'),
+        LabeledSlider(
+          label: 'Opacity',
+          value: shadow.enabled ? shadow.opacity * 100 : 0,
+          min: 0,
+          max: 100,
+          accent: AppColors.cyan,
+          valueLabel: shadow.isVisible
+              ? '${(shadow.opacity * 100).round()}%'
+              : 'Off',
+          onChanged: (v) => _controller.updateLayerShadow(
+            id,
+            enabled: v > 0,
+            opacity: v / 100,
+          ),
+          onChangeEnd: _endSliderEdit,
+        ),
+        if (shadow.isVisible) ...[
+          LabeledSlider(
+            label: 'Direction',
+            value: shadow.angle,
+            min: 0,
+            max: 360,
+            accent: AppColors.cyan,
+            valueLabel: '${shadow.angle.round()}°',
+            onChanged: (v) => _controller.updateLayerShadow(id, angle: v),
+            onChangeEnd: _endSliderEdit,
+          ),
+          LabeledSlider(
+            label: 'Distance',
+            value: shadow.distance,
+            min: 0,
+            max: 120,
+            accent: AppColors.cyan,
+            valueLabel: '${shadow.distance.round()} px',
+            onChanged: (v) => _controller.updateLayerShadow(id, distance: v),
+            onChangeEnd: _endSliderEdit,
+          ),
+          LabeledSlider(
+            label: 'Blur',
+            value: shadow.blur,
+            min: 0,
+            max: 80,
+            accent: AppColors.cyan,
+            valueLabel: '${shadow.blur.round()} px',
+            onChanged: (v) => _controller.updateLayerShadow(id, blur: v),
+            onChangeEnd: _endSliderEdit,
+          ),
+          LabeledSlider(
+            label: 'Density',
+            value: shadow.density,
+            min: 0,
+            max: 30,
+            accent: AppColors.cyan,
+            valueLabel: '${shadow.density.round()} px',
+            onChanged: (v) => _controller.updateLayerShadow(id, density: v),
+            onChangeEnd: _endSliderEdit,
+          ),
+          const SizedBox(height: 4),
+          _swatchRow(
+            'Color',
+            shadow.color,
+            (c) => _controller.updateLayerShadow(id, color: c),
+          ),
+        ],
+        const SizedBox(height: 12),
+        _PanelHint(image?.maskPath != null ? 'CUTOUT OUTLINE' : 'OUTLINE'),
+        LabeledSlider(
+          label: 'Thickness',
+          value: stroke.width,
+          min: 0,
+          max: 40,
+          accent: AppColors.violetLight,
+          valueLabel: stroke.width < 0.5 ? 'Off' : '${stroke.width.round()} px',
+          onChanged: (v) => _controller.updateLayerStroke(id, width: v),
+          onChangeEnd: _endSliderEdit,
+        ),
+        if (stroke.isVisible) ...[
+          LabeledSlider(
+            label: 'Opacity',
+            value: stroke.opacity * 100,
+            min: 0,
+            max: 100,
+            accent: AppColors.violetLight,
+            valueLabel: '${(stroke.opacity * 100).round()}%',
+            onChanged: (v) =>
+                _controller.updateLayerStroke(id, opacity: v / 100),
+            onChangeEnd: _endSliderEdit,
+          ),
+          const SizedBox(height: 4),
+          _swatchRow(
+            'Color',
+            stroke.color,
+            (c) => _controller.updateLayerStroke(id, color: c),
+          ),
+        ],
+        const SizedBox(height: 14),
+        const _PanelHint('BLEND'),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (final blend in LayerBlend.values)
+              PillChip(
+                key: ValueKey('blend-${blend.name}'),
+                label: blend.label,
+                accent: accent,
+                selected: effects.blend == blend,
+                onTap: () => _controller.setLayerBlend(id, blend),
+              ),
+          ],
         ),
       ],
     );
@@ -2657,6 +3026,11 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
   // ------------------------------------------------------------ Layers
   Widget _layersPanel(EditorState editor) {
     final layers = editor.layers;
+    final selectedId = editor.selectedLayerId;
+    final canMergeDown =
+        selectedId != null &&
+        LayerFlattener.mergeDownTarget(editor.currentFrame, selectedId) != null;
+    final canFlatten = LayerFlattener.canFlatten(editor.project);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -2668,6 +3042,32 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
             onTap: _showAddMenu,
           ),
         ),
+        if (canMergeDown || canFlatten) ...[
+          Row(
+            children: [
+              if (canMergeDown)
+                Expanded(
+                  child: PillChip(
+                    key: const ValueKey('merge-down'),
+                    label: 'Merge down',
+                    icon: Icons.vertical_align_bottom,
+                    onTap: () => _mergeDown(selectedId),
+                  ),
+                ),
+              if (canMergeDown && canFlatten) const SizedBox(width: 8),
+              if (canFlatten)
+                Expanded(
+                  child: PillChip(
+                    key: const ValueKey('flatten-layers'),
+                    label: 'Flatten',
+                    icon: Icons.layers_clear,
+                    onTap: _flattenLayers,
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 10),
+        ],
         if (layers.isEmpty)
           _emptyHint('No layers yet. Tap Add to import a photo or add text.')
         else
@@ -2694,6 +3094,62 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
           ),
       ],
     );
+  }
+
+  /// Folds the selected layer into the one below it (within the same Photo
+  /// Grid cell), baking both into a single photo layer.
+  Future<void> _mergeDown(String id) async {
+    final frame = ref.read(editorControllerProvider).currentFrame;
+    final below = LayerFlattener.mergeDownTarget(frame, id);
+    if (below == null) return;
+    final top = frame.layers.firstWhere((l) => l.id == id);
+    await _merge([
+      [below, top],
+    ], 'Merged 2 layers');
+  }
+
+  /// Bakes each group of stacked layers into one photo. A collage flattens per
+  /// cell, so the grid itself survives (see [LayerFlattener.flattenGroups]).
+  Future<void> _flattenLayers() async {
+    final groups = LayerFlattener.flattenGroups(
+      ref.read(editorControllerProvider).currentFrame,
+    );
+    if (groups.isEmpty) return;
+    final count = groups.fold<int>(0, (n, g) => n + g.length);
+    await _merge(groups, 'Flattened $count layers');
+  }
+
+  /// Renders each group to a PNG and swaps the originals for it - one undo
+  /// step for the whole operation, whatever it merged.
+  Future<void> _merge(List<List<Layer>> groups, String doneMessage) async {
+    if (_merging) return;
+    setState(() => _merging = true);
+    final project = ref.read(editorControllerProvider).project;
+    final imports = ref.read(imageImportServiceProvider);
+    try {
+      final specs = <MergedLayerSpec>[];
+      for (final group in groups) {
+        final bytes = await LayerFlattener.renderPng(
+          group,
+          canvasWidth: project.canvasWidth,
+          canvasHeight: project.canvasHeight,
+        );
+        specs.add(
+          MergedLayerSpec(
+            ids: [for (final l in group) l.id],
+            assetPath: await imports.storeBytes(bytes),
+            name: LayerFlattener.mergedName(group),
+          ),
+        );
+      }
+      if (!mounted) return;
+      _controller.applyMerges(specs);
+      _toast(doneMessage);
+    } catch (_) {
+      if (mounted) _toast("Couldn't merge those layers");
+    } finally {
+      if (mounted) setState(() => _merging = false);
+    }
   }
 
   /// Imports a photo from the given [source] and adds it as an image layer.
@@ -3142,52 +3598,80 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
   /// The design's bottom tool dock: Add layer / Text / Bubble / AI Cut / Erase /
   /// Crop / Adjust / Layers. Tool buttons switch the contextual panel; action
   /// buttons (Add layer, Bubble) dispatch straight to the controller.
-  Widget _toolBar(EditorState editor) {
-    Widget dockButton({
-      required IconData icon,
-      required String label,
-      required VoidCallback onTap,
-      bool active = false,
-    }) {
-      return GestureDetector(
-        onTap: onTap,
-        behavior: HitTestBehavior.opaque,
-        child: SizedBox(
-          width: 64,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: active
-                      ? AppColors.cyan
-                      : Colors.white.withValues(alpha: 0.05),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Icon(
-                  icon,
-                  size: 20,
-                  color: active ? AppColors.cutoutInk : AppColors.textSecondary,
-                ),
-              ),
-              const SizedBox(height: 5),
-              Text(
-                label,
-                style: TextStyle(
-                  fontFamily: AppFonts.ui,
-                  fontSize: 9.5,
-                  fontWeight: FontWeight.w700,
-                  color: active ? AppColors.textPrimary : AppColors.textMuted,
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
+  /// The dock's contents, shared by the portrait bar and the landscape rail so
+  /// the two can never drift out of sync.
+  List<_DockItem> _dockItems(EditorState editor) {
+    void tool(EditorTool t) {
+      // In landscape a tap on the tool you are already in folds the panel away
+      // (and brings it back), which is how the canvas gets the full width.
+      if (_sidePanelOpen && editor.tool == t) {
+        setState(() => _sidePanelOpen = false);
+      } else {
+        if (!_sidePanelOpen) setState(() => _sidePanelOpen = true);
+        _controller.setTool(t);
+      }
     }
 
+    return [
+      // Collage-only, and first: layout / count / border are what a photo grid
+      // is edited through.
+      if (editor.project.isGrid)
+        _DockItem(
+          icon: Icons.grid_view,
+          label: 'Grid',
+          active: editor.tool == EditorTool.grid,
+          onTap: () => tool(EditorTool.grid),
+        ),
+      _DockItem(
+        icon: Icons.add_photo_alternate_outlined,
+        label: 'Add layer',
+        onTap: () => _pickPhoto(ImageSource.gallery),
+      ),
+      _DockItem(
+        icon: Icons.text_fields,
+        label: 'Text',
+        active: editor.tool == EditorTool.text,
+        onTap: () => tool(EditorTool.text),
+      ),
+      _DockItem(
+        icon: Icons.chat_bubble_outline,
+        label: 'Bubble',
+        onTap: () {
+          _controller.addBubbleLayer();
+          _controller.setTool(EditorTool.text);
+          if (!_sidePanelOpen) setState(() => _sidePanelOpen = true);
+        },
+      ),
+      _DockItem(icon: Icons.auto_awesome, label: 'AI Cut', onTap: _showBgSheet),
+      _DockItem(
+        icon: Icons.brush_outlined,
+        label: 'Erase',
+        active: editor.tool == EditorTool.erase,
+        onTap: () => tool(EditorTool.erase),
+      ),
+      _DockItem(icon: Icons.crop, label: 'Crop', onTap: _showCropSheet),
+      _DockItem(
+        icon: Icons.tune,
+        label: 'Adjust',
+        active: editor.tool == EditorTool.adjust,
+        onTap: () => tool(EditorTool.adjust),
+      ),
+      _DockItem(
+        icon: Icons.auto_awesome_mosaic,
+        label: 'Effects',
+        active: editor.tool == EditorTool.effects,
+        onTap: () => tool(EditorTool.effects),
+      ),
+      _DockItem(
+        icon: Icons.layers_outlined,
+        label: 'Layers',
+        active: editor.tool == EditorTool.layers,
+        onTap: () => tool(EditorTool.layers),
+      ),
+    ];
+  }
+
+  Widget _toolBar(EditorState editor) {
     return Container(
       color: AppColors.background,
       padding: EdgeInsets.fromLTRB(
@@ -3200,57 +3684,116 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         scrollDirection: Axis.horizontal,
         child: Row(
           children: [
-            // Collage-only, and first: layout / count / border are what a
-            // photo grid is edited through.
-            if (editor.project.isGrid)
-              dockButton(
-                icon: Icons.grid_view,
-                label: 'Grid',
-                active: editor.tool == EditorTool.grid,
-                onTap: () => _controller.setTool(EditorTool.grid),
+            for (final item in _dockItems(editor)) _DockButton(item: item),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// The landscape dock: the same buttons stacked down the left edge, with the
+  /// panel-reveal control on top when the panel is folded away.
+  Widget _toolRail(EditorState editor) {
+    return Container(
+      width: 68,
+      color: AppColors.background,
+      child: Column(
+        children: [
+          if (!_sidePanelOpen)
+            IconButton(
+              key: const ValueKey('expand-panel'),
+              tooltip: 'Show tool panel',
+              iconSize: 18,
+              onPressed: () => setState(() => _sidePanelOpen = true),
+              icon: const Icon(
+                Icons.keyboard_double_arrow_right,
+                color: AppColors.textMuted,
               ),
-            dockButton(
-              icon: Icons.add_photo_alternate_outlined,
-              label: 'Add layer',
-              onTap: () => _pickPhoto(ImageSource.gallery),
             ),
-            dockButton(
-              icon: Icons.text_fields,
-              label: 'Text',
-              active: editor.tool == EditorTool.text,
-              onTap: () => _controller.setTool(EditorTool.text),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Column(
+                children: [
+                  for (final item in _dockItems(editor))
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 6),
+                      child: _DockButton(item: item),
+                    ),
+                ],
+              ),
             ),
-            dockButton(
-              icon: Icons.chat_bubble_outline,
-              label: 'Bubble',
-              onTap: () {
-                _controller.addBubbleLayer();
-                _controller.setTool(EditorTool.text);
-              },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// One dock entry - icon, label, and what tapping it does.
+@immutable
+class _DockItem {
+  const _DockItem({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.active = false,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final bool active;
+}
+
+class _DockButton extends StatelessWidget {
+  _DockButton({required this.item})
+    // Keyed by label because the dock's wording repeats the panel titles
+    // ("Adjust", "Layers"), so a plain text finder is ambiguous in a test.
+    : super(key: ValueKey('dock-${item.label}'));
+
+  final _DockItem item;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: item.onTap,
+      behavior: HitTestBehavior.opaque,
+      child: SizedBox(
+        width: 64,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: item.active
+                    ? AppColors.cyan
+                    : Colors.white.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Icon(
+                item.icon,
+                size: 20,
+                color: item.active
+                    ? AppColors.cutoutInk
+                    : AppColors.textSecondary,
+              ),
             ),
-            dockButton(
-              icon: Icons.auto_awesome,
-              label: 'AI Cut',
-              onTap: _showBgSheet,
-            ),
-            dockButton(
-              icon: Icons.brush_outlined,
-              label: 'Erase',
-              active: editor.tool == EditorTool.erase,
-              onTap: () => _controller.setTool(EditorTool.erase),
-            ),
-            dockButton(icon: Icons.crop, label: 'Crop', onTap: _showCropSheet),
-            dockButton(
-              icon: Icons.tune,
-              label: 'Adjust',
-              active: editor.tool == EditorTool.adjust,
-              onTap: () => _controller.setTool(EditorTool.adjust),
-            ),
-            dockButton(
-              icon: Icons.layers_outlined,
-              label: 'Layers',
-              active: editor.tool == EditorTool.layers,
-              onTap: () => _controller.setTool(EditorTool.layers),
+            const SizedBox(height: 5),
+            Text(
+              item.label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontFamily: AppFonts.ui,
+                fontSize: 9.5,
+                fontWeight: FontWeight.w700,
+                color: item.active
+                    ? AppColors.textPrimary
+                    : AppColors.textMuted,
+              ),
             ),
           ],
         ),

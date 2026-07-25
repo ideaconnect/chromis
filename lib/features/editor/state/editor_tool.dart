@@ -8,6 +8,10 @@ import '../../../core/theme/app_tokens.dart';
 enum EditorTool {
   layers('Layers', 'Layers', Icons.layers_outlined, ToolAccent.layers),
   adjust('Adjust', 'Adjust', Icons.tune, ToolAccent.adjust),
+
+  /// Filters, HDR, vignette, shadow, contour and blend mode - everything that
+  /// changes how a layer *looks* rather than what it contains.
+  effects('Effects', 'Effects', Icons.auto_awesome_mosaic, ToolAccent.effects),
   text('Text', 'Text', Icons.text_fields, ToolAccent.text),
   erase('Erase', 'Manual erase', Icons.brush_outlined, ToolAccent.erase),
   cutout(

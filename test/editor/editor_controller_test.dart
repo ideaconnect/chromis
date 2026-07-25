@@ -4,6 +4,7 @@ import 'package:chromis/core/models/frame.dart';
 import 'package:chromis/core/models/grid.dart';
 import 'package:chromis/core/models/image_adjustments.dart';
 import 'package:chromis/core/models/layer.dart';
+import 'package:chromis/core/models/layer_effects.dart';
 import 'package:chromis/core/models/layer_transform.dart';
 import 'package:chromis/core/models/project.dart';
 import 'package:chromis/core/rendering/canvas_geometry.dart';
@@ -67,7 +68,7 @@ void main() {
     String? maskPath,
     ImageAdjustments adjustments = ImageAdjustments.identity,
     Rect cropRect = const Rect.fromLTRB(0, 0, 1, 1),
-    double outlineWidth = 0,
+    LayerEffects effects = LayerEffects.none,
   }) => ImageLayer(
     id: id,
     name: name,
@@ -76,7 +77,7 @@ void main() {
     maskPath: maskPath,
     adjustments: adjustments,
     cropRect: cropRect,
-    outlineWidth: outlineWidth,
+    effects: effects,
   );
 
   TextLayer txt({
@@ -322,28 +323,28 @@ void main() {
       expect(byId(container, 'l_1'), other); // text layer untouched
     });
 
-    test('updateImageOutline sets width and color, and each independently', () {
+    test('updateLayerStroke sets width and color, and each independently', () {
       final (:container, :controller) = open(projectWith([seedImage()]));
-      controller.updateImageOutline(
+      controller.updateLayerStroke(
         'l_0',
         width: 4,
         color: const Color(0xFF00FF00),
       );
       var l = imageById(container, 'l_0');
-      expect(l.outlineWidth, 4);
-      expect(l.outlineColor, const Color(0xFF00FF00));
-      expect(l.hasOutline, isTrue);
+      expect(l.effects.stroke.width, 4);
+      expect(l.effects.stroke.color, const Color(0xFF00FF00));
+      expect(l.effects.stroke.isVisible, isTrue);
 
       // Color-only tick keeps the width; width-only tick keeps the color.
-      controller.updateImageOutline('l_0', color: const Color(0xFF0000FF));
+      controller.updateLayerStroke('l_0', color: const Color(0xFF0000FF));
       l = imageById(container, 'l_0');
-      expect(l.outlineWidth, 4);
-      expect(l.outlineColor, const Color(0xFF0000FF));
+      expect(l.effects.stroke.width, 4);
+      expect(l.effects.stroke.color, const Color(0xFF0000FF));
 
-      controller.updateImageOutline('l_0', width: 9);
+      controller.updateLayerStroke('l_0', width: 9);
       l = imageById(container, 'l_0');
-      expect(l.outlineWidth, 9);
-      expect(l.outlineColor, const Color(0xFF0000FF));
+      expect(l.effects.stroke.width, 9);
+      expect(l.effects.stroke.color, const Color(0xFF0000FF));
     });
 
     test('setImageMask sets a path and clears with null', () {

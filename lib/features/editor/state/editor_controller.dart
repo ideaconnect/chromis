@@ -1,13 +1,16 @@
 import 'dart:math' as math;
 import 'dart:ui';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/models/frame.dart';
 import '../../../core/models/grid.dart';
 import '../../../core/models/image_adjustments.dart';
 import '../../../core/models/layer.dart';
+import '../../../core/models/layer_effects.dart';
 import '../../../core/models/layer_transform.dart';
+import '../../../core/models/photo_filter.dart';
 import '../../../core/models/project.dart';
 import '../../../core/rendering/canvas_geometry.dart';
 import '../../grid/grid_refit.dart';
@@ -548,17 +551,148 @@ class EditorController extends Notifier<EditorState> {
         image: (l) => l.copyWith(adjustments: adjustments),
       );
 
-  /// Sets the die-cut outline width (logical px; 0 disables) and/or color for a
-  /// cut-out image layer. Coalesces consecutive slider ticks into one undo step.
-  void updateImageOutline(String id, {double? width, Color? color}) =>
+  /// Sets the one-tap look on a photo layer. A fresh pick restores full
+  /// strength, so tapping a filter always shows what it actually does; picking
+  /// [PhotoFilter.none] clears it.
+  void setPhotoFilter(String id, PhotoFilter filter, {double? strength}) =>
       _updateLayer(
         id,
-        coalesce: 'outline:$id',
         image: (l) => l.copyWith(
-          outlineWidth: width ?? l.outlineWidth,
-          outlineColor: color ?? l.outlineColor,
+          adjustments: l.adjustments.copyWith(
+            filter: filter,
+            filterStrength: strength ?? 1.0,
+          ),
         ),
       );
+
+  void setFilterStrength(String id, double strength) => _updateLayer(
+    id,
+    coalesce: 'filterStrength:$id',
+    image: (l) => l.copyWith(
+      adjustments: l.adjustments.copyWith(filterStrength: strength),
+    ),
+  );
+
+  void setHdr(String id, double amount) => _updateLayer(
+    id,
+    coalesce: 'hdr:$id',
+    image: (l) => l.copyWith(adjustments: l.adjustments.copyWith(hdr: amount)),
+  );
+
+  void updateVignette(
+    String id, {
+    double? amount,
+    Color? color,
+    double? size,
+    double? softness,
+  }) => _updateLayer(
+    id,
+    coalesce: 'vignette:$id',
+    image: (l) => l.copyWith(
+      vignette: l.vignette.copyWith(
+        amount: amount,
+        color: color,
+        size: size,
+        softness: softness,
+      ),
+    ),
+  );
+
+  /// Sets the contour drawn around a layer (logical px; 0 disables). On a
+  /// cut-out it hugs the subject, on a plain photo it frames the photo.
+  /// Coalesces consecutive slider ticks into one undo step.
+  void updateLayerStroke(
+    String id, {
+    double? width,
+    Color? color,
+    double? opacity,
+  }) => _updateEffects(
+    id,
+    coalesce: 'stroke:$id',
+    (e) => e.copyWith(
+      stroke: e.stroke.copyWith(width: width, color: color, opacity: opacity),
+    ),
+  );
+
+  void updateLayerShadow(
+    String id, {
+    bool? enabled,
+    double? angle,
+    double? distance,
+    double? blur,
+    double? density,
+    Color? color,
+    double? opacity,
+  }) => _updateEffects(
+    id,
+    coalesce: 'shadow:$id',
+    (e) => e.copyWith(
+      shadow: e.shadow.copyWith(
+        // Touching any control arms the shadow: a user dragging Distance with
+        // the effect off would otherwise see nothing happen.
+        enabled: enabled ?? true,
+        angle: angle,
+        distance: distance,
+        blur: blur,
+        density: density,
+        color: color,
+        opacity: opacity,
+      ),
+    ),
+  );
+
+  void setLayerBlend(String id, LayerBlend blend) =>
+      _updateEffects(id, (e) => e.copyWith(blend: blend));
+
+  /// Clears every look applied to a layer - filter, HDR, vignette, shadow,
+  /// contour and blend - in one undoable step. The manual Adjust sliders are
+  /// deliberately left alone: they belong to the other panel.
+  void resetLayerEffects(String id) => _updateLayer(
+    id,
+    image: (l) => l.copyWith(
+      effects: LayerEffects.none,
+      vignette: Vignette.none,
+      adjustments: l.adjustments.copyWith(
+        filter: PhotoFilter.none,
+        filterStrength: 1,
+        hdr: 0,
+      ),
+    ),
+    text: (l) => l.copyWith(effects: LayerEffects.none),
+    bubble: (l) => l.copyWith(effects: LayerEffects.none),
+  );
+
+  /// Sets the caption outline. [autoColor] returns it to the automatic
+  /// contrast pick (dark under light fills, white otherwise).
+  void updateTextStroke(
+    String id, {
+    double? width,
+    Color? color,
+    bool autoColor = false,
+    double? opacity,
+  }) => _updateLayer(
+    id,
+    coalesce: 'textStroke:$id',
+    text: (l) => l.copyWith(
+      strokeWidth: width,
+      strokeColor: color,
+      autoStrokeColor: autoColor,
+      strokeOpacity: opacity,
+    ),
+  );
+
+  /// Applies [change] to any layer type's shared effects block.
+  void _updateEffects(
+    String id,
+    LayerEffects Function(LayerEffects) change, {
+    String? coalesce,
+  }) => _updateLayer(
+    id,
+    coalesce: coalesce,
+    image: (l) => l.copyWith(effects: change(l.effects)),
+    text: (l) => l.copyWith(effects: change(l.effects)),
+    bubble: (l) => l.copyWith(effects: change(l.effects)),
+  );
 
   void setImageMask(String id, String? maskPath) => _updateLayer(
     id,
@@ -576,6 +710,63 @@ class EditorController extends Notifier<EditorState> {
   /// transform, mask, crop and adjustments.
   void replaceImageAsset(String id, String assetPath) =>
       _updateLayer(id, image: (l) => l.copyWith(assetPath: assetPath));
+
+  /// Swaps each group of [merges] for one image layer holding its rendered
+  /// pixels, in a single undo step. The replacement takes the z-slot of the
+  /// LOWEST layer it replaces, so a merge never reorders the stack around it,
+  /// and inherits that layer's cell so a collage keeps its partition.
+  ///
+  /// The caller renders the bytes (see `LayerFlattener`); this method only does
+  /// the document surgery, which keeps the controller free of async I/O.
+  void applyMerges(List<MergedLayerSpec> merges) {
+    if (merges.isEmpty) return;
+    final project = state.project;
+    final scale = layerCoverScale;
+    final center = project.canvasCenter;
+    // id → the merge that consumes it, so one pass over the layer list is
+    // enough no matter how many groups a flatten produced.
+    final owner = <String, MergedLayerSpec>{};
+    for (final merge in merges) {
+      for (final id in merge.ids) {
+        owner[id] = merge;
+      }
+    }
+    final built = <MergedLayerSpec, ImageLayer>{};
+    String? lastId;
+    _mutateLayers((layers) {
+      final next = <Layer>[];
+      for (final layer in layers) {
+        final merge = owner[layer.id];
+        if (merge == null) {
+          next.add(layer);
+          continue;
+        }
+        if (built.containsKey(merge)) continue; // already emitted, drop
+        final merged = ImageLayer(
+          id: _newId('l'),
+          name: merge.name,
+          assetPath: merge.assetPath,
+          cellId: layer.cellId,
+          transform: LayerTransform(position: center, scale: scale),
+        );
+        built[merge] = merged;
+        lastId = merged.id;
+        next.add(merged);
+      }
+      return next;
+    });
+    if (lastId != null) selectLayer(lastId);
+  }
+
+  /// The layer scale at which a canvas-sized image covers the canvas exactly.
+  double get layerCoverScale => photoFitScale(
+    Size(
+      state.project.canvasWidth.toDouble(),
+      state.project.canvasHeight.toDouble(),
+    ),
+    state.project.canvasWidth,
+    state.project.canvasHeight,
+  );
 
   /// Applies a type-specific transform to the matching layer. A callback left
   /// null means "leave that layer type unchanged".
@@ -845,6 +1036,25 @@ class EditorController extends Notifier<EditorState> {
         _undoStack.any(inProject) ||
         _redoStack.any(inProject);
   }
+}
+
+/// One "merge these layers into that image" instruction for
+/// [EditorController.applyMerges].
+@immutable
+class MergedLayerSpec {
+  const MergedLayerSpec({
+    required this.ids,
+    required this.assetPath,
+    required this.name,
+  });
+
+  /// The layers being replaced, in z-order (bottom → top).
+  final List<String> ids;
+
+  /// The rendered PNG holding their combined pixels.
+  final String assetPath;
+
+  final String name;
 }
 
 /// Editor state for the active document. Override in tests / the editor route

@@ -8,5 +8,5 @@ Future<void> theSelectedPhotoHasDefaultAdjustments(WidgetTester tester) async {
   final l = selectedImage(tester);
   expect(l.adjustments, ImageAdjustments.identity);
   expect(l.opacity, 1.0);
-  expect(l.outlineWidth, 0);
+  expect(l.effects.stroke.width, 0);
 }
