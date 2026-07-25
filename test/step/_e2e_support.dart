@@ -92,6 +92,32 @@ Future<void> rotateSurface(
   await settle(tester);
 }
 
+/// Canonical screen sizes for the tablet-layout scenarios, in LOGICAL px.
+/// 600 on the shortest side is the tablet breakpoint, so these sit either side
+/// of it by a wide margin rather than hugging it.
+const Map<String, Size> namedSurfaces = {
+  'tablet portrait': Size(800, 1280),
+  'tablet landscape': Size(1280, 800),
+  'phone portrait': Size(412, 915),
+  'phone landscape': Size(915, 412),
+};
+
+/// Resizes the view to a [namedSurfaces] entry for the rest of the scenario.
+///
+/// The VIEW, not `setSurfaceSize`: the latter reconfigures the RenderView only,
+/// leaving MediaQuery reporting the device's real size - and MediaQuery is
+/// exactly what the tablet gate reads, so the test would pass without ever
+/// leaving the phone branch.
+Future<void> resizeSurface(WidgetTester tester, String name) async {
+  final size = namedSurfaces[name];
+  expect(size, isNotNull, reason: 'unknown screen name "$name"');
+  final view = tester.view;
+  _rotationBase ??= view.physicalSize;
+  view.physicalSize = size! * view.devicePixelRatio;
+  _surfaceOverridden = true;
+  await settle(tester);
+}
+
 /// A dock button's rect, found by the stable key rather than its label - the
 /// dock's wording repeats the panel titles, so a text finder is ambiguous.
 Rect dockButtonRect(WidgetTester tester, String label) {

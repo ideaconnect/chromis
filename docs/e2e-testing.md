@@ -85,9 +85,19 @@ tests that use `IntegrationTestWidgetsFlutterBinding` (i.e. real on-device runs)
   next target can be off either end. `i_tap_the_filter` rewinds to the start
   first, and reveals the strip vertically before dragging it - a horizontal drag
   aimed at a strip scrolled out of the panel lands on the page behind it.
-- Orientation is changed with `rotateSurface(tester, landscape: ...)`, which
-  resizes the test surface. Driving the device's real sensor orientation
-  mid-test is racy and tells us nothing the layout constraints do not.
+- Orientation and screen size are changed with `rotateSurface(tester,
+  landscape: ...)` and `resizeSurface(tester, 'tablet portrait')`, which set the
+  **view's** physicalSize. Driving the device's real sensor orientation mid-test
+  is racy and tells us nothing the layout constraints do not.
+- Do NOT reach for `tester.binding.setSurfaceSize`. It reconfigures the
+  RenderView only, so constraint-driven layout moves but `MediaQuery` keeps
+  reporting the device's real size - and MediaQuery is what the tablet
+  breakpoint, sheet height caps and insets read. A test using it passes while
+  never leaving the branch it claims to be testing.
+- **After running any E2E suite, `build/app/outputs/flutter-apk/app-debug.apk`
+  is the TEST build**, whose entrypoint waits for a driver. Launching it by hand
+  hangs on the splash and looks exactly like a startup crash. Re-run
+  `flutter build apk --debug` before driving the app manually.
 
 ### Sample photos on the device
 

@@ -200,6 +200,11 @@ Gherkin `.feature` + `bdd_widget_test`-generated tests, run via `./e2e.ps1`.
   and a caption gets a shadow + outline of its own.
 - **`editor_merge.feature`** - Merge down and Flatten are hidden with a single
   layer, fold a stack into one photo layer, and undo in a single step.
+- **`tablet_layout.feature`** - resizes the VIEW either side of the 600-px
+  breakpoint and asserts both branches on real hardware: a tablet in portrait
+  gives the editor canvas the width while a phone keeps the 460 cap, Home pairs
+  its start cards only on a tablet, and the tool panel still hugs its content.
+  Runs on whatever device is attached, since it sets the size itself.
 - **`editor_landscape.feature`** - rotating turns the dock into a vertical rail,
   the tool panel folds away and comes back, tools still work, and rotating back
   restores the horizontal bar. The rotation resizes the test surface rather than
