@@ -200,7 +200,7 @@ def crop_to(im, size, bias=0.5, zoom=1.0):
     return im.crop((left, top, left + w, top + h)).resize(size, Image.LANCZOS)
 
 
-def on_panel(rgba, size, bg=(15, 27, 43), margin=0.07):
+def on_panel(rgba, size, bg=(15, 27, 43), margin=0.11):
     """Flatten an RGBA composite onto the site's panel colour, letterboxed.
 
     Trimmed to its own content first (shadow and contour included), so the

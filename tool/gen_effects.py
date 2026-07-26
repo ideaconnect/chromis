@@ -191,6 +191,17 @@ def checkerboard(size, sq=24):
     return bg
 
 
+# Which photo becomes the cut-out, chosen by eye. The scores below rank mattes
+# on things that can be measured - size, one blob or several, room inside the
+# frame - and none of that sees the thing that actually matters here: whether
+# the model truncated a thin structure. Every one of these photos has a decent
+# score; only this one has both ears fully formed and no straight cut anywhere
+# on its outline, which is what a contour drawn around it exposes.
+#
+# Set to None to fall back to the ranking (e.g. if the photo set changes).
+PREFERRED = "photo_2026-07-24_11-13-17 (2).jpg"
+
+
 def main():
     photos = sorted(glob.glob(os.path.join(SRC_DIR, "*.jpg")))
     if not photos:
@@ -221,9 +232,14 @@ def main():
             f"solidity={sol:.3f} margin={mar * 100:4.1f}%  score={score:.3f}"
         )
     scored.sort(key=lambda t: -t[0])
-    _, cov, sol, mar, p, im, m = scored[0]
+    pick = next(
+        (t for t in scored if PREFERRED and os.path.basename(t[4]) == PREFERRED),
+        scored[0],
+    )
+    _, cov, sol, mar, p, im, m = pick
+    why = "pinned" if pick is not scored[0] or PREFERRED else "top score"
     print(
-        f"chosen: {os.path.basename(p)} "
+        f"chosen ({why}): {os.path.basename(p)} "
         f"(coverage={cov:.3f} solidity={sol:.3f} margin={mar * 100:.1f}%)"
     )
 

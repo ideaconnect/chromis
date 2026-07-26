@@ -282,7 +282,12 @@ img { max-width: 100%; height: auto; display: block; }
   overflow: hidden; background: linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.01));
 }
 .fx-ba { position: relative; line-height: 0; aspect-ratio: 16 / 9; background: var(--panel); }
-.fx-ba img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+/* contain, not cover: the demos are rendered at exactly this aspect, so the two
+   agree - but `cover` would silently crop the contour's stroke if a card ever
+   rounded to a slightly different ratio, and a stroke that runs off the frame is
+   the one thing these images must never do. The panel background fills any
+   letterbox. */
+.fx-ba img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
 
 /* Split before/after: the effect occupies the right half by default, so the
    difference is visible standing still - side-by-side "after" tiles read as two
