@@ -61,3 +61,9 @@ __pycache__/
 # Local website source photos (large raw originals). Web-optimised "before"
 # images and the AI-derived cut-outs are committed under website/assets/img/.
 assets/branding/dog/
+
+# Website generator intermediates, not page assets: gen_effects.py writes the
+# cut-out PNG that gen_filters.py builds the shadow/contour demos from, plus a
+# sticker chip nothing references. Both are reproducible; neither is deployed.
+website/assets/img/effects/dog-cutout.png
+website/assets/img/effects/dog-chip.png

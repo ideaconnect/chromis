@@ -72,7 +72,11 @@ h3 { font-size: 1.25rem; letter-spacing: -0.01em; }
 p { margin: 0 0 1rem; color: var(--text-2); }
 a { color: var(--cyan-light); text-decoration: none; transition: color 0.15s ease; }
 a:hover { color: var(--text); }
-img { max-width: 100%; display: block; }
+/* `height: auto` is load-bearing: the screenshots carry width/height attributes
+   (so the page reserves their space and doesn't jump as they load), and without
+   this the attribute height wins over the scaled width and every one renders at
+   full intrinsic height. */
+img { max-width: 100%; height: auto; display: block; }
 
 .wrap { width: 100%; max-width: var(--maxw); margin: 0 auto; padding: 0 22px; }
 .eyebrow {
@@ -206,6 +210,119 @@ img { max-width: 100%; display: block; }
 .ba-tag-l { left: 14px; }
 .ba-tag-r { right: 14px; color: var(--green); }
 
+/* ---------- Filter gallery ----------
+   The looks are the app's own colour matrices, emitted as SVG feColorMatrix
+   filters by tool/gen_filters.py; picking one is a radio group plus `:checked ~`,
+   so the whole gallery works without JavaScript and downloads one photo, not
+   fifteen. The generated <style> block in index.html holds the per-look rules. */
+
+/* MUST NOT be an inline box. At 0x0 an inline <svg> still generates a line box
+   the height of the line-height, which would push the gallery down by a stray
+   ~19px. */
+.fx-defs { position: absolute; width: 0; height: 0; overflow: hidden; }
+
+.fx-gallery { display: flex; flex-wrap: wrap; gap: 18px; }
+.fx-radio { position: absolute; opacity: 0; pointer-events: none; }
+
+.fx-stage {
+  order: -1; flex: 1 0 100%; margin: 0; position: relative;
+  border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border);
+  box-shadow: var(--shadow); background: var(--panel); line-height: 0;
+}
+.fx-stage-img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; }
+.fx-stage figcaption {
+  position: absolute; left: 16px; bottom: 16px; line-height: 1;
+  font-family: var(--font-display); font-weight: 600; font-size: 0.82rem;
+  letter-spacing: 0.08em; text-transform: uppercase; color: var(--text);
+  background: rgba(6, 13, 22, 0.66); backdrop-filter: blur(4px);
+  border: 1px solid var(--border); border-radius: 999px; padding: 7px 14px;
+}
+/* The label text itself comes from the generated `::after` content, one rule
+   per look - the same list that produced the filters. */
+.fx-stage figcaption::before { content: "Look · "; color: var(--cyan); }
+
+/* The 15 chips are wider than a phone, so the strip scrolls sideways inside
+   itself. `overflow-x: auto` is what keeps it from pushing the page wide:
+   it also resolves the flex item's default `min-width: auto` to 0. */
+.fx-strip {
+  flex: 1 0 100%; display: flex; gap: 10px; overflow-x: auto;
+  padding: 2px 2px 10px; scroll-snap-type: x proximity;
+  scrollbar-width: thin; scrollbar-color: var(--elevated) transparent;
+}
+.fx-strip::-webkit-scrollbar { height: 8px; }
+.fx-strip::-webkit-scrollbar-thumb { background: var(--elevated); border-radius: 999px; }
+
+.fx-chip {
+  --on: 0;
+  flex: 0 0 auto; width: 86px; cursor: pointer; scroll-snap-align: start;
+  display: flex; flex-direction: column; gap: 7px; text-align: center;
+}
+.fx-chip img {
+  width: 86px; height: 86px; object-fit: cover; border-radius: 14px;
+  border: 2px solid transparent;
+  outline: 2px solid rgba(23, 182, 214, calc(var(--on)));
+  outline-offset: 1px;
+  transition: transform 0.15s ease, outline-color 0.15s ease;
+}
+.fx-chip span {
+  font-family: var(--font-display); font-size: 0.78rem; font-weight: 600;
+  color: color-mix(in srgb, var(--cyan) calc(var(--on) * 100%), var(--muted));
+  line-height: 1.2;
+}
+.fx-chip:hover img { transform: translateY(-2px); }
+.fx-radio:focus-visible + .fx-strip .fx-chip img,
+.fx-strip .fx-chip:focus-within img { outline: 2px solid var(--cyan-light); }
+.fx-note { margin-top: 18px; font-size: 0.92rem; color: var(--muted); text-align: center; }
+
+/* ---------- Painted effects (vignette / HDR / shadow / contour) ---------- */
+.section-tight { padding-top: 0; }
+.fx-cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 22px; }
+.fx-card {
+  margin: 0; border: 1px solid var(--border); border-radius: var(--radius);
+  overflow: hidden; background: linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.01));
+}
+.fx-ba { position: relative; line-height: 0; aspect-ratio: 16 / 9; background: var(--panel); }
+.fx-ba img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+
+/* Split before/after: the effect occupies the right half by default, so the
+   difference is visible standing still - side-by-side "after" tiles read as two
+   copies of the same photo. Hovering (or holding, on touch) wipes it across the
+   whole frame. */
+.fx-ba--split .fx-ba-top {
+  clip-path: inset(0 0 0 50%);
+  transition: clip-path 0.4s ease;
+}
+.fx-card:hover .fx-ba--split .fx-ba-top,
+.fx-card:active .fx-ba--split .fx-ba-top { clip-path: inset(0); }
+.fx-ba--split::after {
+  content: ""; position: absolute; top: 0; bottom: 0; left: 50%; width: 2px;
+  background: rgba(255, 255, 255, 0.75); transition: opacity 0.4s ease;
+}
+.fx-card:hover .fx-ba--split::after { opacity: 0; }
+.fx-ba-tag {
+  position: absolute; bottom: 10px; z-index: 2; line-height: 1;
+  font-family: var(--font-display); font-size: 0.66rem; font-weight: 600;
+  letter-spacing: 0.09em; text-transform: uppercase; padding: 5px 9px;
+  border-radius: 999px; background: rgba(6, 13, 22, 0.68); color: var(--text);
+  border: 1px solid var(--border); backdrop-filter: blur(4px);
+}
+.fx-ba-tag.l { left: 10px; }
+.fx-ba-tag.r { right: 10px; color: var(--green); }
+.fx-card figcaption { padding: 20px 22px 22px; }
+.fx-card h3 { margin: 0 0 0.35em; color: var(--text); }
+.fx-card p { margin: 0; font-size: 0.96rem; }
+
+/* ---------- Wide screenshot (landscape / tablet) ---------- */
+.shot-wide {
+  margin: 54px auto 0; max-width: 940px; text-align: center;
+  border: 1px solid var(--border); border-radius: 22px; padding: 14px 14px 4px;
+  background: linear-gradient(160deg, #1b2a3d, #0a1420); box-shadow: var(--shadow);
+}
+.shot-wide img { border-radius: 14px; width: 100%; }
+.shot-wide figcaption { padding: 22px 18px 22px; max-width: 60ch; margin: 0 auto; }
+.shot-wide h3 { margin: 0 0 0.4em; color: var(--text); }
+.shot-wide p { margin: 0; font-size: 0.97rem; }
+
 /* ---------- Stickers row ---------- */
 .stickers { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-top: 8px; }
 .sticker {
@@ -239,6 +356,8 @@ img { max-width: 100%; display: block; }
 .ic-violet { background: rgba(143, 160, 245, 0.14); color: var(--violet); }
 .ic-amber { background: rgba(230, 184, 74, 0.14); color: var(--amber); }
 .ic-orange { background: rgba(240, 136, 90, 0.14); color: var(--orange); }
+.ic-teal { background: rgba(34, 211, 238, 0.14); color: var(--teal); }
+.ic-indigo { background: rgba(108, 127, 224, 0.16); color: var(--violet); }
 
 /* ---------- Split (screenshot + why) ---------- */
 .split { display: grid; grid-template-columns: 0.8fr 1.2fr; gap: 54px; align-items: center; }
@@ -258,7 +377,9 @@ img { max-width: 100%; display: block; }
 .why-list p { margin: 0; font-size: 0.97rem; }
 
 /* ---------- Screenshot gallery ---------- */
-.shots { display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px; max-width: 940px; margin: 0 auto; }
+/* Bottom-aligned: the Home shot is shorter than the rest (its ad slot is
+   cropped off), and top-aligning would leave its caption out of step. */
+.shots { display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px 30px; max-width: 940px; margin: 0 auto; align-items: end; }
 .shot { margin: 0; text-align: center; }
 .shot .phone { max-width: 260px; margin: 0 auto 18px; }
 .shot figcaption h3 { margin: 0 0 3px; font-size: 1.05rem; color: var(--text); }
@@ -266,6 +387,17 @@ img { max-width: 100%; display: block; }
 @media (max-width: 720px) {
   .shots { grid-template-columns: 1fr; gap: 44px; }
   .shot .phone { max-width: 250px; }
+}
+@media (max-width: 640px) {
+  .fx-cards { grid-template-columns: 1fr; }
+  /* No hover on touch, so hint that holding wipes the effect across. Only on
+     the two split cards - the shadow and contour ones have nothing to compare. */
+  .fx-card--compare::after {
+    content: "Tap and hold to see the full effect"; display: block; text-align: center;
+    font-size: 0.78rem; color: var(--muted); padding: 0 0 14px;
+  }
+  .fx-chip, .fx-chip img { width: 74px; }
+  .fx-chip img { height: 74px; }
 }
 
 /* ---------- FAQ ---------- */
