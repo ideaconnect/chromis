@@ -49,13 +49,24 @@ renders a strip of known colours through each look twice - once by multiplying
 the matrix in Python, once in headless Edge - and fails if any channel differs
 by more than 1/255.
 
+## The painted effects are rendered by the app
+
 Vignette, HDR, drop shadow and contour are Canvas routines rather than matrices,
-so they can't be handed to the browser; `gen_filters.py` renders them, each
-function mirroring its counterpart in `core/rendering/layer_effects_painter.dart`.
-Both painted demos run at full strength so the split before/after reads at a
-glance. HDR's tone half is dumped per amount rather than scaled afterwards -
-`hdrTone` composes lift, brightness, contrast and saturation, so interpolating
-the finished matrix is a different transform.
+so they can't be handed to the browser. `tool/gen_effect_demos.dart` renders
+them by calling the app's own `paintImageLayer` and `paintLayerShadow`;
+`gen_filters.py` only cuts the source frames and encodes the results. The
+settings the page advertises live at the top of that Dart file, next to the
+render, so the numbers on the page and the numbers in the picture can't
+disagree.
+
+They used to be re-implemented in Python. That mirror looked right - it matched
+the app to ~1/255 on an evenly lit crop - and was under-rendering HDR by about a
+third on a shadow-heavy one, which is exactly the failure mode hand-copied
+render code has. Calling the real painter removes the question rather than
+policing it.
+
+HDR runs at 1.0, which is the app's slider maximum (`hdrTone` clamps there and
+the local-contrast pass caps at 0.85). There is no stronger setting to show.
 
 `gen_effects.py` picks which source photo becomes the cut-out. It scores the
 matte on **margin** (how much room the subject leaves inside the frame, which is
