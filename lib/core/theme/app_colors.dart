@@ -32,6 +32,10 @@ abstract final class AppColors {
   static const Color green = Color(0xFF35D0A0); // AI Cut / background removed
   static const Color orange = Color(0xFFF0885A); // Frames
 
+  /// Go Pro. Deliberately not [amber], which is the Erase tool's accent - the
+  /// crown has to read as a badge rather than as another tool.
+  static const Color gold = Color(0xFFF3C33C);
+
   // Accent support tints.
   static const Color violetBright = Color(0xFF17B6D6); // primary (cyan)
   static const Color violetLight = Color(0xFF7FD6EA); // light cyan

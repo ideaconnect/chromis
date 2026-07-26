@@ -24,6 +24,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_tokens.dart';
 import '../../core/theme/app_typography.dart';
 import '../../core/widgets/checkerboard.dart';
+import '../../core/widgets/crown_icon.dart';
 import '../../core/widgets/gradient_button.dart';
 import '../../core/widgets/labeled_slider.dart';
 import '../../core/widgets/name_prompt.dart';
@@ -3580,6 +3581,17 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     }
 
     return [
+      // Go Pro sits first, and only for people who haven't bought it. It is the
+      // one dock entry that opens a sheet instead of selecting a tool, so it
+      // carries the gold accent to say so before it is tapped.
+      if (!ref.watch(isProProvider))
+        _DockItem(
+          icon: Icons.workspace_premium,
+          glyph: const CrownIcon(color: AppColors.gold, size: 21),
+          label: 'Go Pro',
+          accent: AppColors.gold,
+          onTap: _showGoProSheet,
+        ),
       // Collage-only, and first: layout / count / border are what a photo grid
       // is edited through.
       if (editor.project.isGrid)
@@ -3636,6 +3648,160 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         onTap: () => tool(EditorTool.layers),
       ),
     ];
+  }
+
+  /// What Go Pro gets you, from the dock's crown. Deliberately a sheet rather
+  /// than a jump straight to the purchase screen: this button sits in the middle
+  /// of the tool row, so tapping it must never feel like it took you somewhere.
+  Future<void> _showGoProSheet() async {
+    const benefits = <(IconData, String, String)>[
+      (
+        Icons.block,
+        'No ads, anywhere',
+        'The banner on Home and the full-screen ads both go away for good.',
+      ),
+      (
+        Icons.auto_fix_high,
+        'AI without the wait',
+        'Background removal and object erase run straight away - no rewarded '
+            'ad first.',
+      ),
+      (
+        Icons.ios_share,
+        'Export and share freely',
+        'Save or share at any size without watching anything.',
+      ),
+      (
+        Icons.lock_outline,
+        'Still on your device',
+        'Pro changes nothing about your photos: every edit stays local, as it '
+            'always was.',
+      ),
+    ];
+
+    final go = await showModalBottomSheet<bool>(
+      context: context,
+      // So the sheet may use the height it needs; SheetBody caps and scrolls it.
+      isScrollControlled: true,
+      backgroundColor: AppColors.panel,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (sheetCtx) => SheetBody(
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 46,
+                height: 46,
+                decoration: BoxDecoration(
+                  color: AppColors.gold.withValues(alpha: 0.16),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: AppColors.gold.withValues(alpha: 0.55),
+                  ),
+                ),
+                child: const Center(
+                  child: CrownIcon(color: AppColors.gold, size: 25),
+                ),
+              ),
+              const SizedBox(width: 13),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Go Pro',
+                      style: TextStyle(
+                        fontFamily: AppFonts.display,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 20,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    Text(
+                      'One-time purchase, no subscription',
+                      style: TextStyle(
+                        fontFamily: AppFonts.ui,
+                        fontSize: 12.5,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
+          for (final (icon, title, body) in benefits)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 14),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(icon, size: 18, color: AppColors.gold),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          style: const TextStyle(
+                            fontFamily: AppFonts.ui,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 13.5,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        Text(
+                          body,
+                          style: const TextStyle(
+                            fontFamily: AppFonts.ui,
+                            fontSize: 12.5,
+                            height: 1.45,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          const SizedBox(height: 4),
+          FilledButton.icon(
+            key: const ValueKey('go-pro-sheet-cta'),
+            onPressed: () => Navigator.of(sheetCtx).pop(true),
+            icon: const CrownIcon(color: AppColors.cutoutInk, size: 19),
+            label: const Text('See the price'),
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.gold,
+              foregroundColor: AppColors.cutoutInk,
+              minimumSize: const Size.fromHeight(50),
+              textStyle: const TextStyle(
+                fontFamily: AppFonts.display,
+                fontWeight: FontWeight.w700,
+                fontSize: 15,
+              ),
+            ),
+          ),
+          const SizedBox(height: 6),
+          TextButton(
+            onPressed: () => Navigator.of(sheetCtx).pop(false),
+            child: const Text(
+              'Not now',
+              style: TextStyle(
+                fontFamily: AppFonts.ui,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (go == true && mounted) unawaited(context.pushNamed(Routes.goPro));
   }
 
   Widget _toolBar(EditorState editor) {
@@ -3705,12 +3871,24 @@ class _DockItem {
     required this.label,
     required this.onTap,
     this.active = false,
+    this.accent,
+    this.glyph,
   });
 
   final IconData icon;
   final String label;
   final VoidCallback onTap;
   final bool active;
+
+  /// Tints the button when it isn't a tool. Only Go Pro uses this: it sits in
+  /// the same row but doesn't select anything, so it needs to look unlike the
+  /// tools rather than like an eleventh one.
+  final Color? accent;
+
+  /// Drawn instead of [icon] when set. Go Pro wants a crown and Material has
+  /// none, so it supplies one (see [CrownIcon]); [icon] stays as the semantic
+  /// fallback everything else uses.
+  final Widget? glyph;
 }
 
 class _DockButton extends StatelessWidget {
@@ -3737,16 +3915,22 @@ class _DockButton extends StatelessWidget {
               decoration: BoxDecoration(
                 color: item.active
                     ? AppColors.cyan
-                    : Colors.white.withValues(alpha: 0.05),
+                    : item.accent?.withValues(alpha: 0.16) ??
+                          Colors.white.withValues(alpha: 0.05),
                 borderRadius: BorderRadius.circular(14),
+                border: item.accent == null
+                    ? null
+                    : Border.all(color: item.accent!.withValues(alpha: 0.55)),
               ),
-              child: Icon(
-                item.icon,
-                size: 20,
-                color: item.active
-                    ? AppColors.cutoutInk
-                    : AppColors.textSecondary,
-              ),
+              child:
+                  item.glyph ??
+                  Icon(
+                    item.icon,
+                    size: 20,
+                    color: item.active
+                        ? AppColors.cutoutInk
+                        : item.accent ?? AppColors.textSecondary,
+                  ),
             ),
             const SizedBox(height: 5),
             Text(
@@ -3759,7 +3943,7 @@ class _DockButton extends StatelessWidget {
                 fontWeight: FontWeight.w700,
                 color: item.active
                     ? AppColors.textPrimary
-                    : AppColors.textMuted,
+                    : item.accent ?? AppColors.textMuted,
               ),
             ),
           ],

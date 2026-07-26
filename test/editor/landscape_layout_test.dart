@@ -26,6 +26,18 @@ void main() {
   const landscape = Size(900, 600);
 
   Finder dock(String label) => find.byKey(ValueKey('dock-$label'));
+
+  /// Taps a rail button, scrolling it into view first. The rail is a scroll
+  /// view and does not fit every button on a 600-px-tall phone, so a bare tap
+  /// silently misses whichever ones are below the fold. The extra pump matters:
+  /// ensureVisible moves the offset, layout catches up on the next frame.
+  Future<void> tapDock(WidgetTester tester, String label) async {
+    await tester.ensureVisible(dock(label));
+    await tester.pump();
+    await tester.tap(dock(label));
+    await tester.pumpAndSettle();
+  }
+
   final collapse = find.byKey(const ValueKey('collapse-panel'));
   final expand = find.byKey(const ValueKey('expand-panel'));
 
@@ -125,12 +137,10 @@ void main() {
           .setTool(EditorTool.adjust);
       await tester.pumpAndSettle();
 
-      await tester.tap(dock('Adjust'));
-      await tester.pumpAndSettle();
+      await tapDock(tester, 'Adjust');
       expect(expand, findsOneWidget);
 
-      await tester.tap(dock('Adjust'));
-      await tester.pumpAndSettle();
+      await tapDock(tester, 'Adjust');
       expect(collapse, findsOneWidget);
       expect(container.read(editorControllerProvider).tool, EditorTool.adjust);
     },
@@ -145,8 +155,7 @@ void main() {
     // the way a user would before tapping it.
     await tester.ensureVisible(dock('Layers'));
     await tester.pumpAndSettle();
-    await tester.tap(dock('Layers'));
-    await tester.pumpAndSettle();
+    await tapDock(tester, 'Layers');
 
     expect(
       collapse,

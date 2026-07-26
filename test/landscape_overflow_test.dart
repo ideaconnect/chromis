@@ -5,6 +5,7 @@ import 'package:chromis/features/about/about_sheet.dart';
 import 'package:chromis/features/editor/editor_screen.dart';
 import 'package:chromis/features/editor/widgets/canvas_size_sheet.dart';
 import 'package:chromis/features/editor/widgets/project_canvas.dart';
+import 'package:chromis/features/go_pro/iap.dart';
 import 'package:chromis/features/grid/widgets/grid_setup_sheet.dart';
 import 'package:chromis/features/home/home_screen.dart';
 import 'package:chromis/features/home/widgets/app_drawer.dart';
@@ -152,6 +153,25 @@ void main() {
         await tapDock(tester, 'Crop');
         expect(tester.takeException(), isNull);
         expect(find.text('Crop to ratio'), findsOneWidget);
+        expect(find.byType(SheetBody), findsOneWidget);
+      });
+
+      testWidgets('go pro sheet', (tester) async {
+        // Needs the free path - the crown is not in a Pro user's dock.
+        setSurface(tester, size);
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [isProProvider.overrideWithValue(false)],
+            child: MaterialApp(
+              theme: buildAppTheme(),
+              home: const EditorScreen(),
+            ),
+          ),
+        );
+        await tester.pump(const Duration(milliseconds: 400));
+        await tapDock(tester, 'Go Pro');
+        expect(tester.takeException(), isNull);
+        expect(find.text('No ads, anywhere'), findsOneWidget);
         expect(find.byType(SheetBody), findsOneWidget);
       });
 
