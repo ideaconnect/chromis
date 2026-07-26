@@ -21,26 +21,24 @@ website/
     └── screens/              # real app screenshots (WebP)
 ```
 
-## The brand marks are generated, and they sit on a plate
+## The brand marks are generated
 
 Those four icon files are **outputs of `tool/gen_branding.py`**, which takes the
-app icon from `assets/branding/chromis-icon2.png` and writes the app's copies and
-the site's from the same picture - so the favicon cannot drift from the launcher
+app icon from `assets/branding/modern.png` and writes the app's copies and the
+site's from the same picture - so the favicon cannot drift from the launcher
 icon. Don't retouch them; change the generator and re-run it from the repo root.
 All four are the same tile, differing only in size.
 
-The tile's fill is `#0A2127`, which is within a few steps of `--surface`
-(`#0a1826`). On this site's dark ground a bare tile dissolves into the page and
-only the brush and wordmark read. So the two marks drawn **on the page** -
-`.brand img` (header + footer) and `.cta-icon` - sit on a light plate:
-`--brand-plate`, applied as a background plus padding, with the radii kept
-concentric with the tile's own 14.5% corner. The app does the same thing in
-`AppLogo`, and `gen_branding.py` bakes the same plate into the splash images -
-**keep those three in step.**
+Each carries its own 15.5% corners with transparency outside them, so **no
+`border-radius` and no plate**: rounding them again trims the silhouette, and the
+tile's mid-tone teal already reads on `--surface` without a light ground behind
+it. `.cta-icon` uses `filter: drop-shadow` rather than `box-shadow` for the same
+reason - box-shadow follows the border box and would draw a hard rectangle behind
+a rounded tile.
 
-`favicon-32.png` and `apple-touch-icon.png` are deliberately **not** plated: they
-are drawn by the browser and the OS on grounds we do not control (a tab strip, a
-home-screen wallpaper), where the bare tile is the correct thing to hand over.
+(The icon before this one was `#0A2127`, a couple of steps from `--surface`, and
+did need a plate. If the artwork ever goes dark again, that is the fix, and the
+app's `AppLogo` needs the same treatment at the same time.)
 
 ## The filter gallery is the app's own maths
 
@@ -171,7 +169,7 @@ a page, so a deploy can skip both.
 GitHub Pages serves CSS and images with a long cache (`Cache-Control: max-age=14400`
 = 4 h). After you change `styles.css` or an image, **bump the `?v=N` query** on
 its `<link>` / `<img>` reference so browsers fetch the new file instead of a
-stale cached copy. `styles.css` and the brand marks are at `?v=8`, the
+stale cached copy. `styles.css` and the brand marks are at `?v=9`, the
 screenshots at `?v=4`; the generated filter tiles use `ASSET_V` in
 `tool/gen_filters.py`. The HTML pages revalidate quickly, so the new versioned
 URLs propagate on the next visit. (Grep the HTML rather than trusting this line -

@@ -24,12 +24,6 @@
   --orange: #f0885a;
   --indigo: #6c7fe0;
 
-  /* The light ground every brand mark sits on. The app icon's tile is #0A2127,
-     within a few steps of --surface, so on this site's dark ground the mark
-     would dissolve into it. Same value as AppColors.brandPlate in the app and
-     PLATE in tool/gen_branding.py. */
-  --brand-plate: #eaf1f8;
-
   --border: rgba(255, 255, 255, 0.08);
   --border-faint: rgba(255, 255, 255, 0.05);
   --hero-grad: linear-gradient(100deg, var(--cyan), var(--indigo) 55%, var(--pink));
@@ -159,13 +153,10 @@ img { max-width: 100%; height: auto; display: block; }
 }
 .nav { display: flex; align-items: center; justify-content: space-between; height: 68px; }
 .brand { display: flex; align-items: center; gap: 0.6rem; font-family: var(--font-display); font-weight: 700; color: var(--text); font-size: 1.08rem; letter-spacing: -0.01em; }
-/* Padding + plate, not just a radius: see --brand-plate. The radii are
-   concentric with the tile's own 14.5% corner - inner 0.145x28.9 = 4.2px, plus
-   the 2.5px of plate around it. */
-.brand img {
-  width: 34px; height: 34px; padding: 2.5px;
-  background: var(--brand-plate); border-radius: 6.75px;
-}
+/* No border-radius: the asset carries its own 15.5% corners with transparency
+   outside them, and rounding it again only trims the silhouette. Its mid-tone
+   teal reads on --surface unaided, so no plate either. */
+.brand img { width: 34px; height: 34px; }
 .nav-links { display: flex; align-items: center; gap: 1.6rem; }
 .nav-links a { color: var(--text-2); font-weight: 500; font-size: 0.96rem; }
 .nav-links a:hover { color: var(--text); }
@@ -446,13 +437,14 @@ img { max-width: 100%; height: auto; display: block; }
 }
 .cta-band h2 { margin-bottom: 0.3em; }
 .cta-band p { max-width: 46ch; margin: 0 auto 26px; }
-/* The app icon at a size where the whole composition reads - the header and
-   footer marks are 34px, where the wordmark inside it is a smudge. On its plate
-   like every other mark, radii concentric (0.145x88.4 = 12.8px + 7.8px). */
+/* The app icon at a size where the whole composition reads - the aperture, the
+   grid, the wand and the dashed cut-out are all legible here and not at 34px.
+   Corners come from the asset, so `drop-shadow` rather than `box-shadow`: the
+   latter follows the border box and would draw a hard rectangle behind a
+   rounded tile. */
 .cta-icon {
-  width: 104px; height: 104px; display: block; margin: 0 auto 20px; padding: 7.8px;
-  background: var(--brand-plate); border-radius: 20.6px;
-  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.45);
+  width: 104px; height: 104px; display: block; margin: 0 auto 20px;
+  filter: drop-shadow(0 14px 26px rgba(0, 0, 0, 0.5));
 }
 
 /* ---------- Contact form ---------- */

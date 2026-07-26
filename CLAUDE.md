@@ -69,21 +69,29 @@ at landscape sizes; add new ones to it.
 
 Every brand asset - launcher icon and its adaptive layers, splash, Play listing
 icon, in-app logo, website mark, favicon - is produced by `tool/gen_branding.py`
-from the icon design in `assets/branding/chromis-icon2.png`. **Never retouch an
+from the icon design in `assets/branding/modern.png`. **Never retouch an
 output**; change the generator and re-run it, then
 `dart run flutter_launcher_icons` + `flutter_native_splash:create`.
 
 The composition is never re-arranged - assets differ only in size, in whether the
-tile keeps its corners, and in what sits behind it. Two consequences worth
-knowing:
+tile keeps its corners, and in how the tile is split for Android. Three things
+worth knowing:
 
-- The **adaptive icon** splits the design: the tile's fill is a square
-  full-bleed background, the artwork alone is the foreground, sized to clear
-  Android's guaranteed 66dp circle. A launcher's mask cuts colour, not artwork.
-- The tile is `#0A2127`, a few steps from `AppColors.panel`, so on our own dark
-  surfaces it dissolves. It gets a light plate there (`AppColors.brandPlate`,
-  `--brand-plate`, `PLATE`) - baked into the splash, applied by `AppLogo` and by
-  the site's `.brand img` / `.cta-icon`. Keep those four values equal.
+- The source is a **mock-up**: the tile on a white presentation card. The tile is
+  found by chroma (the only saturated region); the card and backdrop are dropped.
+- The tile's background is a **gradient**, so nothing can key off a single flat
+  colour. `gradient_surface` recovers it as a degree-3 polynomial fitted
+  iteratively with the artwork rejected as outliers; the artwork is then keyed
+  and unmatted against that surface per pixel.
+- The **adaptive icon** splits the design: the recovered gradient is a square
+  full-bleed background, the artwork alone is the foreground, placed so the
+  visible 72 of 108dp is the design at its own proportions - which lands it
+  inside Android's guaranteed 66dp circle. A launcher's mask cuts gradient.
+
+**No plate.** This tile is mid-tone teal and reads on our dark surfaces unaided;
+the assets carry their own corners, so nothing should clip or chip them. The icon
+before it was `#0A2127`, a couple of steps from `AppColors.panel`, and did need a
+light ground - if the artwork ever goes dark again, that is the fix.
 
 ## Milestones
 

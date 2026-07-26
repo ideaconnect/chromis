@@ -59,8 +59,7 @@ flutter build apk --release # split ABIs, x86_64 excluded
 
 Every brand asset - launcher icon, adaptive layers, splash, Play listing icon,
 in-app logo, website mark and favicon - comes out of the one icon design in
-`assets/branding/chromis-icon2.png`. Edit `tool/gen_branding.py`, never the
-outputs:
+`assets/branding/modern.png`. Edit `tool/gen_branding.py`, never the outputs:
 
 ```bash
 python tool/gen_branding.py            # every asset, app + website
@@ -71,12 +70,19 @@ dart run flutter_native_splash:create  # -> android/**/splash*
 The composition is never re-arranged; the assets differ only in size, in whether
 the tile keeps its corners, and in what sits behind it:
 
-- **Adaptive icon** - the tile's fill becomes a square full-bleed background and
-  the artwork alone becomes the foreground, sized to clear Android's guaranteed
-  66dp circle. The launcher's mask then cuts flat colour, not artwork.
-- **The plate** - the tile is `#0A2127`, within a few steps of
-  `AppColors.panel`, so on our own dark surfaces it dissolves. Wherever the
-  ground is ours it gets a light plate (`AppColors.brandPlate`): baked into the
-  splash images, and applied by `AppLogo` and the site's `--brand-plate`.
+- **The mock-up is not the icon.** The source file is the tile presented on a
+  white card on a grey backdrop. The tile is found by chroma - it is the only
+  saturated region - and the rest discarded.
+- **The background is a gradient**, so the artwork cannot be keyed off one flat
+  colour. A degree-3 surface is fitted iteratively, rejecting the artwork as
+  outliers, and everything downstream keys against that surface per pixel.
+- **Adaptive icon** - the recovered gradient becomes a square full-bleed
+  background and the artwork alone becomes the foreground, placed so the visible
+  72 of the drawable's 108dp is the design at its own proportions. That lands the
+  artwork inside Android's guaranteed 66dp circle, so a mask cuts gradient.
+- **No plate.** The tile is mid-tone teal and reads on our dark surfaces
+  unaided. The icon before it was `#0A2127` - within a couple of steps of
+  `AppColors.panel` - and needed a light ground; if the artwork ever goes dark
+  again, that is the fix.
 
 © 2026 IDCT · Bartosz Pachołek · [idct.tech](https://idct.tech)
