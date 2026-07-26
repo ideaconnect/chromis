@@ -50,6 +50,8 @@ HERO = (1280, 720)
 HERO_CROP = dict(bias=0.42, zoom=1.45)
 # Effect demos share the gallery's aspect so the section reads as one set.
 FX = (960, 540)
+# Both painted demos run at full strength.
+HDR_AMOUNT = 1.0
 
 
 # --------------------------------------------------------------- colour matrix
@@ -79,7 +81,7 @@ def svg_values(m) -> str:
 
 
 # ------------------------------------------------------------------- vignette
-def vignette(im, amount=0.75, size=0.55, softness=0.5, color=(0, 0, 0)):
+def vignette(im, amount=1.0, size=0.40, softness=0.45, color=(0, 0, 0)):
     """`vignetteShader`: a radial ramp over the rect's half-diagonal with stops
     [0 @ size, amount*0.28 @ mid, amount @ 1.0], composited srcATop, where
     mid = size + (1 - size) * (0.75 - 0.45 * softness).
@@ -107,7 +109,7 @@ def _overlay(dst, src):
     return np.where(dst < 0.5, 2 * src * dst, 1 - 2 * (1 - src) * (1 - dst))
 
 
-def hdr(im, tone_matrix, amount=0.7):
+def hdr(im, tone_matrix, amount=1.0):
     """`ColorMatrix.hdrTone` + `_paintLocalContrast`.
 
     The tone half is the matrix dumped from Dart. The texture half is a
@@ -198,8 +200,22 @@ def crop_to(im, size, bias=0.5, zoom=1.0):
     return im.crop((left, top, left + w, top + h)).resize(size, Image.LANCZOS)
 
 
-def on_panel(rgba, size, bg=(15, 27, 43)):
-    """Flatten an RGBA composite onto the site's panel colour, letterboxed."""
+def on_panel(rgba, size, bg=(15, 27, 43), margin=0.07):
+    """Flatten an RGBA composite onto the site's panel colour, letterboxed.
+
+    Trimmed to its own content first (shadow and contour included), so the
+    subject fills the card the same way whichever photo the generator picked -
+    the padding those routines need to draw into is working space, not framing.
+    `margin` is the breathing room left around it, as a fraction of the longer
+    side, which also guarantees the stroke never reaches the edge.
+    """
+    bbox = rgba.getbbox()
+    if bbox:
+        pad = round(max(bbox[2] - bbox[0], bbox[3] - bbox[1]) * margin)
+        rgba = rgba.crop((
+            max(0, bbox[0] - pad), max(0, bbox[1] - pad),
+            min(rgba.width, bbox[2] + pad), min(rgba.height, bbox[3] + pad),
+        ))
     flat = Image.new("RGB", rgba.size, bg)
     flat.paste(rgba, (0, 0), rgba)
     flat.thumbnail(size, Image.LANCZOS)
@@ -218,7 +234,7 @@ DEFAULT_LOOK = "punch"
 
 # Bumped whenever the generated images change, so GitHub Pages' 4-hour cache
 # does not serve a stale tile against a new set of filters.
-ASSET_V = 2
+ASSET_V = 3
 
 
 def build_block(filters) -> str:
@@ -323,7 +339,12 @@ def main():
     fx_src = crop_to(src, FX, **HERO_CROP)
     save(fx_src, "fx-original.webp")
     save(vignette(fx_src), "fx-vignette.webp")
-    save(hdr(fx_src, data["hdrTone"]), "fx-hdr.webp")
+    # Full strength on both, so the split before/after reads at a glance rather
+    # than needing the visitor to hunt for the difference. The tone matrix has
+    # to be the one dumped for THIS amount - scaling a composed matrix is not
+    # the same transform (see tool/dump_filters.dart).
+    save(hdr(fx_src, data["hdrTone"][str(HDR_AMOUNT)], amount=HDR_AMOUNT),
+         "fx-hdr.webp")
 
     cut_path = os.path.join(OUT_FX, "dog-cutout.png")
     if os.path.exists(cut_path):

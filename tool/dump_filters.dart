@@ -25,9 +25,14 @@ void main() {
         for (final f in PhotoFilter.values)
           {'name': f.name, 'label': f.label, 'matrix': ColorMatrix.filter(f)},
       ],
-      // The tonal half of HDR. The texture half (local contrast) is painted,
-      // not a matrix, so gen_filters.py approximates it the way the app does.
-      'hdrTone': ColorMatrix.hdrTone(0.7),
+      // The tonal half of HDR, at each strength the website renders. It has to
+      // be dumped per amount, not scaled afterwards: `hdrTone` composes lift,
+      // brightness, contrast and saturation, so interpolating the finished
+      // matrix is not the same transform. The texture half (local contrast) is
+      // painted rather than a matrix, so gen_filters.py mirrors that routine.
+      'hdrTone': {
+        for (final a in [0.5, 0.7, 1.0]) a.toString(): ColorMatrix.hdrTone(a),
+      },
     };
     Directory('build').createSync(recursive: true);
     File(

@@ -52,6 +52,18 @@ by more than 1/255.
 Vignette, HDR, drop shadow and contour are Canvas routines rather than matrices,
 so they can't be handed to the browser; `gen_filters.py` renders them, each
 function mirroring its counterpart in `core/rendering/layer_effects_painter.dart`.
+Both painted demos run at full strength so the split before/after reads at a
+glance. HDR's tone half is dumped per amount rather than scaled afterwards -
+`hdrTone` composes lift, brightness, contrast and saturation, so interpolating
+the finished matrix is a different transform.
+
+`gen_effects.py` picks which source photo becomes the cut-out. It scores the
+matte on **margin** (how much room the subject leaves inside the frame, which is
+literally the space a contour has to grow into), vetoes mattes that grabbed
+scenery via **solidity**, and only breaks ties on coverage. Coverage alone used
+to win with a photo whose matte had swallowed a blurred shape behind the dog -
+which showed up as a straight cut through the silhouette the moment a stroke was
+drawn around it.
 
 ## Screenshots
 

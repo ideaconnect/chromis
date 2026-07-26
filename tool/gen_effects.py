@@ -55,6 +55,74 @@ def coverage(mask: Image.Image) -> float:
     return float(a.mean())
 
 
+def solidity(mask: Image.Image) -> float:
+    """Share of the matte that belongs to its single largest blob.
+
+    A clean subject is one blob and scores ~1.0. When the model also latches
+    onto something out of focus behind the dog, that stray blob is a second
+    component - and it is what puts a straight cut line through the silhouette
+    once a contour is grown around it. Two-pass connected-component labelling,
+    written out because scipy is not a dependency here.
+    """
+    a = np.asarray(mask) > 127
+    if not a.any():
+        return 0.0
+    H, W = a.shape
+    labels = np.zeros((H, W), dtype=np.int32)
+    parent: list[int] = [0]
+
+    def find(x: int) -> int:
+        while parent[x] != x:
+            parent[x] = parent[parent[x]]
+            x = parent[x]
+        return x
+
+    def union(x: int, y: int) -> None:
+        rx, ry = find(x), find(y)
+        if rx != ry:
+            parent[max(rx, ry)] = min(rx, ry)
+
+    for y in range(H):
+        row, prev = a[y], a[y - 1] if y else None
+        for x in range(W):
+            if not row[x]:
+                continue
+            up = labels[y - 1, x] if y and prev[x] else 0
+            left = labels[y, x - 1] if x and row[x - 1] else 0
+            if up and left:
+                labels[y, x] = min(up, left)
+                union(up, left)
+            elif up or left:
+                labels[y, x] = up or left
+            else:
+                parent.append(len(parent))
+                labels[y, x] = len(parent) - 1
+
+    flat = labels.ravel()
+    nz = flat[flat > 0]
+    if nz.size == 0:
+        return 0.0
+    roots = np.array([find(int(v)) for v in np.unique(nz)])
+    remap = dict(zip(np.unique(nz).tolist(), roots.tolist()))
+    sizes: dict[int, int] = {}
+    for v, c in zip(*np.unique(nz, return_counts=True)):
+        sizes[remap[int(v)]] = sizes.get(remap[int(v)], 0) + int(c)
+    return max(sizes.values()) / int(nz.size)
+
+
+def margin(mask: Image.Image) -> float:
+    """Smallest gap between the subject and the frame, as a fraction of a side.
+
+    Zero means the subject runs off the edge of the photo, so a contour drawn
+    around it would have nowhere to go and would end in a straight line.
+    """
+    bb = mask.getbbox()
+    if not bb:
+        return 0.0
+    W, H = mask.size
+    return min(bb[0] / W, bb[1] / H, (W - bb[2]) / W, (H - bb[3]) / H)
+
+
 def fit(im: Image.Image, maxdim=1200) -> Image.Image:
     W, H = im.size
     s = min(1.0, maxdim / max(W, H))
@@ -128,17 +196,36 @@ def main():
     if not photos:
         print("no source photos found in", SRC_DIR)
         sys.exit(1)
-    # Score each by foreground coverage; a good subject sits ~0.12..0.55.
+    # Coverage alone picks photos whose matte is the right *size* but the wrong
+    # *shape*: the winner used to be one where the model also grabbed a blurred
+    # shape behind the dog, which reads as a straight cut through the silhouette
+    # the moment a contour is grown around it. So score the silhouette too -
+    # solidity (is it one blob?) and margin (does it fit inside the frame?),
+    # both of which the sticker composites depend on and coverage cannot see.
     scored = []
     for p in photos:
         im = Image.open(p).convert("RGB")
         m = matte(im)
-        cov = coverage(m)
-        scored.append((abs(cov - 0.3), cov, p, im, m))
-        print(f"  {os.path.basename(p)}  coverage={cov:.3f}")
-    scored.sort(key=lambda t: t[0])
-    _, cov, p, im, m = scored[0]
-    print(f"chosen: {os.path.basename(p)} (coverage={cov:.3f})")
+        # Scored on the firmed matte, because that is what the composites use.
+        firmed = firm(m)
+        cov, sol, mar = coverage(m), solidity(firmed), margin(firmed)
+        # Margin dominates: it is literally the room a contour has to grow into,
+        # and the photos whose subject crowds the frame are the ones whose
+        # silhouette ends in a straight line. Solidity is the veto for a matte
+        # that grabbed scenery (a tree trunk scores ~0.56 where a clean subject
+        # scores 1.0); coverage only breaks ties between otherwise equal frames.
+        score = sol * 1.5 + min(mar, 0.20) / 0.20 * 2.0 - abs(cov - 0.25) * 0.5
+        scored.append((score, cov, sol, mar, p, im, m))
+        print(
+            f"  {os.path.basename(p):<34} coverage={cov:.3f} "
+            f"solidity={sol:.3f} margin={mar * 100:4.1f}%  score={score:.3f}"
+        )
+    scored.sort(key=lambda t: -t[0])
+    _, cov, sol, mar, p, im, m = scored[0]
+    print(
+        f"chosen: {os.path.basename(p)} "
+        f"(coverage={cov:.3f} solidity={sol:.3f} margin={mar * 100:.1f}%)"
+    )
 
     im = fit(im, 1200)
     m = m.resize(im.size, Image.BILINEAR)

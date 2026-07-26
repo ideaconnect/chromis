@@ -361,6 +361,11 @@ img { max-width: 100%; height: auto; display: block; }
 
 /* ---------- Split (screenshot + why) ---------- */
 .split { display: grid; grid-template-columns: 0.8fr 1.2fr; gap: 54px; align-items: center; }
+/* Mirrored, so consecutive split sections don't stack their phones down one
+   edge. DOM order stays screenshot-then-copy, which is also the order it
+   collapses to on a phone. */
+.split-rev { grid-template-columns: 1.2fr 0.8fr; }
+.split-rev > :first-child { order: 2; }
 .phone {
   justify-self: center; width: 100%; max-width: 300px; border-radius: 34px; padding: 10px;
   background: linear-gradient(160deg, #1b2a3d, #0a1420); border: 1px solid var(--border);
@@ -373,6 +378,7 @@ img { max-width: 100%; height: auto; display: block; }
   flex: none; width: 40px; height: 40px; border-radius: 11px; display: grid; place-items: center;
   background: rgba(53, 208, 160, 0.13); color: var(--green); font-size: 19px;
 }
+.why-list .badge-violet { background: rgba(143, 160, 245, 0.14); color: var(--violet); }
 .why-list h3 { font-size: 1.08rem; margin: 2px 0 3px; color: var(--text); }
 .why-list p { margin: 0; font-size: 0.97rem; }
 
