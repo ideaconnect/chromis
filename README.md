@@ -53,13 +53,30 @@ flutter test
 flutter build apk --release # split ABIs, x86_64 excluded
 ```
 
-Regenerate the icon/splash after editing `assets/branding/*`:
+- **applicationId:** `tech.idct.chromis` · **namespace:** `tech.idct.chromis` · **minSdk:** 26
+
+## Branding
+
+Every brand asset - launcher icon, adaptive layers, splash, Play listing icon,
+in-app logo, website mark and favicon - comes out of the one icon design in
+`assets/branding/chromis-icon2.png`. Edit `tool/gen_branding.py`, never the
+outputs:
 
 ```bash
-dart run flutter_launcher_icons
-dart run flutter_native_splash:create
+python tool/gen_branding.py            # every asset, app + website
+dart run flutter_launcher_icons        # -> android/**/ic_launcher*
+dart run flutter_native_splash:create  # -> android/**/splash*
 ```
 
-- **applicationId:** `tech.idct.chromis` · **namespace:** `tech.idct.chromis` · **minSdk:** 26
+The composition is never re-arranged; the assets differ only in size, in whether
+the tile keeps its corners, and in what sits behind it:
+
+- **Adaptive icon** - the tile's fill becomes a square full-bleed background and
+  the artwork alone becomes the foreground, sized to clear Android's guaranteed
+  66dp circle. The launcher's mask then cuts flat colour, not artwork.
+- **The plate** - the tile is `#0A2127`, within a few steps of
+  `AppColors.panel`, so on our own dark surfaces it dissolves. Wherever the
+  ground is ours it gets a light plate (`AppColors.brandPlate`): baked into the
+  splash images, and applied by `AppLogo` and the site's `--brand-plate`.
 
 © 2026 IDCT · Bartosz Pachołek · [idct.tech](https://idct.tech)

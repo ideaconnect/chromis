@@ -24,6 +24,12 @@
   --orange: #f0885a;
   --indigo: #6c7fe0;
 
+  /* The light ground every brand mark sits on. The app icon's tile is #0A2127,
+     within a few steps of --surface, so on this site's dark ground the mark
+     would dissolve into it. Same value as AppColors.brandPlate in the app and
+     PLATE in tool/gen_branding.py. */
+  --brand-plate: #eaf1f8;
+
   --border: rgba(255, 255, 255, 0.08);
   --border-faint: rgba(255, 255, 255, 0.05);
   --hero-grad: linear-gradient(100deg, var(--cyan), var(--indigo) 55%, var(--pink));
@@ -153,7 +159,13 @@ img { max-width: 100%; height: auto; display: block; }
 }
 .nav { display: flex; align-items: center; justify-content: space-between; height: 68px; }
 .brand { display: flex; align-items: center; gap: 0.6rem; font-family: var(--font-display); font-weight: 700; color: var(--text); font-size: 1.08rem; letter-spacing: -0.01em; }
-.brand img { width: 34px; height: 34px; border-radius: 9px; }
+/* Padding + plate, not just a radius: see --brand-plate. The radii are
+   concentric with the tile's own 14.5% corner - inner 0.145x28.9 = 4.2px, plus
+   the 2.5px of plate around it. */
+.brand img {
+  width: 34px; height: 34px; padding: 2.5px;
+  background: var(--brand-plate); border-radius: 6.75px;
+}
 .nav-links { display: flex; align-items: center; gap: 1.6rem; }
 .nav-links a { color: var(--text-2); font-weight: 500; font-size: 0.96rem; }
 .nav-links a:hover { color: var(--text); }
@@ -434,6 +446,14 @@ img { max-width: 100%; height: auto; display: block; }
 }
 .cta-band h2 { margin-bottom: 0.3em; }
 .cta-band p { max-width: 46ch; margin: 0 auto 26px; }
+/* The app icon at a size where the whole composition reads - the header and
+   footer marks are 34px, where the wordmark inside it is a smudge. On its plate
+   like every other mark, radii concentric (0.145x88.4 = 12.8px + 7.8px). */
+.cta-icon {
+  width: 104px; height: 104px; display: block; margin: 0 auto 20px; padding: 7.8px;
+  background: var(--brand-plate); border-radius: 20.6px;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.45);
+}
 
 /* ---------- Contact form ---------- */
 .contact { max-width: 620px; margin: 0 auto; }

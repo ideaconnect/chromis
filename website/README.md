@@ -12,11 +12,35 @@ website/
 ├── terms.html          # Terms of Use
 ├── styles.css          # shared styles
 └── assets/img/
-    ├── logo.png        # app mark
-    ├── effects/        # AI composites, the filter-gallery photo, and the
-    │                   #   vignette/HDR/shadow/contour demos
-    └── screens/        # real app screenshots (WebP)
+    ├── logo.png              # app icon, 256px (header + footer, drawn at 34)
+    ├── favicon-32.png        # the same tile at 32px
+    ├── apple-touch-icon.png  # the same tile at 180px
+    ├── icon-full.png         # the same tile at 512px (CTA band, drawn at 104)
+    ├── effects/              # AI composites, the filter-gallery photo, and the
+    │                         #   vignette/HDR/shadow/contour demos
+    └── screens/              # real app screenshots (WebP)
 ```
+
+## The brand marks are generated, and they sit on a plate
+
+Those four icon files are **outputs of `tool/gen_branding.py`**, which takes the
+app icon from `assets/branding/chromis-icon2.png` and writes the app's copies and
+the site's from the same picture - so the favicon cannot drift from the launcher
+icon. Don't retouch them; change the generator and re-run it from the repo root.
+All four are the same tile, differing only in size.
+
+The tile's fill is `#0A2127`, which is within a few steps of `--surface`
+(`#0a1826`). On this site's dark ground a bare tile dissolves into the page and
+only the brush and wordmark read. So the two marks drawn **on the page** -
+`.brand img` (header + footer) and `.cta-icon` - sit on a light plate:
+`--brand-plate`, applied as a background plus padding, with the radii kept
+concentric with the tile's own 14.5% corner. The app does the same thing in
+`AppLogo`, and `gen_branding.py` bakes the same plate into the splash images -
+**keep those three in step.**
+
+`favicon-32.png` and `apple-touch-icon.png` are deliberately **not** plated: they
+are drawn by the browser and the OS on grounds we do not control (a tab strip, a
+home-screen wallpaper), where the bare tile is the correct thing to hand over.
 
 ## The filter gallery is the app's own maths
 
@@ -147,9 +171,11 @@ a page, so a deploy can skip both.
 GitHub Pages serves CSS and images with a long cache (`Cache-Control: max-age=14400`
 = 4 h). After you change `styles.css` or an image, **bump the `?v=N` query** on
 its `<link>` / `<img>` reference so browsers fetch the new file instead of a
-stale cached copy. `styles.css` and the screenshots are at `?v=4`; the
-generated filter tiles use `ASSET_V` in `tool/gen_filters.py`. The HTML pages
-revalidate quickly, so the new versioned URLs propagate on the next visit.
+stale cached copy. `styles.css` and the brand marks are at `?v=8`, the
+screenshots at `?v=4`; the generated filter tiles use `ASSET_V` in
+`tool/gen_filters.py`. The HTML pages revalidate quickly, so the new versioned
+URLs propagate on the next visit. (Grep the HTML rather than trusting this line -
+if the two ever disagree, the HTML is the truth.)
 
 ## Deploy
 

@@ -65,6 +65,26 @@ A short viewport is now a real path, so **bottom sheets use `SheetBody`**
 bare `Column`. `test/landscape_overflow_test.dart` pumps every screen and sheet
 at landscape sizes; add new ones to it.
 
+### Branding
+
+Every brand asset - launcher icon and its adaptive layers, splash, Play listing
+icon, in-app logo, website mark, favicon - is produced by `tool/gen_branding.py`
+from the icon design in `assets/branding/chromis-icon2.png`. **Never retouch an
+output**; change the generator and re-run it, then
+`dart run flutter_launcher_icons` + `flutter_native_splash:create`.
+
+The composition is never re-arranged - assets differ only in size, in whether the
+tile keeps its corners, and in what sits behind it. Two consequences worth
+knowing:
+
+- The **adaptive icon** splits the design: the tile's fill is a square
+  full-bleed background, the artwork alone is the foreground, sized to clear
+  Android's guaranteed 66dp circle. A launcher's mask cuts colour, not artwork.
+- The tile is `#0A2127`, a few steps from `AppColors.panel`, so on our own dark
+  surfaces it dissolves. It gets a light plate there (`AppColors.brandPlate`,
+  `--brand-plate`, `PLATE`) - baked into the splash, applied by `AppLogo` and by
+  the site's `.brand img` / `.cta-icon`. Keep those four values equal.
+
 ## Milestones
 
 Planned as GitHub milestones **M0-M9** with issues. Work one milestone at a time;

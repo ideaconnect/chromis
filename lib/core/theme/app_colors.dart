@@ -46,6 +46,13 @@ abstract final class AppColors {
   static const Color cutoutInk = Color(0xFF04121A); // ink on accent buttons
   static const Color neutralButton = Color(0xFF12233A);
 
+  /// The light ground the brand tile sits on. The icon's own tile is #0A2127 -
+  /// within a few steps of [panel], so on this app's surfaces the mark would
+  /// dissolve into them rather than read as an icon. Kept equal to
+  /// [textPrimary] so there is one near-white, and matched by `PLATE` in
+  /// `tool/gen_branding.py`, which bakes the same plate into the splash.
+  static const Color brandPlate = Color(0xFFEAF1F8);
+
   // Hairline borders.
   static const Color border = Color(0x14FFFFFF); // ~8% white
   static const Color borderFaint = Color(0x0FFFFFFF); // ~6% white
