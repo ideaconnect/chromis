@@ -1,19 +1,27 @@
 """Compose the eight Google Play screenshots from device captures.
 
-Two sets, one caption list. Play accepts either orientation for a phone
-screenshot and the two crop differently in its carousels, so both are built from
-the same `SHOTS` table - the wording and the verified counts cannot drift apart:
+Three sets, one caption list. Play has a separate listing slot per form factor
+and they crop differently, so all three are built from the same `SHOTS` table -
+the wording and the verified counts cannot drift apart:
 
-  portrait   1080x1920  `assets/store/screenshots/portrait/`
-  landscape  1920x1080  `assets/store/screenshots/landscape/`
+  portrait     1080x1920  `screenshots/portrait/`     phone captures
+  landscape    1920x1080  `screenshots/landscape/`    phone captures
+  tablet-10in  2560x1440  `screenshots/tablet-10in/`  tablet captures, `<src>/tablet/`
 
-Neither canvas matches the device. The captures are 1280x2856 (aspect 0.448),
-portrait Play art is 0.5625 and landscape is 1.78, so the phone can never fill
-the frame and the leftover is used deliberately: in landscape the phone takes one
-side and the claim takes the other; in portrait the claim sits above a whole,
-uncropped device. That padding is the layout, not an apology for it - at the size
-Play actually renders these the UI inside the phone is illegible and the caption
-is the only thing a browsing user reads.
+No canvas matches its device, and each mismatch is handled differently:
+
+- **Phone** captures are 1280x2856 (aspect 0.448) against 0.5625 portrait and
+  1.78 landscape art, so the phone can never fill the frame. In landscape it
+  takes one side and the claim takes the other; in portrait the claim sits above
+  a whole, uncropped device.
+- **Tablet** captures are 2560x1600 (16:10) against 16:9 art. Here the mismatch
+  is cropped away rather than padded: the OS status bar comes off the top and the
+  empty gesture strip off the bottom, landing the capture on exactly 16:9, which
+  buys the device a lot of size back before the caption is placed.
+
+The padding that remains is the layout, not an apology for it - at the size Play
+actually renders these the UI inside the device is illegible and the caption is
+the only thing a browsing user reads.
 
 Every number in the captions is verified against the source, not the website:
 14 filter looks (`PhotoFilter` lists 15 including "Original"), 16 blend modes
@@ -310,6 +318,75 @@ def render_portrait(src: Path, i: int, spec, fonts) -> Image.Image:
     return img
 
 
+def render_tablet(src: Path, i: int, spec, fonts) -> Image.Image:
+    """2560x1440 for the 10-inch tablet slot: header band above the whole device.
+
+    The captures are 2560x1600 (16:10) and the frame is 16:9, so instead of
+    padding that mismatch away the OS chrome is cropped off first - the status
+    bar off the top, the empty gesture strip off the bottom - which lands the
+    capture on exactly 16:9. Both strips measure ~25/255 mean, i.e. they hold
+    nothing but system furniture.
+
+    Frame and capture then share an aspect, so the caption costs a uniform mat
+    rather than a lopsided one. The device stays whole: a tablet screenshot is
+    the evidence that the app uses the large screen, and cropping the rail or the
+    panel to win back margin would throw away the only thing it is proving.
+    """
+    W, H = 2560, 1440
+    MARGIN, TOP, BAND_GAP, BOTTOM = 110, 64, 36, 64
+    name, head, sub, accent = spec
+    icon, h_font, s_font, n_font = fonts["tablet"]
+    head_lh, sub_lh = 64, 42
+
+    shot = Image.open(src / "tablet" / f"{name}.png").convert("RGB")
+    shot = shot.crop((0, 90, shot.width, shot.height - 70))
+
+    # The phone captions wrap to two lines because a phone frame is narrow. This
+    # one is 2560 wide, so they go on one line each - headline left, supporting
+    # copy right - and every line the band does not use is a line the device
+    # gets back. It is worth ~180 px of device height.
+    heads, subs = [head.replace("\n", " ")], [sub.replace("\n", " ")]
+    band_bottom = TOP + icon.height + 20 + len(heads) * head_lh
+    dy = band_bottom + BAND_GAP
+    dh = H - dy - BOTTOM
+    dw = round(shot.width * dh / shot.height)
+
+    art = Image.new("RGBA", (dw, dh), (0, 0, 0, 0))
+    art.paste(shot.resize((dw, dh), Image.LANCZOS), (0, 0))
+    radius = max(12, round(dh * PHONE_RADIUS_PER_PX))
+    art.putalpha(rounded_mask((dw, dh), radius))
+    edge = Image.new("RGBA", (dw, dh), (0, 0, 0, 0))
+    ImageDraw.Draw(edge).rounded_rectangle(
+        [0, 0, dw - 1, dh - 1], radius=radius, outline=(120, 150, 175, 150), width=2
+    )
+    art = Image.alpha_composite(art, edge)
+    dx = (W - dw) // 2
+
+    img = backdrop((W, H), (W // 2, dy + dh // 2), (1150.0, 1000.0, 1700.0, 1150.0))
+    sh, pad = drop_shadow(art, 34, 165)
+    img.paste(sh, (dx + 4 - pad, dy + 22 - pad), sh)
+    img.paste(art, (dx, dy), art)
+
+    d = ImageDraw.Draw(img)
+    y = TOP
+    img.paste(icon, (MARGIN, y), icon)
+    d.text((MARGIN + icon.width + 18, y + 12), "Chromis", font=n_font, fill=MUTED)
+    y += icon.height + 20
+
+    # Headline left, supporting copy right-aligned and centred against it: the
+    # band has to stay short or the device shrinks, and the frame is wide enough
+    # to run them side by side instead of stacked.
+    sy = y + (len(heads) * head_lh - len(subs) * sub_lh) // 2
+    for line in subs:
+        d.text((W - MARGIN, sy), line, font=s_font, fill=MUTED, anchor="ra")
+        sy += sub_lh
+    for line in heads:
+        d.text((MARGIN, y), line, font=h_font, fill=TEXT)
+        y += head_lh
+    d.rounded_rectangle([MARGIN, y + 12, MARGIN + 76, y + 17], radius=2, fill=accent)
+    return img
+
+
 def main() -> None:
     src = Path(sys.argv[1] if len(sys.argv) > 1 else "build/shots")
     missing = [n for n, *_ in SHOTS if not (src / f"{n}.png").exists()]
@@ -329,11 +406,23 @@ def main() -> None:
             font(BODY, 27, "Medium"),
             font(DISPLAY, 28, "Bold"),
         ),
+        "tablet": (
+            Image.open(ICON).convert("RGBA").resize((56, 56), Image.LANCZOS),
+            font(DISPLAY, 54, "Bold"),
+            font(BODY, 30, "Medium"),
+            font(DISPLAY, 32, "Bold"),
+        ),
     }
+
+    tablet_src = src / "tablet"
+    have_tablet = all((tablet_src / f"{n}.png").exists() for n, *_ in SHOTS)
+    if not have_tablet:
+        print(f"  (skipping the tablet set - no captures in {tablet_src})")
 
     for kind, render, size in (
         ("portrait", render_portrait, (1080, 1920)),
         ("landscape", render_landscape, (1920, 1080)),
+        *([("tablet-10in", render_tablet, (2560, 1440))] if have_tablet else []),
     ):
         out = OUT / kind
         out.mkdir(parents=True, exist_ok=True)
