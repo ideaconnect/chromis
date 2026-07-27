@@ -6,21 +6,18 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
-import '../../app/router.dart';
 import '../../core/models/project.dart';
 import '../../core/platform/platform_services.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_typography.dart';
 import '../../core/widgets/checkerboard.dart';
 import '../../core/widgets/responsive_center.dart';
-import '../../core/widgets/sheet_body.dart';
+import '../ads/ad_gate.dart';
 import '../ads/ads_service.dart';
 import '../editor/state/editor_controller.dart';
-import '../go_pro/iap.dart';
 import 'project_renderer.dart';
 
 /// Export & share the current project (PNG/JPG/WebP) at a chosen resolution.
@@ -151,25 +148,15 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
   /// straight through. Returns true when the export may proceed. Fail-open: if
   /// no ad is available [AdsService.showRewarded] returns true, so a missing ad
   /// never traps the user.
-  Future<bool> _adGate() async {
-    if (ref.read(isProProvider)) return true;
-    final choice = await showModalBottomSheet<_ExportGate>(
-      context: context,
-      // So the sheet may use the height it needs; SheetBody caps and scrolls it.
-      isScrollControlled: true,
-      backgroundColor: AppColors.panel,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (_) => const _ExportGateSheet(),
-    );
-    if (!mounted || choice == null) return false;
-    if (choice == _ExportGate.goPro) {
-      unawaited(context.pushNamed(Routes.goPro));
-      return false;
-    }
-    return ref.read(adsServiceProvider).showRewarded();
-  }
+  Future<bool> _adGate() => AdGate.run(
+    context,
+    ref,
+    title: 'Watch a short ad to export',
+    message:
+        'Free exports are supported by a short ad. Go Pro to export without '
+        'ads, forever.',
+    watchLabel: 'Watch & export',
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -411,73 +398,3 @@ class _Label extends StatelessWidget {
 }
 
 enum _Fmt { png, jpg, webp }
-
-enum _ExportGate { watch, goPro }
-
-/// Opt-in sheet shown before a free user's export: watch a short rewarded ad,
-/// or head to Go Pro to export without ads.
-class _ExportGateSheet extends StatelessWidget {
-  const _ExportGateSheet();
-
-  @override
-  Widget build(BuildContext context) {
-    return SheetBody(
-      padding: const EdgeInsets.fromLTRB(22, 14, 22, 22),
-      children: [
-        const SizedBox(height: 4),
-        const Icon(Icons.play_circle_outline, color: AppColors.cyan, size: 36),
-        const SizedBox(height: 12),
-        const Text(
-          'Watch a short ad to export',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontFamily: AppFonts.display,
-            fontWeight: FontWeight.w700,
-            fontSize: 18,
-            color: AppColors.textPrimary,
-          ),
-        ),
-        const SizedBox(height: 8),
-        const Text(
-          'Free exports are supported by a short ad. Go Pro to export '
-          'without ads, forever.',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontFamily: AppFonts.ui,
-            fontSize: 13,
-            height: 1.4,
-            color: AppColors.textMuted,
-          ),
-        ),
-        const SizedBox(height: 22),
-        FilledButton.icon(
-          onPressed: () => Navigator.pop(context, _ExportGate.watch),
-          icon: const Icon(Icons.play_arrow_rounded),
-          label: const Text('Watch & export'),
-          style: FilledButton.styleFrom(
-            backgroundColor: AppColors.cyan,
-            foregroundColor: AppColors.cutoutInk,
-            minimumSize: const Size.fromHeight(50),
-            textStyle: const TextStyle(
-              fontFamily: AppFonts.display,
-              fontWeight: FontWeight.w700,
-              fontSize: 15,
-            ),
-          ),
-        ),
-        const SizedBox(height: 8),
-        TextButton(
-          onPressed: () => Navigator.pop(context, _ExportGate.goPro),
-          child: const Text(
-            'Go Pro - no ads',
-            style: TextStyle(
-              fontFamily: AppFonts.ui,
-              fontWeight: FontWeight.w700,
-              color: AppColors.textSecondary,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}

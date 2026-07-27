@@ -33,7 +33,7 @@ import '../../core/widgets/responsive_center.dart';
 import '../../core/widgets/sheet_body.dart';
 import '../../core/widgets/sm_toast.dart';
 import '../../core/widgets/text_caption.dart';
-import '../ads/ads_service.dart';
+import '../ads/ad_gate.dart';
 import '../fonts/custom_fonts.dart';
 import '../go_pro/iap.dart';
 import '../grid/grid_templates.dart';
@@ -1930,55 +1930,18 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
   /// clear choice (AdMob policy) instead of launching it unannounced.
   Future<bool> _ensureAiAllowed() async {
     if (_aiUnlockedThisSession || ref.read(isProProvider)) return true;
-    final choice = await showDialog<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.panel,
-        title: const Text(
-          'Unlock AI tools',
-          style: TextStyle(
-            fontFamily: AppFonts.display,
-            fontWeight: FontWeight.w700,
-            fontSize: 18,
-            color: AppColors.textPrimary,
-          ),
-        ),
-        content: const Text(
-          'Watch a short ad to use AI tools for this editing session - or go '
-          'Pro to remove ads entirely.',
-          style: TextStyle(
-            fontFamily: AppFonts.ui,
-            fontSize: 13.5,
-            height: 1.4,
-            color: AppColors.textSecondary,
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, 'cancel'),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, 'pro'),
-            child: const Text('Go Pro'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, 'ad'),
-            style: FilledButton.styleFrom(
-              backgroundColor: AppColors.cyan,
-              foregroundColor: AppColors.cutoutInk,
-            ),
-            child: const Text('Watch ad'),
-          ),
-        ],
-      ),
+    // The SAME prompt the export gate uses. This used to be a bare AlertDialog
+    // whose "Go Pro" was a text button beside "Cancel" - the one route out of
+    // ads, styled like the way to back out.
+    final rewarded = await AdGate.run(
+      context,
+      ref,
+      title: 'Unlock AI tools',
+      message:
+          'Watch a short ad to use the AI tools for the rest of this editing '
+          'session. Go Pro to use them without ads, forever.',
+      watchLabel: 'Watch & unlock',
     );
-    if (!mounted || choice == 'cancel' || choice == null) return false;
-    if (choice == 'pro') {
-      unawaited(context.pushNamed(Routes.goPro));
-      return false;
-    }
-    final rewarded = await ref.read(adsServiceProvider).showRewarded();
     if (rewarded) {
       _aiUnlockedThisSession = true;
     } else if (mounted) {
