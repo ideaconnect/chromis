@@ -360,7 +360,6 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
 
   // ---------------------------------------------------------------- canvas
   Widget _canvas(EditorState editor, {bool wide = false}) {
-    final tokens = context.tokens;
     return Padding(
       padding: wide
           ? const EdgeInsets.fromLTRB(14, 10, 16, 12)
@@ -378,10 +377,18 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
           ),
           child: AspectRatio(
             aspectRatio: editor.project.canvasAspect,
+            // SQUARE corners, and a ClipRect rather than a ClipRRect. The
+            // viewport is a preview of the exported image, so anything it adds
+            // to the shape is a lie: rounding it here rounded the photo's own
+            // corners on screen while the export - which knows nothing about
+            // this widget - produced square ones. Only a Photo Grid rounds
+            // anything, and it does that per cell, from `grid.cornerRadius`.
+            //
+            // The clip itself stays: layers are positioned in canvas space and
+            // may extend past it, and they must not spill into the editor chrome.
             child: DecoratedBox(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(tokens.radiusCanvas),
-                boxShadow: const [
+              decoration: const BoxDecoration(
+                boxShadow: [
                   BoxShadow(
                     color: Color(0x80000000),
                     blurRadius: 50,
@@ -389,8 +396,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                   ),
                 ],
               ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(tokens.radiusCanvas),
+              child: ClipRect(
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
