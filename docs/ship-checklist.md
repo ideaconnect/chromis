@@ -85,6 +85,30 @@ Install the debug build and walk every feature. It's already built:
 5. Store listing, content rating (IARC), target audience, and a hosted
    **privacy policy URL** (required - the app uses ads + an advertising id).
 
+### Listing graphics
+
+Both are generated, not hand-made, so they can be rebuilt when the UI moves:
+
+| Asset | File | Generator |
+|---|---|---|
+| Feature graphic (1024x500) | `assets/branding/feature_graphic.png` | `tool/gen_store_graphic.py` |
+| Phone screenshots (8, 1920x1080) | `assets/store/screenshots/*.png` | `tool/gen_store_screens.py` |
+| App icon (512x512) | `assets/branding/store_icon.png` | `tool/gen_branding.py` |
+
+Both graphics generators read the raw device captures in `build/shots` (see
+[website/README.md](../../website/README.md#screenshots) for how those are
+taken). Capture them with the **Pro entitlement set**, so no ad is on screen:
+
+```bash
+adb shell run-as tech.idct.chromis sh -c \
+  "printf %s '{\"onboardingSeen\":true,\"proEntitled\":true}' \
+   > /data/data/tech.idct.chromis/app_flutter/settings.json"
+```
+
+An ad slot is not a product feature, and Play crops these into surfaces where
+one would only read as clutter. Set it back to `false` afterwards or the device
+stops exercising the ad paths.
+
 ---
 
 ## D. Cut the release build

@@ -22,16 +22,18 @@ OUT = os.path.join(ROOT, "website", "assets", "img", "screens")
 
 # name in -> (name out, target width, crop fraction off the bottom)
 #
-# The ad slot plus its "Remove ads" row is the bottom ~9% of Home; every other
-# screen ends in the tool dock, which is part of the product.
+# Captured with the Pro entitlement set, so no ad is showing anywhere and Home
+# needs no crop - it used to lose its bottom ~12% because a test ad sat there,
+# and a house ad is not landing-page material. `tool/gen_store_screens.py`
+# consumes the same directory for the Play listing.
 SHOTS = {
-    "s09_fx.png": ("effects.webp", 620, 0.0),
-    "s23_grid.png": ("grid.webp", 620, 0.0),
-    "s24_layers.png": ("layers.webp", 620, 0.0),
-    "q19_aicut.png": ("cutout.webp", 620, 0.0),
-    "s05.png": ("adjust.webp", 620, 0.0),
-    "s25_home.png": ("home.webp", 620, 0.125),
-    "s10_landscape.png": ("landscape.webp", 1240, 0.0),
+    "effects.png": ("effects.webp", 620, 0.0),
+    "grid.png": ("grid.webp", 620, 0.0),
+    "layers.png": ("layers.webp", 620, 0.0),
+    "aicut.png": ("cutout.webp", 620, 0.0),
+    "adjust.png": ("adjust.webp", 620, 0.0),
+    "home.png": ("home.webp", 620, 0.0),
+    "landscape.png": ("landscape.webp", 1240, 0.0),
 }
 
 

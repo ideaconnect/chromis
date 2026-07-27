@@ -101,9 +101,30 @@ drawn around it.
 ## Screenshots
 
 `tool/gen_screens.py <dir>` turns raw `adb exec-out screencap` PNGs into the
-WebP set in `assets/img/screens/`: it crops the ad slot off Home (a test ad is
-not landing-page material), downscales to ~2x the rendered size, and encodes.
-The `SHOTS` map at the top names each source file and its output.
+WebP set in `assets/img/screens/`: it downscales to ~2x the rendered size and
+encodes. The `SHOTS` map at the top names each source file and its output, and
+it is the same directory `tool/gen_store_screens.py` builds the Play listing
+from - one capture session feeds both.
+
+Capture with the **Pro entitlement set** so no ad is on screen anywhere (see
+[docs/ship-checklist.md](../docs/ship-checklist.md#listing-graphics) for the one
+`adb` line that sets it). Home used to lose its bottom 12% to a crop because a
+test ad sat there; with Pro there is nothing to crop, which is why every phone
+shot is now the full 620x1383 and the `height` attributes in `index.html` had to
+follow. **If a capture is re-taken without Pro, the crop has to come back** - a
+house ad is not landing-page material.
+
+The emulator's status bar is worth taming first, or the shots carry whatever
+notification icon happened to be up that day:
+
+```bash
+adb shell settings put global sysui_demo_allowed 1
+adb shell am broadcast -a com.android.systemui.demo -e command enter
+adb shell am broadcast -a com.android.systemui.demo -e command clock -e hhmm 0941
+adb shell am broadcast -a com.android.systemui.demo -e command battery -e level 100 -e plugged false
+adb shell am broadcast -a com.android.systemui.demo -e command network -e wifi show -e level 4
+adb shell am broadcast -a com.android.systemui.demo -e command notifications -e visible false
+```
 
 ## Checking a change
 
@@ -169,7 +190,7 @@ a page, so a deploy can skip both.
 GitHub Pages serves CSS and images with a long cache (`Cache-Control: max-age=14400`
 = 4 h). After you change `styles.css` or an image, **bump the `?v=N` query** on
 its `<link>` / `<img>` reference so browsers fetch the new file instead of a
-stale cached copy. `styles.css` and the brand marks are at `?v=9`, the
+stale cached copy. `styles.css` and the brand marks are at `?v=10`, the
 screenshots at `?v=4`; the generated filter tiles use `ASSET_V` in
 `tool/gen_filters.py`. The HTML pages revalidate quickly, so the new versioned
 URLs propagate on the next visit. (Grep the HTML rather than trusting this line -
