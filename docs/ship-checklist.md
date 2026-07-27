@@ -92,8 +92,14 @@ Both are generated, not hand-made, so they can be rebuilt when the UI moves:
 | Asset | File | Generator |
 |---|---|---|
 | Feature graphic (1024x500) | `assets/branding/feature_graphic.png` | `tool/gen_store_graphic.py` |
-| Phone screenshots (8, 1920x1080) | `assets/store/screenshots/*.png` | `tool/gen_store_screens.py` |
+| Phone screenshots (8, 1080x1920) | `assets/store/screenshots/portrait/` | `tool/gen_store_screens.py` |
+| Phone screenshots (8, 1920x1080) | `assets/store/screenshots/landscape/` | `tool/gen_store_screens.py` |
 | App icon (512x512) | `assets/branding/store_icon.png` | `tool/gen_branding.py` |
+
+**Upload the portrait set** unless you have a reason not to: the app is portrait,
+and Play shows a portrait phone screenshot larger in the listing than a landscape
+one. Both come out of the same run and the same caption table, so they say the
+same thing; a listing takes one orientation, not both.
 
 Both graphics generators read the raw device captures in `build/shots` (see
 [website/README.md](../../website/README.md#screenshots) for how those are
