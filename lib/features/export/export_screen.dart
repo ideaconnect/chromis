@@ -148,15 +148,15 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
   /// straight through. Returns true when the export may proceed. Fail-open: if
   /// no ad is available [AdsService.showRewarded] returns true, so a missing ad
   /// never traps the user.
-  Future<bool> _adGate() => AdGate.run(
+  Future<bool> _adGate() async => (await AdGate.run(
     context,
     ref,
     title: 'Watch a short ad to export',
     message:
-        'Free exports are supported by a short ad. Go Pro to export without '
-        'ads, forever.',
+        'Free exports are supported by a short ad. Go Pro to export '
+        'without ads, forever.',
     watchLabel: 'Watch & export',
-  );
+  )).allows;
 
   @override
   Widget build(BuildContext context) {

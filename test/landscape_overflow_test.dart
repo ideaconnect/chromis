@@ -2,6 +2,7 @@ import 'package:chromis/core/models/project.dart';
 import 'package:chromis/core/theme/app_theme.dart';
 import 'package:chromis/core/widgets/sheet_body.dart';
 import 'package:chromis/features/about/about_sheet.dart';
+import 'package:chromis/features/ads/ad_gate.dart';
 import 'package:chromis/features/editor/editor_screen.dart';
 import 'package:chromis/features/editor/widgets/canvas_size_sheet.dart';
 import 'package:chromis/features/editor/widgets/project_canvas.dart';
@@ -136,6 +137,30 @@ void main() {
       testWidgets('photo grid setup sheet', (tester) async {
         await pumpSheet(tester, size, showGridSetupSheet);
         expect(tester.takeException(), isNull);
+      });
+
+      // Shown to every free user before an ad, so it is on the busiest path in
+      // the app - and its two full-width buttons plus the one-time-purchase note
+      // are exactly the kind of stack that runs out of room on a short window.
+      testWidgets('ad gate sheet', (tester) async {
+        await pumpSheet(
+          tester,
+          size,
+          (context) => showModalBottomSheet<AdGateChoice>(
+            context: context,
+            isScrollControlled: true,
+            builder: (_) => const AdGateSheet(
+              title: 'Unlock AI tools',
+              message:
+                  'Watch a short ad to use the AI tools for the rest of this '
+                  'editing session. Go Pro to use them without ads, forever.',
+              watchLabel: 'Watch & unlock',
+            ),
+          ),
+        );
+        expect(tester.takeException(), isNull);
+        expect(find.byKey(const ValueKey('ad-gate-watch')), findsOneWidget);
+        expect(find.byKey(const ValueKey('ad-gate-go-pro')), findsOneWidget);
       });
 
       testWidgets('about sheet', (tester) async {

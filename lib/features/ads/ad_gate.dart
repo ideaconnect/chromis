@@ -26,26 +26,52 @@ import 'ads_service.dart';
 /// anything.
 enum AdGateChoice { watch, goPro }
 
+/// What actually happened at the gate.
+///
+/// A bare bool is not enough, and the first version of this learned that the
+/// hard way: three different endings collapse to "may not proceed", and the AI
+/// gate's "watch the full ad" nag then fired on all of them - including over the
+/// Go Pro screen the user had just chosen to open, telling someone who was in
+/// the middle of buying their way out of ads to consider buying their way out of
+/// ads.
+enum AdGateOutcome {
+  /// Pro, or the ad was watched through to its reward. Proceed.
+  allowed,
+
+  /// The sheet was dismissed without choosing. A decision, not a failure.
+  dismissed,
+
+  /// They chose the upgrade; the Go Pro screen has been pushed.
+  wentToPro,
+
+  /// They chose to watch, but the ad ended without earning the reward. The only
+  /// ending worth explaining to the user.
+  notRewarded;
+
+  bool get allows => this == AdGateOutcome.allowed;
+}
+
 abstract final class AdGate {
   AdGate._();
 
   /// Asks the user to watch an ad or upgrade, then does what they chose.
   ///
-  /// Returns **true** only when the caller may proceed: the user is Pro, or the
-  /// ad was watched. Returns false when they dismissed the sheet or went to Go
-  /// Pro (that screen is pushed here, so callers just stop).
+  /// Check [AdGateOutcome.allows] to decide whether to go ahead; the specific
+  /// outcome is there so a caller can tell a refusal from a failure and say
+  /// something only when there is something to say. Going to Go Pro pushes that
+  /// screen from here, so callers just stop.
   ///
   /// [title], [message] and [watchLabel] are per-action so the prompt can say
   /// what is actually about to happen; everything else is fixed so the decision
   /// looks the same wherever it is asked.
-  static Future<bool> run(
+  static Future<AdGateOutcome> run(
     BuildContext context,
     WidgetRef ref, {
     required String title,
     required String message,
     required String watchLabel,
   }) async {
-    if (ref.read(isProProvider)) return true;
+    if (ref.read(isProProvider)) return AdGateOutcome.allowed;
 
     final choice = await showModalBottomSheet<AdGateChoice>(
       context: context,
@@ -58,12 +84,14 @@ abstract final class AdGate {
       builder: (_) =>
           AdGateSheet(title: title, message: message, watchLabel: watchLabel),
     );
-    if (!context.mounted || choice == null) return false;
+    if (!context.mounted || choice == null) return AdGateOutcome.dismissed;
     if (choice == AdGateChoice.goPro) {
       unawaited(context.pushNamed(Routes.goPro));
-      return false;
+      return AdGateOutcome.wentToPro;
     }
-    return ref.read(adsServiceProvider).showRewarded();
+    return await ref.read(adsServiceProvider).showRewarded()
+        ? AdGateOutcome.allowed
+        : AdGateOutcome.notRewarded;
   }
 }
 

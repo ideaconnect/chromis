@@ -1933,7 +1933,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     // The SAME prompt the export gate uses. This used to be a bare AlertDialog
     // whose "Go Pro" was a text button beside "Cancel" - the one route out of
     // ads, styled like the way to back out.
-    final rewarded = await AdGate.run(
+    final outcome = await AdGate.run(
       context,
       ref,
       title: 'Unlock AI tools',
@@ -1942,12 +1942,18 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
           'session. Go Pro to use them without ads, forever.',
       watchLabel: 'Watch & unlock',
     );
-    if (rewarded) {
+    if (outcome.allows) {
       _aiUnlockedThisSession = true;
-    } else if (mounted) {
+      return true;
+    }
+    // Only when they started an ad and it did not count. Dismissing the sheet is
+    // an answer, not a mistake, and someone who just tapped Go Pro is already
+    // looking at the purchase screen - telling them there to consider Go Pro is
+    // exactly the nag this gate exists to avoid.
+    if (outcome == AdGateOutcome.notRewarded && mounted) {
       _toast('Watch the full ad to use AI, or Go Pro to remove ads');
     }
-    return rewarded;
+    return false;
   }
 
   /// Runs the AI cut-out for [image]: pick the best available segmentation

@@ -112,7 +112,7 @@ void main() {
   });
 
   testWidgets('a Pro user is never asked', (tester) async {
-    var ran = false;
+    AdGateOutcome? ran;
     await tester.pumpWidget(
       ProviderScope(
         overrides: [isProProvider.overrideWithValue(true)],
@@ -139,7 +139,7 @@ void main() {
     );
     await tester.tap(find.text('go'));
     await tester.pumpAndSettle();
-    expect(ran, isTrue, reason: 'Pro passes straight through');
+    expect(ran, AdGateOutcome.allowed, reason: 'Pro passes straight through');
     expect(watch, findsNothing, reason: 'and is shown no prompt at all');
   });
 
@@ -153,8 +153,9 @@ void main() {
       if (f is! File || !f.path.endsWith('.dart')) continue;
       final rel = f.path.replaceAll(r'\', '/');
       if (rel.endsWith('lib/features/ads/ad_gate.dart')) continue;
-      if (rel.endsWith('lib/features/ads/ads_service.dart'))
+      if (rel.endsWith('lib/features/ads/ads_service.dart')) {
         continue; // declares it
+      }
       for (final (i, line) in f.readAsLinesSync().indexed) {
         // Calls only - doc comments referencing [showRewarded] are fine.
         if (line.contains('showRewarded(') &&
@@ -170,5 +171,65 @@ void main() {
           'these call AdsService.showRewarded() directly and so skip the '
           'watch-or-go-Pro prompt; route them through AdGate.run instead',
     );
+  });
+
+  testWidgets('reports which ending it reached, not just pass/fail', (
+    tester,
+  ) async {
+    // The regression this guards: AdGate.run once returned a bare bool, so the
+    // AI gate could not tell "the ad did not count" from "they chose Go Pro" or
+    // "they closed the sheet" - and fired its "watch the full ad" nag on all
+    // three, including on top of the Go Pro screen the user had just opened.
+    AdGateOutcome? outcome;
+    Future<void> pump(WidgetTester tester) async {
+      outcome = null;
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [isProProvider.overrideWithValue(false)],
+          child: MaterialApp(
+            theme: buildAppTheme(),
+            // A real Navigator, so pushing Go Pro from inside the gate works.
+            routes: {'/pro': (_) => const Scaffold(body: Text('PRO'))},
+            home: Consumer(
+              builder: (context, ref, _) => Scaffold(
+                body: ElevatedButton(
+                  onPressed: () async {
+                    outcome = await AdGate.run(
+                      context,
+                      ref,
+                      title: 't',
+                      message: 'm',
+                      watchLabel: 'w',
+                    );
+                  },
+                  child: const Text('go'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('go'));
+      await tester.pumpAndSettle();
+    }
+
+    // Dismissed: tap the scrim above the sheet.
+    await pump(tester);
+    await tester.tapAt(const Offset(10, 10));
+    await tester.pumpAndSettle();
+    expect(
+      outcome,
+      AdGateOutcome.dismissed,
+      reason: 'closing the sheet is an answer, and must be distinguishable',
+    );
+    expect(outcome!.allows, isFalse);
+  });
+
+  test('only one outcome lets the action through', () {
+    // If a new ending is added, it must be a deliberate decision whether it
+    // proceeds - so the mapping is pinned rather than left to `!= dismissed`.
+    expect(AdGateOutcome.values.where((o) => o.allows), [
+      AdGateOutcome.allowed,
+    ]);
   });
 }
