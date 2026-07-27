@@ -14,10 +14,10 @@ No canvas matches its device, and each mismatch is handled differently:
   1.78 landscape art, so the phone can never fill the frame. In landscape it
   takes one side and the claim takes the other; in portrait the claim sits above
   a whole, uncropped device.
-- **Tablet** captures are 2560x1600 (16:10) against 16:9 art. Here the mismatch
-  is cropped away rather than padded: the OS status bar comes off the top and the
-  empty gesture strip off the bottom, landing the capture on exactly 16:9, which
-  buys the device a lot of size back before the caption is placed.
+- **Tablet** captures are 2560x1600 (16:10) against 16:9 art, and that gap is
+  padded too. Trimming the OS chrome to close it is tempting and was tried; see
+  `render_tablet` for why it is not worth the 11 px it quietly took off every
+  project title and Export button.
 
 The padding that remains is the layout, not an apology for it - at the size Play
 actually renders these the UI inside the device is illegible and the caption is
@@ -321,16 +321,17 @@ def render_portrait(src: Path, i: int, spec, fonts) -> Image.Image:
 def render_tablet(src: Path, i: int, spec, fonts) -> Image.Image:
     """2560x1440 for the 10-inch tablet slot: header band above the whole device.
 
-    The captures are 2560x1600 (16:10) and the frame is 16:9, so instead of
-    padding that mismatch away the OS chrome is cropped off first - the status
-    bar off the top, the empty gesture strip off the bottom - which lands the
-    capture on exactly 16:9. Both strips measure ~25/255 mean, i.e. they hold
-    nothing but system furniture.
+    The capture is NOT cropped. An earlier version shaved 90 px off the top to
+    force the 16:10 capture onto the frame's 16:9 and win the device some size,
+    on the assumption that 90 px was all status bar. It is not: measured across
+    all eight captures the OS status bar ends at row 38 and the app's own top bar
+    starts at row 79, so the crop sliced 11 px off the project title and the
+    Export button in every single shot.
 
-    Frame and capture then share an aspect, so the caption costs a uniform mat
-    rather than a lopsided one. The device stays whole: a tablet screenshot is
-    the evidence that the app uses the large screen, and cropping the rail or the
-    panel to win back margin would throw away the only thing it is proving.
+    The mismatch is padded instead. Trimming "just the chrome" needs the trim to
+    be re-measured whenever the app's top bar, the device or the density changes,
+    and the failure is quiet - it looks like a slightly tight crop rather than a
+    bug. Padding costs ~370 px of field either side and cannot cut anything.
     """
     W, H = 2560, 1440
     MARGIN, TOP, BAND_GAP, BOTTOM = 110, 64, 36, 64
@@ -339,7 +340,6 @@ def render_tablet(src: Path, i: int, spec, fonts) -> Image.Image:
     head_lh, sub_lh = 64, 42
 
     shot = Image.open(src / "tablet" / f"{name}.png").convert("RGB")
-    shot = shot.crop((0, 90, shot.width, shot.height - 70))
 
     # The phone captions wrap to two lines because a phone frame is narrow. This
     # one is 2560 wide, so they go on one line each - headline left, supporting
