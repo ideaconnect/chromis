@@ -68,6 +68,12 @@ class ProjectCanvas extends StatelessWidget {
 
   static bool defaultFileExists(String path) => File(path).existsSync();
 
+  /// Marks the stand-in shown while a photo layer's own decode is in flight, so
+  /// a test can tell it apart from the cached `Image.file` fast path - the two
+  /// are the same widget type but mean opposite things. See
+  /// `_MaskedImageState.build`.
+  static const Key decodePlaceholderKey = ValueKey('layer-decode-placeholder');
+
   /// Cached existence check - stats a given [path] at most once.
   static bool _exists(String path) =>
       existsCache.putIfAbsent(path, () => fileExists(path));
@@ -431,7 +437,31 @@ class _MaskedImageState extends State<_MaskedImage> {
   Widget build(BuildContext context) {
     final base = _base;
     if (base == null) {
-      return SizedBox.square(dimension: widget.side);
+      // Hold the photo on screen while the first decode is in flight, instead
+      // of a blank box.
+      //
+      // This is what the user sees as a flicker on the FIRST brightness or
+      // contrast nudge: an untouched photo renders through the cached
+      // `Image.file` fast path, and the moment `needsPainter` flips this widget
+      // takes its place, mounts, and has nothing to paint until its async
+      // decode returns. The photo vanished and came back.
+      //
+      // `Image.file` at the same `cacheWidth` is the entry the fast path just
+      // populated in Flutter's ImageCache, so this resolves synchronously and
+      // costs no second decode. It is the un-adjusted photo for a frame or two -
+      // the effects arrive when the decode does - which is a far smaller lie
+      // than an empty canvas. Re-decodes (pinch zoom raising the target) never
+      // reach here: `_base` stays non-null and is swapped only on completion.
+      return Image.file(
+        File(widget.imagePath),
+        key: ProjectCanvas.decodePlaceholderKey,
+        width: widget.side,
+        height: widget.side,
+        fit: BoxFit.contain,
+        cacheWidth: widget.decodeTarget,
+        gaplessPlayback: true,
+        errorBuilder: (_, _, _) => SizedBox.square(dimension: widget.side),
+      );
     }
     return CustomPaint(
       size: Size.square(widget.side),

@@ -150,11 +150,19 @@ void main() {
       findsNothing,
       reason: 'a colour transform must not push an engine layer',
     );
-    expect(
-      find.byType(Image),
-      findsNothing,
-      reason: 'the cached Image.file path cannot carry a colour matrix',
-    );
+    // The cached Image.file path cannot carry a colour matrix, so it must not be
+    // what renders this. The ONE Image allowed here is the stand-in the painter
+    // shows while its own decode is in flight - same widget type, opposite
+    // meaning, which is why it carries a key. (This pump never lets that decode
+    // finish, so the stand-in is still up; in the app it is replaced within a
+    // frame or two.)
+    for (final image in tester.widgetList<Image>(find.byType(Image))) {
+      expect(
+        image.key,
+        ProjectCanvas.decodePlaceholderKey,
+        reason: 'an adjusted photo reached the canvas through Image.file',
+      );
+    }
   });
 
   testWidgets('an untouched photo keeps the cached Image.file path', (
