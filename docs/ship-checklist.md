@@ -96,7 +96,7 @@ Both are generated, not hand-made, so they can be rebuilt when the UI moves:
 | App icon (512x512) | `assets/branding/store_icon.png` | `tool/gen_branding.py` |
 | Feature graphic (1024x500) | `assets/branding/feature_graphic.png` | `tool/gen_store_graphic.py` |
 | **Phone** (8, 1080x1920) | `assets/store/screenshots/portrait/` | `tool/gen_store_screens.py` |
-| **7-inch tablet** (8) | reuse `screenshots/tablet-10in/` | - |
+| **7-inch tablet** (8, 1920x1080) | `assets/store/screenshots/tablet-7in/` | `tool/gen_store_screens.py` |
 | **10-inch tablet** (8, 2560x1440) | `assets/store/screenshots/tablet-10in/` | `tool/gen_store_screens.py` |
 | *(spare)* phone landscape (8, 1920x1080) | `assets/store/screenshots/landscape/` | `tool/gen_store_screens.py` |
 
@@ -107,14 +107,24 @@ orientation, not both.
 
 **Both tablet slots matter.** Leaving them empty is what makes Play warn that the
 app is not designed for large screens, even though it has a full landscape rail
-layout. The 7-inch slot has the same pixel rules as the 10-inch one (320-3840 px,
-max 2:1), so the same eight files go in both - they are the app's real tablet UI
-either way, and nothing about them claims a particular device size.
+layout. Each slot now has its own genuine capture rather than a reused one, which
+is worth having: the rail *scrolls* on a 7-inch screen and does not on a 10-inch
+one, so the two really are different screenshots of different layouts.
 
-Tablet captures come from an `sw800dp` emulator (Pixel Tablet, 2560x1600 @ 320dpi)
-in its natural **landscape** orientation - note `user_rotation 0` is landscape on
-a tablet and portrait on a phone - and live in `build/shots/tablet/`. Without
-them the generator prints a notice and builds the two phone sets only.
+| Captures in | Device | Screen | Slot |
+|---|---|---|---|
+| `build/shots/` | Pixel 10 Pro | 1280x2856 @ 480dpi | phone |
+| `build/shots/tablet7/` | 7-inch tablet | 1920x1200 @ 320dpi = `sw600dp` | 7-inch |
+| `build/shots/tablet/` | Pixel Tablet | 2560x1600 @ 320dpi = `sw800dp` | 10-inch |
+
+Capture in the tablet's natural **landscape** orientation - note `user_rotation 0`
+is landscape on a tablet and portrait on a phone, so the value that gives you a
+portrait phone gives you a landscape tablet. A set whose captures are missing is
+skipped with a notice, so the phone sets rebuild fine with no tablet attached.
+
+The system photo picker keeps its own index: after re-seeding `/sdcard` it reports
+"No photos yet" even while `content query` lists every file. Fix with
+`pm clear com.google.android.providers.media.module` and a `scan_volume`.
 
 Both graphics generators read the raw device captures in `build/shots` (see
 [website/README.md](../../website/README.md#screenshots) for how those are

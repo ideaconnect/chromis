@@ -1,23 +1,26 @@
 """Compose the eight Google Play screenshots from device captures.
 
-Three sets, one caption list. Play has a separate listing slot per form factor
-and they crop differently, so all three are built from the same `SHOTS` table -
-the wording and the verified counts cannot drift apart:
+Four sets, one caption list. Play has a separate listing slot per form factor, so
+all four are built from the same `SHOTS` table - the wording and the verified
+counts cannot drift apart:
 
-  portrait     1080x1920  `screenshots/portrait/`     phone captures
-  landscape    1920x1080  `screenshots/landscape/`    phone captures
-  tablet-10in  2560x1440  `screenshots/tablet-10in/`  tablet captures, `<src>/tablet/`
+  set          output     captures in   from
+  portrait     1080x1920  `<src>/`      phone,   1280x2856
+  landscape    1920x1080  `<src>/`      phone,   1280x2856
+  tablet-7in   1920x1080  `<src>/tablet7/`  sw600dp tablet, 1920x1200
+  tablet-10in  2560x1440  `<src>/tablet/`   sw800dp tablet, 2560x1600
 
-No canvas matches its device, and each mismatch is handled differently:
+A set is skipped with a notice if its captures are absent, so the phone sets can
+be rebuilt without a tablet attached.
 
-- **Phone** captures are 1280x2856 (aspect 0.448) against 0.5625 portrait and
-  1.78 landscape art, so the phone can never fill the frame. In landscape it
-  takes one side and the claim takes the other; in portrait the claim sits above
-  a whole, uncropped device.
-- **Tablet** captures are 2560x1600 (16:10) against 16:9 art, and that gap is
-  padded too. Trimming the OS chrome to close it is tempting and was tried; see
-  `render_tablet` for why it is not worth the 11 px it quietly took off every
-  project title and Export button.
+No canvas matches its device, and **nothing is ever cropped to close the gap**:
+
+- **Phone** captures are aspect 0.448 against 0.5625 portrait and 1.78 landscape,
+  so the phone can never fill the frame. In landscape it takes one side and the
+  claim takes the other; in portrait the claim sits above a whole device.
+- **Tablet** captures are 16:10 against 16:9 art. Trimming the OS chrome to close
+  that is tempting and was tried; see `render_tablet` for why it is not worth the
+  11 px it quietly took off every project title and Export button.
 
 The padding that remains is the layout, not an apology for it - at the size Play
 actually renders these the UI inside the device is illegible and the caption is
@@ -318,8 +321,8 @@ def render_portrait(src: Path, i: int, spec, fonts) -> Image.Image:
     return img
 
 
-def render_tablet(src: Path, i: int, spec, fonts) -> Image.Image:
-    """2560x1440 for the 10-inch tablet slot: header band above the whole device.
+def render_tablet(src: Path, i: int, spec, fonts, kind="tablet-10in") -> Image.Image:
+    """Header band above the WHOLE device, for either tablet slot.
 
     The capture is NOT cropped. An earlier version shaved 90 px off the top to
     force the 16:10 capture onto the frame's 16:9 and win the device some size,
@@ -333,19 +336,29 @@ def render_tablet(src: Path, i: int, spec, fonts) -> Image.Image:
     and the failure is quiet - it looks like a slightly tight crop rather than a
     bug. Padding costs ~370 px of field either side and cannot cut anything.
     """
-    W, H = 2560, 1440
-    MARGIN, TOP, BAND_GAP, BOTTOM = 110, 64, 36, 64
+    cfg = fonts[kind]
+    W, H = cfg["size"]
+    MARGIN, TOP, BAND_GAP, BOTTOM = cfg["margin"], cfg["top"], cfg["band_gap"], cfg["bottom"]
     name, head, sub, accent = spec
-    icon, h_font, s_font, n_font = fonts["tablet"]
-    head_lh, sub_lh = 64, 42
+    icon, h_font, s_font, n_font = cfg["fonts"]
+    head_lh, sub_lh = cfg["head_lh"], cfg["sub_lh"]
 
-    shot = Image.open(src / "tablet" / f"{name}.png").convert("RGB")
+    shot = Image.open(src / cfg["dir"] / f"{name}.png").convert("RGB")
 
-    # The phone captions wrap to two lines because a phone frame is narrow. This
-    # one is 2560 wide, so they go on one line each - headline left, supporting
-    # copy right - and every line the band does not use is a line the device
-    # gets back. It is worth ~180 px of device height.
+    # The phone captions wrap to two lines because a phone frame is narrow. A
+    # tablet frame is not, so they go on one line each - headline left,
+    # supporting copy right - and every line the band does not use is a line the
+    # device gets back. Worth ~180 px of device height at 2560 wide.
+    #
+    # Checked rather than assumed: the 7-inch frame is 1920 wide with a longer
+    # relative type size, so a one-line pair can collide. If it would, the
+    # supporting copy goes back to two lines and the device gives up the height.
     heads, subs = [head.replace("\n", " ")], [sub.replace("\n", " ")]
+    if (
+        MARGIN + h_font.getlength(heads[0]) + 60 + s_font.getlength(subs[0])
+        > W - MARGIN
+    ):
+        subs = sub.split("\n")
     band_bottom = TOP + icon.height + 20 + len(heads) * head_lh
     dy = band_bottom + BAND_GAP
     dh = H - dy - BOTTOM
@@ -362,9 +375,9 @@ def render_tablet(src: Path, i: int, spec, fonts) -> Image.Image:
     art = Image.alpha_composite(art, edge)
     dx = (W - dw) // 2
 
-    img = backdrop((W, H), (W // 2, dy + dh // 2), (1150.0, 1000.0, 1700.0, 1150.0))
-    sh, pad = drop_shadow(art, 34, 165)
-    img.paste(sh, (dx + 4 - pad, dy + 22 - pad), sh)
+    img = backdrop((W, H), (W // 2, dy + dh // 2), cfg["glow"])
+    sh, pad = drop_shadow(art, cfg["blur"], 165)
+    img.paste(sh, (dx + 4 - pad, dy + cfg["blur"] // 2 + 5 - pad), sh)
     img.paste(art, (dx, dy), art)
 
     d = ImageDraw.Draw(img)
@@ -383,7 +396,7 @@ def render_tablet(src: Path, i: int, spec, fonts) -> Image.Image:
     for line in heads:
         d.text((MARGIN, y), line, font=h_font, fill=TEXT)
         y += head_lh
-    d.rounded_rectangle([MARGIN, y + 12, MARGIN + 76, y + 17], radius=2, fill=accent)
+    d.rounded_rectangle([MARGIN, y + 12, MARGIN + cfg["rule"], y + 17], radius=2, fill=accent)
     return img
 
 
@@ -406,24 +419,40 @@ def main() -> None:
             font(BODY, 27, "Medium"),
             font(DISPLAY, 28, "Bold"),
         ),
-        "tablet": (
-            Image.open(ICON).convert("RGBA").resize((56, 56), Image.LANCZOS),
-            font(DISPLAY, 54, "Bold"),
-            font(BODY, 30, "Medium"),
-            font(DISPLAY, 32, "Bold"),
-        ),
     }
+    # The two tablet slots are the same layout at two scales; 7-inch is 0.75x.
+    for kind, sz, k, d in (
+        ("tablet-10in", (2560, 1440), 1.0, "tablet"),
+        ("tablet-7in", (1920, 1080), 0.75, "tablet7"),
+    ):
+        r = lambda v: round(v * k)  # noqa: E731 - local scale helper
+        fonts[kind] = {
+            "size": sz,
+            "dir": d,
+            "margin": r(110), "top": r(64), "band_gap": r(36), "bottom": r(64),
+            "head_lh": r(64), "sub_lh": r(42), "rule": r(76), "blur": r(34),
+            "glow": (1150.0 * k, 1000.0 * k, 1700.0 * k, 1150.0 * k),
+            "fonts": (
+                Image.open(ICON).convert("RGBA").resize((r(56), r(56)), Image.LANCZOS),
+                font(DISPLAY, r(54), "Bold"),
+                font(BODY, r(30), "Medium"),
+                font(DISPLAY, r(32), "Bold"),
+            ),
+        }
 
-    tablet_src = src / "tablet"
-    have_tablet = all((tablet_src / f"{n}.png").exists() for n, *_ in SHOTS)
-    if not have_tablet:
-        print(f"  (skipping the tablet set - no captures in {tablet_src})")
-
-    for kind, render, size in (
+    jobs = [
         ("portrait", render_portrait, (1080, 1920)),
         ("landscape", render_landscape, (1920, 1080)),
-        *([("tablet-10in", render_tablet, (2560, 1440))] if have_tablet else []),
-    ):
+    ]
+    for kind in ("tablet-10in", "tablet-7in"):
+        d = src / fonts[kind]["dir"]
+        if all((d / f"{n}.png").exists() for n, *_ in SHOTS):
+            jobs.append((kind, lambda s, i, sp, f, _k=kind: render_tablet(s, i, sp, f, _k),
+                         fonts[kind]["size"]))
+        else:
+            print(f"  (skipping {kind} - no captures in {d})")
+
+    for kind, render, size in jobs:
         out = OUT / kind
         out.mkdir(parents=True, exist_ok=True)
         for i, spec in enumerate(SHOTS):
