@@ -79,8 +79,13 @@ includes a **Restore** button.
 2. Create the app in Play Console with applicationId **`tech.idct.chromis`**,
    and upload a signed build to at least **Internal testing** (products don't
    return until a matching signed build is on a track).
-3. **Monetize → Products → In-app products:** create id **`pro_remove_ads`**,
-   type **one-time (non-consumable)**, set price, **Activate**.
+3. **Monetize → Products → One-time products:** the product id is
+   **`chromis_pro_mode`** and it must match `kProProductId` in
+   `lib/features/go_pro/iap.dart` exactly. Set price and **Activate**.
+   Its purchase option must be marked **backward compatible** ("Zgodność
+   wsteczna"): `in_app_purchase` speaks the legacy Play Billing product model,
+   which addresses a product by id alone and cannot name a purchase option.
+   Without that flag the query returns empty exactly as if the id were wrong.
 4. Add yourself under **Setup → License testing** so test buys aren't charged.
 5. Nothing else in code - purchase/restore/acknowledge is handled by the app
    (acknowledged within Google's 3-day window via `completePurchase`).
@@ -92,4 +97,4 @@ includes a **Restore** button.
 | applicationId | `tech.idct.chromis` |
 | AdMob App ID | AndroidManifest meta-data (test id → real at release) |
 | Ad unit IDs | `lib/config/ads_config.dart` (M7) |
-| IAP product | `pro_remove_ads` (one-time, non-consumable) |
+| IAP product | `chromis_pro_mode` (one-time, non-consumable, backward-compatible purchase option) |

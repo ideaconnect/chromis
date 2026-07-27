@@ -36,8 +36,9 @@ Install the debug build and walk every feature. It's already built:
 
 **Ads (test ads - they render "Test Ad")**
 - [ ] Home banner shows at the bottom
-- [ ] Interstitial appears after a successful Save
-- [ ] Rewarded ad appears before AI Cut / object removal runs
+- [ ] Rewarded ad appears before AI Cut / object removal / export
+      (there is no plain interstitial - `AdsService` loads a banner and a
+      *rewarded* interstitial only, so nothing fires after a plain Save)
 - [ ] UMP consent form shows on first launch (EEA - test with a VPN)
 
 **Go Pro / IAP** (needs a signed build on a Play track - see C)
@@ -75,8 +76,9 @@ Install the debug build and walk every feature. It's already built:
 ## C. Play Console
 
 1. Create the app; package name **`tech.idct.chromis`**.
-2. **Monetize → In-app products**: create `pro_remove_ads`, type **Managed
-   product** (one-time / non-consumable), set price, **Activate** it.
+2. **Monetize → Products → One-time products**: create `chromis_pro_mode`
+   (must match `kProProductId`), set price, **Activate** it, and mark its
+   purchase option **backward compatible** or `in_app_purchase` cannot see it.
    (IAP only returns a product on a signed build uploaded to a track - internal
    testing is enough. Add your account as a licensed tester for test purchases.)
 3. Upload the signed **AAB** (see release doc) to Internal testing.
@@ -89,8 +91,6 @@ Install the debug build and walk every feature. It's already built:
 
 Both are generated, not hand-made, so they can be rebuilt when the UI moves:
 
-| Asset | File | Generator |
-|---|---|---|
 | Play slot | File | Generator |
 |---|---|---|
 | App icon (512x512) | `assets/branding/store_icon.png` | `tool/gen_branding.py` |

@@ -5,9 +5,21 @@ import 'package:in_app_purchase/in_app_purchase.dart';
 
 import '../../core/settings/settings_store.dart';
 
-/// The one-time, non-consumable product that removes all ads. Create this exact
-/// id in Play Console → Monetize → In-app products (see docs/monetization-setup.md).
-const kProProductId = 'pro_remove_ads';
+/// The one-time, non-consumable product that removes all ads.
+///
+/// This must match the **product id** in Play Console → Monetize → Products →
+/// One-time products exactly; a mismatch is silent. `loadProduct` simply gets an
+/// empty response, `proProductProvider` resolves to null, and the Go Pro screen
+/// shows "Purchases are temporarily unavailable" forever - there is no error to
+/// notice, only a paywall that never sells anything.
+///
+/// The product also needs a purchase option marked **backward compatible** in
+/// the console. `in_app_purchase` speaks the legacy Play Billing product model,
+/// which addresses a product by this id alone and cannot name a purchase option;
+/// without that flag the query comes back empty exactly as if the id were wrong.
+///
+/// See docs/monetization-setup.md.
+const kProProductId = 'chromis_pro_mode';
 
 // ------------------------------------------------------------- entitlement
 /// Whether the user owns Go Pro. Loads the cached flag at build; [grant] flips

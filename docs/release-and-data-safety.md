@@ -60,9 +60,10 @@ its x86_64 ABI is stripped from release per `build.gradle.kts`.)
   `_prod*` unit ids.
 - `AndroidManifest.xml`: replace the test `com.google.android.gms.ads.APPLICATION_ID`
   (`ca-app-pub-3940256099942544~3347511713`) with your real AdMob app id.
-- Create the `pro_remove_ads` managed product in Play Console (see
-  monetization-setup.md). IAP only returns a product on a signed build that's
-  on a Play track (internal testing is enough).
+- Create the `chromis_pro_mode` one-time product in Play Console (see
+  monetization-setup.md), with a **backward-compatible** purchase option. IAP
+  only returns a product on a signed build that's on a Play track (internal
+  testing is enough).
 
 ---
 

@@ -7,7 +7,7 @@ import '../../core/theme/app_typography.dart';
 import '../../core/widgets/responsive_center.dart';
 import 'iap.dart';
 
-/// Go Pro / paywall: the one-time `pro_remove_ads` purchase that removes all
+/// Go Pro / paywall: the one-time `chromis_pro_mode` purchase that removes all
 /// ads, with Restore. Purchase delivery + acknowledgement is handled app-wide
 /// by [purchaseDeliveryProvider]; this screen just launches buy/restore and
 /// reflects the entitlement.
