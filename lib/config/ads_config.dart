@@ -28,7 +28,14 @@ abstract final class AdsConfig {
   /// Never ship a real user's id here - it only ever costs revenue, never earns
   /// it. Clicking a live ad on an unregistered device is invalid traffic and can
   /// get the AdMob account suspended, which is the other reason to register.
-  static const List<String> testDeviceIds = <String>[];
+  static const List<String> testDeviceIds = <String>[
+    // Xiaomi 25010PN30G (the dev phone). Registered 2026-07-27 after it showed
+    // no banner at all: the emulator had one because emulators are test devices
+    // automatically, while this device asked the production unit for a live ad
+    // and got "Ad failed to load : 3" (no fill), which the banner slot then hid
+    // without a word.
+    'FE4F07F8DF2ABA4ADFAD334C92028E8F',
+  ];
 
   /// All-zero placeholder: a `_prod*` id left as this stays on its test unit.
   static const _placeholder = 'ca-app-pub-0000000000000000/0000000000';

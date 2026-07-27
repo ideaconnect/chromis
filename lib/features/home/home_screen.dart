@@ -665,9 +665,18 @@ class _HomeAdBannerState extends ConsumerState<_HomeAdBanner> {
         onAdLoaded: (_) {
           if (mounted) setState(() => _loaded = true);
         },
-        onAdFailedToLoad: (ad, _) {
+        onAdFailedToLoad: (ad, error) {
           ad.dispose();
           _ad = null; // avoid a second dispose() when the widget is disposed
+          // The slot hides itself when there is no ad, so a banner that never
+          // loads is completely silent - no placeholder, no log, nothing to
+          // tell "Pro user" apart from "this failed". Say why. Code 3 is no
+          // fill, which on a dev phone usually just means the device is not in
+          // AdsConfig.testDeviceIds.
+          debugPrint(
+            'Home banner failed to load (code ${error.code} ${error.domain}): '
+            '${error.message} [unit ${AdsConfig.banner}]',
+          );
         },
       ),
     );
