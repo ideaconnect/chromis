@@ -3022,6 +3022,13 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
   }
 
   // ------------------------------------------------------------ Layers
+  /// Converts between the Layers panel's top-most-first rows and
+  /// `Project.layers`' paint order (index 0 = bottom). Its own inverse, and
+  /// correct for an insertion index too: dropping a row at panel slot `i` of
+  /// `count` rows means inserting at `count - 1 - i` in the model, which is what
+  /// [EditorController.reorderLayer] takes after the drag's removal.
+  static int _modelIndex(int panelIndex, int count) => count - 1 - panelIndex;
+
   Widget _layersPanel(EditorState editor) {
     final layers = editor.layers;
     final selectedId = editor.selectedLayerId;
@@ -3069,15 +3076,35 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         if (layers.isEmpty)
           _emptyHint('No layers yet. Tap Add to import a photo or add text.')
         else
+          // TOP-MOST FIRST. `Project.layers` is in paint order - index 0 is
+          // painted first, so the LAST entry is the one on top of the canvas -
+          // and listing it that way put the bottom layer at the top of the panel
+          // and made dragging a row upwards send it *behind* everything. Every
+          // layers UI reads top-down, so the panel is the reverse of the model
+          // and `_modelIndex` is the single place that conversion lives.
           ReorderableListView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             itemCount: layers.length,
-            onReorderItem: (oldIndex, newIndex) =>
-                _controller.reorderLayer(oldIndex, newIndex),
+            // An explicit grip instead of the default whole-row drag listener.
+            // On a touch platform the default wraps each row in a DELAYED drag
+            // listener, and the row already spends its long press on rename - so
+            // the two raced in the same gesture arena, rename won, and dragging a
+            // layer was simply impossible on a device. A grip also says the rows
+            // are draggable, which a long-press cannot.
+            buildDefaultDragHandles: false,
+            // `onReorderItem` (not the deprecated `onReorder`) already accounts
+            // for the dragged item having been removed, which is exactly what
+            // `reorderLayer`'s remove-then-insert expects - so both indices need
+            // only the display->model flip.
+            onReorderItem: (oldIndex, newIndex) => _controller.reorderLayer(
+              _modelIndex(oldIndex, layers.length),
+              _modelIndex(newIndex, layers.length),
+            ),
             itemBuilder: (context, i) {
-              final layer = layers[i];
+              final layer = layers[_modelIndex(i, layers.length)];
               return _LayerRow(
+                dragIndex: i,
                 key: ValueKey(layer.id),
                 layer: layer,
                 selected: editor.selectedLayerId == layer.id,
@@ -3964,6 +3991,7 @@ class _LayerRow extends StatelessWidget {
     super.key,
     required this.layer,
     required this.selected,
+    required this.dragIndex,
     required this.onSelect,
     required this.onRename,
     required this.onToggleVisibility,
@@ -3973,6 +4001,11 @@ class _LayerRow extends StatelessWidget {
 
   final Layer layer;
   final bool selected;
+
+  /// This row's position in the PANEL (top-most first), which is what
+  /// [ReorderableDragStartListener] expects - not the layer's paint index.
+  final int dragIndex;
+
   final VoidCallback onSelect;
   final VoidCallback onRename;
   final VoidCallback onToggleVisibility;
@@ -4062,6 +4095,34 @@ class _LayerRow extends StatelessWidget {
             ),
             child: Row(
               children: [
+                // Reordering starts here and nowhere else. An IMMEDIATE listener,
+                // not the delayed one the list would wrap the whole row in: the
+                // row's long press is already rename, and the two cannot share an
+                // arena.
+                //
+                // Semantics, NOT a Tooltip: a Tooltip brings its own long-press
+                // recognizer, and putting one inside the drag listener meant a
+                // press on the grip raced the drag and popped "Drag to reorder"
+                // instead of picking the row up. A control whose entire job is to
+                // be dragged must not spend its gestures on a label.
+                Semantics(
+                  label: 'Drag to reorder ${layer.name}',
+                  child: ReorderableDragStartListener(
+                    index: dragIndex,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 4,
+                        vertical: 9,
+                      ),
+                      child: Icon(
+                        Icons.drag_indicator,
+                        size: 20,
+                        color: AppColors.textMuted.withValues(alpha: 0.75),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 4),
                 Container(
                   width: 38,
                   height: 38,
