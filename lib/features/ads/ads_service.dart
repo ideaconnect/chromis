@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import '../../config/ads_config.dart';
+import '../go_pro/iap.dart';
 
 /// Central AdMob controller: one-time SDK init + UMP consent, and the rewarded
 /// ad helper (unlocks AI actions and gates exports for free users). Banner ads
@@ -144,6 +145,18 @@ class AdsService {
 final adsServiceProvider = Provider<AdsService>((ref) => AdsService());
 
 /// Runs AdMob init + UMP consent once. Activated by watching it at app start.
-final adsInitProvider = FutureProvider<void>(
-  (ref) => ref.read(adsServiceProvider).init(),
-);
+///
+/// A Pro user never reaches [AdsService.init] at all: no SDK handshake, no UMP
+/// prompt, no preloaded ad - so no ad request is ever made from their device and
+/// the advertising ID is never used by this app. That is what "Go Pro removes
+/// all ads" has to mean to be true, and both the privacy policy and the in-app
+/// Privacy screen say it. Before this, the SDK was initialised and a rewarded ad
+/// preloaded for EVERY user, paying or not; only the *display* of ads was gated.
+///
+/// Awaits the entitlement rather than reading `isProProvider`, which reports
+/// false while the cached flag is still loading - long enough for a paying user
+/// to have made an ad request before anyone knew they had paid.
+final adsInitProvider = FutureProvider<void>((ref) async {
+  if (await ref.watch(proEntitledProvider.future)) return;
+  return ref.read(adsServiceProvider).init();
+});

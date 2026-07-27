@@ -6,12 +6,12 @@
   <title>Privacy Policy - Chromis</title>
   <meta name="description" content="How Chromis handles your data: photos are processed on-device and never uploaded. Full detail on ads, purchases and this website.">
   <meta name="theme-color" content="#0a1826">
-  <link rel="icon" type="image/png" sizes="32x32" href="assets/img/favicon-32.png?v=9">
-  <link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png?v=9">
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/img/favicon-32.png?v=10">
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png?v=10">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=9">
+  <link rel="stylesheet" href="styles.css?v=10">
 
   <!-- Analytics (GA4) - replace G-XXXXXXXXXX with your Measurement ID. Loads only
        after the visitor accepts analytics cookies (opt-in banner). -->
@@ -35,7 +35,7 @@
   <header class="site-header">
     <div class="wrap nav">
       <a class="brand" href="index.html">
-        <img src="assets/img/logo.png?v=9" alt="Chromis logo">
+        <img src="assets/img/logo.png?v=10" alt="Chromis logo">
         Chromis
       </a>
       <nav class="nav-links" id="navLinks">
@@ -55,7 +55,7 @@
   <main>
     <article class="wrap legal">
       <h1>Privacy Policy</h1>
-      <p class="updated">Last updated: 24 July 2026</p>
+      <p class="updated">Last updated: 27 July 2026</p>
 
       <p>This Privacy Policy explains how the <strong>Chromis</strong> Android app (the “App”) and the website at this domain (the “Site”) handle information. Both are operated by <strong>IDCT · Bartosz Pachołek</strong> (“we”, “us”). We built Chromis to be private by design.</p>
 
@@ -87,7 +87,7 @@
         </tbody>
       </table>
       <p>This data is handled by Google, not by us, and is sent over encrypted (HTTPS) connections. For users in the EEA, UK and Switzerland, the App shows Google’s <strong>consent (UMP)</strong> form on first launch so you can accept or decline personalized ads. You can reset ad personalization at any time via your device’s Google settings. See <a href="https://policies.google.com/technologies/ads" rel="noopener">Google’s advertising policies</a> and <a href="https://support.google.com/admob/answer/6128543" rel="noopener">AdMob &amp; privacy</a>.</p>
-      <p><strong>Removing ads:</strong> A one-time in-app purchase (“Go Pro”) removes all ads. Once active, the AdMob SDK no longer requests ads.</p>
+      <p><strong>Removing ads:</strong> A one-time in-app purchase (“Go Pro”) removes all ads. Once it is active, the App does not start the AdMob SDK at all on later launches - no ad request is made, the consent prompt is not shown, and the advertising ID is not used by the App.</p>
 
       <h3>2.2 Google Play Store &amp; purchases</h3>
       <p>The App is distributed through the <strong>Google Play Store</strong>. When you download or update the App, or make a purchase, Google Play processes data (such as your Google account, device information and purchase history) under <a href="https://policies.google.com/privacy" rel="noopener">Google’s Privacy Policy</a> and the Google Play Terms of Service.</p>
@@ -98,7 +98,7 @@
 
       <h3>2.4 Permissions</h3>
       <ul>
-        <li><strong>Photos / media</strong> - used only so you can pick an image to edit and save results back. Selection uses the Android system photo picker where available.</li>
+        <li><strong>Photos / media</strong> - the App requests <strong>no</strong> photo or storage permission. You choose an image through the Android system photo picker, which hands the App that one picture and nothing else, and exports are written back through the system media store. The App never has access to your photo library.</li>
         <li><strong>Internet &amp; advertising ID</strong> - used by AdMob and Play Billing as described above. No other network use.</li>
       </ul>
 
@@ -118,7 +118,12 @@
 
       <h2>5. Data retention &amp; your rights</h2>
       <p>We do not keep a database of users, photos, or edits. The only personal data we directly receive is what you send us through the contact form, kept only as long as needed to reply. Data handled by Google and Web3Forms is retained under their respective policies.</p>
-      <p>Depending on where you live (e.g. the EEA/UK under GDPR, or California under CCPA/CPRA), you may have rights to access, correct, or delete personal data, and to object to certain processing. To make a request, contact us (below).</p>
+      <p>Depending on where you live (e.g. the EEA/UK under GDPR, or California under CCPA/CPRA), you may have rights to access, correct, or delete personal data, and to object to certain processing. How to exercise them depends on who holds the data, so to be precise about what we can and cannot do:</p>
+      <ul>
+        <li><strong>Data you send us directly</strong> (the website contact form): we hold it, and we will correct or delete it on request - just <a href="index.html#contact">contact us</a>.</li>
+        <li><strong>Data collected in the App</strong> (advertising ID, ad interactions, diagnostics, purchase history): <strong>we never receive it and cannot delete it.</strong> It is collected by Google’s SDKs and held by Google, so requests have to go to Google. In practice you control it on your device: decline personalized ads in the App’s consent prompt, and reset or delete your Advertising ID under <em>Settings → Google → Ads</em>. Buying Go Pro stops the App using it altogether.</li>
+      </ul>
+      <p>We keep no account, so there is nothing for us to delete on the App side - which is why our Google Play “Data safety” entry does not claim to offer an in-app data-deletion request.</p>
       <p><strong>“Do Not Sell or Share My Personal Information” (California):</strong> showing personalized ads through AdMob may count as “sharing” for cross-context behavioral advertising. To opt out, decline personalized ads in the App’s consent prompt and reset or delete your Advertising ID in your device’s Google settings; on this website, decline analytics in the cookie banner. We do not sell your personal information for money.</p>
 
       <h2>6. Children</h2>
