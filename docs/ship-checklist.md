@@ -57,9 +57,13 @@ Install the debug build and walk every feature. It's already built:
 1. Create the app in AdMob; copy its **App ID** →
    `android/app/src/main/AndroidManifest.xml` (replace the test
    `ca-app-pub-3940256099942544~3347511713`).
-2. Create three ad units - Banner, Interstitial, Rewarded - copy their ids into
-   `lib/config/ads_config.dart` (`_prodBanner/_prodInterstitial/_prodRewarded`)
-   and set `useTestAds = false`.
+2. Create three ad units - Banner, Interstitial, and **Rewarded interstitial**
+   (NOT plain "Rewarded": `AdsService` loads a `RewardedInterstitialAd`, and the
+   SDK rejects the other format with "Ad unit doesn't match format" - which the
+   fail-open gate then hides by letting exports through for free). Copy their ids
+   into `lib/config/ads_config.dart`
+   (`_prodBanner/_prodInterstitial/_prodRewarded`) and set `useTestAds = false`.
+   See `docs/monetization-setup.md` step 5.
 3. AdMob → Privacy & messaging: create a **GDPR (EEA)** consent message. The app
    already calls UMP; this is the message it shows.
 4. Link AdMob ⇄ Play so payments and reporting connect.
