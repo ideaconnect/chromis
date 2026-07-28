@@ -4,7 +4,9 @@ description: "Chromis BG Removal - cut out backgrounds, remove objects, add text
 publish_to: 'none'
 
 # version: <name>+<build>. build-name -> Android versionName, build-number -> versionCode.
-version: 1.0.0+1
+# The build number moves with every upload, not just with the name: Play requires
+# a strictly higher versionCode per track and rejects a re-upload at the same one.
+version: 1.0.1+2
 
 environment:
   sdk: ^3.12.2
