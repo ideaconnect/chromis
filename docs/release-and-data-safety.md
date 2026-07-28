@@ -93,10 +93,26 @@ code, collects these):
 locally and only leaves the device if the user explicitly Shares/exports it.
 Do **not** declare photos as collected - we never send them anywhere.
 
+**App content → Advertising ID** is a SEPARATE page from Data safety and is the
+one people forget. Answer **Yes**, purpose *Advertising or marketing* (plus
+*Analytics*, to match the table above). Play cross-checks it against the binary,
+and the two pages against each other.
+
 Notes:
-- The app declares `com.google.android.gms.permission.AD_ID` (merged in by
-  `google_mobile_ads`) - required, and consistent with the Advertising ID
-  disclosure above.
+- The shipped bundle declares `com.google.android.gms.permission.AD_ID` - merged
+  in by `google_mobile_ads`, not written by hand, and required because
+  `targetSdk` is 36 (the permission became mandatory at 33). Verified in the AAB
+  itself, not just the source manifest:
+
+  ```python
+  import zipfile
+  m = zipfile.ZipFile('build/app/outputs/bundle/release/app-release.aab')              .read('base/manifest/AndroidManifest.xml')   # protobuf in an AAB
+  assert b'com.google.android.gms.permission.AD_ID' in m
+  ```
+
+  So "No" on either declaration contradicts the binary. If the app ever needs to
+  drop the ad id (a child-directed release, say), the permission has to be
+  removed with `tools:node="remove"` AND both declarations changed together.
 - UMP (Google's consent SDK, bundled in `google_mobile_ads`) shows the EEA/UK
   consent form at first launch; no extra SDK or config needed.
 - Google's own AdMob Data Safety guidance lists the exact types to declare:

@@ -84,7 +84,15 @@ Install the debug build and walk every feature. It's already built:
 3. Upload the signed **AAB** (see release doc) to Internal testing.
 4. **Data safety** form - answers are in the release doc (photos NOT collected;
    AdMob collects advertising id / app activity).
-5. Store listing, content rating (IARC), target audience, and a hosted
+5. **App content → Advertising ID**: answer **Yes**, purpose *Advertising or
+   marketing* (+ *Analytics*, matching the Data safety table). This is a
+   SEPARATE declaration from Data safety and is easy to miss. Play cross-checks
+   it against the manifest: the build declares
+   `com.google.android.gms.permission.AD_ID` (merged in by `google_mobile_ads`,
+   and required because `targetSdk` is 36), so answering "No" here contradicts
+   the binary and gets the release blocked. Both pages must also agree with each
+   other, or Play flags the inconsistency.
+6. Store listing, content rating (IARC), target audience, and a hosted
    **privacy policy URL** (required - the app uses ads + an advertising id).
 
 ### Listing graphics
