@@ -23,23 +23,39 @@ class AdsService {
   /// Guards [_preloadRewarded] against overlapping loads.
   bool _loading = false;
 
+  /// Completes once it is known whether ads may be requested. Never rejects.
+  ///
+  /// Anything that loads an ad awaits this. The consent update used to be
+  /// fire-and-forget with `MobileAds.initialize()` and the rewarded preload on
+  /// the line after, and the Home banner gated on nothing but the Pro flag - so
+  /// a first launch in the EEA asked production units for ads *before* the
+  /// consent form had been answered.
+  final _consentSettled = Completer<void>();
+  Future<void> get consentSettled => _consentSettled.future;
+
+  /// Whether UMP says an ad request is permitted. False only when consent is
+  /// required and has not been given.
+  bool _canRequestAds = true;
+  bool get canRequestAds => _canRequestAds;
+
+  void _settleConsent() {
+    if (!_consentSettled.isCompleted) _consentSettled.complete();
+  }
+
   /// Initializes the Mobile Ads SDK and runs the UMP consent flow once, then
-  /// preloads an interstitial + rewarded. Safe to call repeatedly.
+  /// preloads the rewarded ad. Safe to call repeatedly.
+  ///
+  /// There is no plain interstitial anywhere in the app - the only formats are
+  /// the Home banner and this rewarded (interstitial-format) unit.
+  ///
+  /// Deliberately NOT a straight `await` chain: `requestConsentInfoUpdate`
+  /// needs the network, so making everything sequential would stall ads (and
+  /// the Home banner slot) for the whole timeout on every offline launch.
+  /// Instead the SDK is initialized immediately - which requests nothing - and
+  /// [consentSettled] is what actually gates ad LOADS.
   Future<void> init() async {
     if (_initialized) return;
     _initialized = true;
-    // UMP consent (EEA/UK). Best-effort - never block or crash the app on it.
-    try {
-      ConsentInformation.instance.requestConsentInfoUpdate(
-        ConsentRequestParameters(),
-        () async {
-          try {
-            await ConsentForm.loadAndShowConsentFormIfRequired((_) {});
-          } catch (_) {}
-        },
-        (_) {},
-      );
-    } catch (_) {}
     // Before initialize(), so the very first request already carries it.
     // Without a matching entry a production unit simply does not fill on a dev
     // device - see [AdsConfig.testDeviceIds].
@@ -49,7 +65,42 @@ class AdsService {
       );
     }
     await MobileAds.instance.initialize();
-    _preloadRewarded();
+
+    // UMP consent (EEA/UK). Best-effort - never block or crash the app on it,
+    // but nothing may load until it has answered one way or the other.
+    try {
+      ConsentInformation.instance.requestConsentInfoUpdate(
+        ConsentRequestParameters(),
+        () async {
+          try {
+            await ConsentForm.loadAndShowConsentFormIfRequired((error) {
+              if (error != null) {
+                debugPrint(
+                  'AdsService: consent form failed - ${error.message}',
+                );
+              }
+            });
+            _canRequestAds = await ConsentInformation.instance.canRequestAds();
+          } catch (e) {
+            debugPrint('AdsService: consent flow failed - $e');
+          }
+          _settleConsent();
+          if (_canRequestAds) _preloadRewarded();
+        },
+        (error) {
+          // Could not reach the consent service. Requesting ads anyway is the
+          // documented fallback - a user outside the EEA must not lose ads
+          // (and with them the free tier) because a network call failed.
+          debugPrint('AdsService: consent update failed - ${error.message}');
+          _settleConsent();
+          _preloadRewarded();
+        },
+      );
+    } catch (e) {
+      debugPrint('AdsService: consent request threw - $e');
+      _settleConsent();
+      _preloadRewarded();
+    }
   }
 
   /// AdMob has TWO reward formats and they are not interchangeable at load time:
@@ -112,6 +163,10 @@ class AdsService {
   /// failed load never blocks the feature). Completes false only if the user
   /// dismisses without earning.
   Future<bool> showRewarded() async {
+    // Nothing may be requested before consent has answered. Fail-open applies
+    // afterwards: if consent is refused there is no ad to show, and the gate
+    // must still let the user through rather than locking the feature.
+    await consentSettled;
     final ad = _rewarded;
     if (ad == null) {
       debugPrint(

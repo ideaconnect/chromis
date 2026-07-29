@@ -6,7 +6,7 @@ publish_to: 'none'
 # version: <name>+<build>. build-name -> Android versionName, build-number -> versionCode.
 # The build number moves with every upload, not just with the name: Play requires
 # a strictly higher versionCode per track and rejects a re-upload at the same one.
-version: 1.0.1+2
+version: 1.1.0+3
 
 environment:
   sdk: ^3.12.2

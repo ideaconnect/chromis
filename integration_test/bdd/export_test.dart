@@ -11,6 +11,8 @@ import './../../test/step/a_photo_layer_is_added.dart';
 import './../../test/step/i_tap.dart';
 import './../../test/step/i_see.dart';
 import './../../test/step/the_export_output_summary_is_shown.dart';
+import './../../test/step/i_save_the_export_to_the_device.dart';
+import './../../test/step/the_image_was_saved_to_the_device.dart';
 import './../../test/step/no_unhandled_error_occurred.dart';
 
 void main() {
@@ -30,7 +32,8 @@ void main() {
       await iTap(tester, 'PNG');
       await iTap(tester, '50%');
       await theExportOutputSummaryIsShown(tester);
-      await iTap(tester, 'Save to device');
+      await iSaveTheExportToTheDevice(tester);
+      await theImageWasSavedToTheDevice(tester);
       await noUnhandledErrorOccurred(tester);
     });
     testWidgets('''Export a JPG''', (tester) async {
@@ -38,7 +41,8 @@ void main() {
       await iTap(tester, 'Export');
       await iTap(tester, 'JPG');
       await theExportOutputSummaryIsShown(tester);
-      await iTap(tester, 'Save to device');
+      await iSaveTheExportToTheDevice(tester);
+      await theImageWasSavedToTheDevice(tester);
       await noUnhandledErrorOccurred(tester);
     });
     testWidgets('''Choose the WebP format''', (tester) async {

@@ -3,6 +3,16 @@
          google_mobile_ads merges the com.google.android.gms.permission.AD_ID
          permission automatically (declared in Play Data Safety, M9). -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- "Save to device" writes into Pictures/Chromis. On Android 10+ that
+         goes through MediaStore and needs no permission at all, which is why
+         this is capped at 28: below Q the shared volume predates scoped
+         storage and the write genuinely requires it. Without the cap, Play
+         would see a storage permission the app does not need on any modern
+         device. Requested at the moment of the first pre-Q save, never at
+         launch. -->
+    <uses-permission
+        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="28"/>
     <application
         android:label="@string/app_name"
         android:name="${applicationName}"

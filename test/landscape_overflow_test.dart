@@ -1,9 +1,11 @@
+import 'package:chromis/core/models/layer.dart';
 import 'package:chromis/core/models/project.dart';
 import 'package:chromis/core/theme/app_theme.dart';
 import 'package:chromis/core/widgets/sheet_body.dart';
 import 'package:chromis/features/about/about_sheet.dart';
 import 'package:chromis/features/ads/ad_gate.dart';
 import 'package:chromis/features/editor/editor_screen.dart';
+import 'package:chromis/features/editor/widgets/bubble_shape_sheet.dart';
 import 'package:chromis/features/editor/widgets/canvas_size_sheet.dart';
 import 'package:chromis/features/editor/widgets/project_canvas.dart';
 import 'package:chromis/features/go_pro/iap.dart';
@@ -198,6 +200,34 @@ void main() {
         expect(tester.takeException(), isNull);
         expect(find.text('No ads, anywhere'), findsOneWidget);
         expect(find.byType(SheetBody), findsOneWidget);
+      });
+
+      // Five drawn tiles plus a blurb each - the sheet a landscape phone is
+      // most likely to run out of room on.
+      testWidgets('bubble format picker', (tester) async {
+        await pumpSheet(tester, size, showBubbleShapeSheet);
+        expect(tester.takeException(), isNull);
+        expect(find.byType(SheetBody), findsOneWidget);
+        for (final shape in BubbleShape.values) {
+          expect(
+            find.byKey(ValueKey('bubble-format-${shape.name}')),
+            findsOneWidget,
+            reason: '${shape.name} should be offered when adding a bubble',
+          );
+        }
+      });
+
+      // And the panel that picking one opens: its format row is a second set of
+      // drawn tiles stacked above the caption field, font row and sliders.
+      testWidgets('bubble panel', (tester) async {
+        await pumpScreen(tester, size, const EditorScreen());
+        await tapDock(tester, 'Bubble');
+        await tester.tap(find.byKey(const ValueKey('bubble-format-thought')));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 400));
+        expect(tester.takeException(), isNull);
+        expect(find.text('Comic bubble'), findsOneWidget);
+        expect(find.byKey(const ValueKey('bubble-shape-row')), findsOneWidget);
       });
 
       testWidgets('add-layer menu', (tester) async {

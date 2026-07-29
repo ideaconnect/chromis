@@ -1,0 +1,6 @@
+• Adding a comic bubble now shows all five styles as live previews: Speech, Thought, Shout, Caption, Whisper.
+• Saving to your gallery now works on Android 8 and 9, and a failed save no longer costs you an ad.
+• Pro restores itself on a reinstall or new phone, and failed purchases now say what happened.
+• Duplicating a project no longer wipes the other copy's AI cut-out.
+• Autosave failures no longer lose your work.
+• Smoother pinch-zoom, clearer messages, better screen-reader labels.

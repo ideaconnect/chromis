@@ -33,6 +33,15 @@ Install the debug build and walk every feature. It's already built:
 **Export**
 - [ ] PNG (transparent) / JPG (flattened) / WebP at 100/75/50/25 %
 - [ ] Save to gallery (check the "Chromis" album) + Share sheet
+      - **On Android 10+ AND on an Android 9-or-below device.** They take
+        completely different code paths: MediaStore (no permission) above,
+        a permission prompt + file write + media scan below. The pre-Q path
+        was broken for the entire life of the app because this line did not
+        say which OS version to check it on.
+- [ ] EEA/UK consent: the form appears on first launch BEFORE any ad loads, and
+      Privacy & Cookies then offers "Ad privacy choices" to change the answer
+- [ ] Reinstall with the same Play account: Pro comes back on its own, without
+      tapping Restore
 
 **Ads (test ads - they render "Test Ad")**
 - [ ] Home banner shows at the bottom
@@ -68,6 +77,23 @@ Install the debug build and walk every feature. It's already built:
 3. AdMob → Privacy & messaging: create a **GDPR (EEA)** consent message. The app
    already calls UMP; this is the message it shows.
 4. Link AdMob ⇄ Play so payments and reporting connect.
+5. **app-ads.txt** - AdMob → *Apps → (app) → App settings* shows the one record
+   to publish. It must be served from the **root** of the domain in the app's
+   Play listing website field:
+
+   ```
+   https://idct.tech/app-ads.txt
+   google.com, pub-6904561240517963, DIRECT, f08c47fec0942fa0
+   ```
+
+   The verified copy therefore lives in **`ideaconnect/ideaconnect.github.io`**
+   (which serves `idct.tech`); `website/app-ads.txt` here is a mirror of it under
+   `idct.tech/chromis/`, matching the listing URL, and no crawler looks at a
+   subpath. Two things have to agree or the check stays "not found": the Play
+   listing's **Website** must be a URL on `idct.tech`, and the file must return
+   `text/plain` (GitHub Pages does).
+   Verification takes up to 24 h and until it passes some demand sources will not
+   bid, so do this before, not after, the first release.
 
 > Keep test ids until the app is live - clicking your own real ads risks a ban.
 

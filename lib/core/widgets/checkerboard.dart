@@ -17,9 +17,22 @@ class Checkerboard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return CustomPaint(
-      painter: _CheckerPainter(cell: cell, base: base, tile: tile),
-      size: Size.infinite,
+    // The painter emits one drawRect per checker square - roughly 600 for a
+    // canvas-sized box - and it sits behind a composition that repaints on
+    // every drag frame, so without a boundary all 600 are re-recorded each
+    // time for a background that never changes. `shouldRepaint` cannot help
+    // with that: it stops the painter re-running, not the enclosing picture
+    // being re-recorded.
+    //
+    // A cached tiled ImageShader would avoid the extra compositing layer, but
+    // it means rasterising the tile at the device pixel ratio and scaling the
+    // shader back - and getting that wrong softens the hard checker edges.
+    // A retained layer is the same win with no way to change how it looks.
+    return RepaintBoundary(
+      child: CustomPaint(
+        painter: _CheckerPainter(cell: cell, base: base, tile: tile),
+        size: Size.infinite,
+      ),
     );
   }
 }

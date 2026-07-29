@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:chromis/core/models/frame.dart';
@@ -9,10 +10,11 @@ import 'package:chromis/features/home/project_repository.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// Persistence contract for [ProjectRepository]: manifests round-trip through
-/// disk, corrupt manifests are quarantined rather than crashing the list, a
-/// duplicate re-ids the document while sharing its image/mask files, and the
-/// orphan sweep only reclaims unreferenced assets (and never runs when a
-/// manifest is unreadable). All paths use a per-test temp dir, dart:io only.
+/// disk, corrupt manifests are quarantined rather than crashing the list (and
+/// un-quarantined once they parse again), a duplicate re-ids the document while
+/// sharing its photos but OWNING its masks, and the orphan sweep only reclaims
+/// unreferenced assets - reading quarantined manifests rather than giving up on
+/// them. All paths use a per-test temp dir, dart:io only.
 void main() {
   // Layers construct dart:ui values (Color/Offset/Rect) as defaults.
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -206,8 +208,11 @@ void main() {
     expect(txt.id, '${c.id}_l1');
     expect({img.id, txt.id}.intersection({'src_l0', 'src_l1'}), isEmpty);
 
-    // Asset/mask paths are shared verbatim - never renamed or re-copied.
+    // The photo is shared verbatim - never renamed or re-copied.
     expect(img.assetPath, '/assets/img_shared.png');
+    // The mask path here points at a file that does not exist, so there is
+    // nothing to copy and the path is shared. See the mask-copy test below for
+    // the real-file case, which is the one that matters.
     expect(img.maskPath, '/assets/mask_shared.png');
 
     // Document settings survive the copy. duplicate() used to re-list the
@@ -219,6 +224,63 @@ void main() {
 
     // The copy is persisted, not just returned.
     expect(await repo.load(c.id), equals(c));
+  });
+
+  test('duplicate() gives the copy its own mask file', () async {
+    // The bug this pins: masks used to be shared like photos, but the editor's
+    // in-session mask GC only sees the OPEN document and its undo stacks. One
+    // erase stroke in either copy superseded the shared PNG and deleted it out
+    // from under the other project, whose cut-out then silently came back.
+    final base = freshTemp();
+    final repo = ProjectRepository(baseDir: base);
+    final assets = Directory('${base.path}/projects/assets')
+      ..createSync(recursive: true);
+    final mask = File('${assets.path}/mask_src_l0_1.png')
+      ..writeAsBytesSync([1, 2, 3, 4]);
+
+    await repo.save(
+      buildProject(
+        id: 'src',
+        frames: [
+          Frame(
+            id: 'src_f0',
+            layers: [
+              ImageLayer(
+                id: 'src_l0',
+                name: 'Photo',
+                assetPath: '${assets.path}/img_shared.png',
+                maskPath: mask.path,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+
+    final copy = await repo.duplicate('src');
+    final copied = copy!.frames[0].layers[0] as ImageLayer;
+
+    expect(
+      copied.maskPath,
+      isNot(mask.path),
+      reason: 'the copy must not share the mask file',
+    );
+    expect(File(copied.maskPath!).existsSync(), isTrue);
+    expect(File(copied.maskPath!).readAsBytesSync(), [1, 2, 3, 4]);
+    // Still named `mask_*`, so the orphan sweep recognises and refcounts it.
+    expect(copied.maskPath, contains('/mask_'));
+    // The source keeps its own file, untouched.
+    expect(mask.existsSync(), isTrue);
+    // The photo is still shared - only masks are copied.
+    expect(copied.assetPath, '${assets.path}/img_shared.png');
+
+    // Deleting one project must not reclaim the other's mask.
+    await repo.delete('src');
+    expect(
+      File(copied.maskPath!).existsSync(),
+      isTrue,
+      reason: "the copy's mask must survive deleting the source",
+    );
   });
 
   test('duplicate() carries the Photo Grid and its cell assignments', () async {
@@ -368,7 +430,7 @@ void main() {
   });
 
   test(
-    'sweepOrphanAssets aborts when a .json.corrupt quarantine exists',
+    'sweepOrphanAssets aborts on a quarantine whose bytes are not JSON',
     () async {
       final base = freshTemp();
       final repo = ProjectRepository(baseDir: base);
@@ -385,4 +447,57 @@ void main() {
       expect(orphan.existsSync(), isTrue);
     },
   );
+
+  test(
+    'sweepOrphanAssets reads a quarantine that is still valid JSON',
+    () async {
+      // The common quarantine is a SCHEMA rejection, not unreadable bytes. Those
+      // used to abort the sweep on sight, which made both callers - cold launch
+      // and project delete - permanent no-ops for the life of the install: the
+      // app stopped reclaiming anything and "delete projects to free space"
+      // quietly did nothing.
+      final base = freshTemp();
+      final repo = ProjectRepository(baseDir: base);
+      final dir = projectsDirOf(base);
+      final assets = Directory('${dir.path}/assets')
+        ..createSync(recursive: true);
+      final stillUsed = File('${assets.path}/img_quarantined.png')
+        ..writeAsBytesSync([1]);
+      final orphan = File('${assets.path}/img_orphan.png')
+        ..writeAsBytesSync([1]);
+      // Valid JSON, unreadable as a Project (schema from another version).
+      File('${dir.path}/old.json.corrupt').writeAsStringSync(
+        '{"schemaVersion":99,"frames":[{"layers":[{"assetPath":'
+        '"${stillUsed.path.replaceAll(r'\', r'\\')}"}]}]}',
+      );
+
+      final deleted = await repo.sweepOrphanAssets(minAge: Duration.zero);
+
+      expect(deleted, 1, reason: 'the sweep should run, not abort');
+      expect(
+        stillUsed.existsSync(),
+        isTrue,
+        reason: "the quarantined manifest's references still count",
+      );
+      expect(orphan.existsSync(), isFalse);
+    },
+  );
+
+  test('list() un-quarantines a manifest that parses again', () async {
+    // The rename is one-way, so a manifest quarantined by a downgrade (or by a
+    // build that could not read its schema) never came back on its own.
+    final base = freshTemp();
+    final repo = ProjectRepository(baseDir: base);
+    final dir = projectsDirOf(base);
+    final project = buildProject(id: 'recovered', name: 'Back');
+    File(
+      '${dir.path}/recovered.json.corrupt',
+    ).writeAsStringSync(jsonEncode(project.toJson()));
+
+    final listed = await repo.list();
+
+    expect(listed.map((p) => p.id), contains('recovered'));
+    expect(File('${dir.path}/recovered.json').existsSync(), isTrue);
+    expect(File('${dir.path}/recovered.json.corrupt').existsSync(), isFalse);
+  });
 }

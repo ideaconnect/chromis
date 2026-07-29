@@ -204,6 +204,7 @@ class _CropOverlayState extends State<_CropOverlay> {
         elevation: 0,
         title: const Text('Crop'),
         leading: IconButton(
+          tooltip: 'Cancel crop',
           icon: const Icon(Icons.close),
           onPressed: () => Navigator.of(context).pop(),
         ),

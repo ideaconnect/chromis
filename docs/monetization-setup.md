@@ -69,6 +69,24 @@ rewarded to run AI features) behind a UMP consent flow.
    message. The Privacy screen already references this.
 8. **Play Data safety:** declare the **Advertising ID** (the SDK adds the
    `AD_ID` permission automatically). See M9.
+9. **app-ads.txt** - publish the record AdMob shows under *App settings* at the
+   **root** of the site the Play listing points at:
+
+   ```
+   # https://idct.tech/app-ads.txt
+   google.com, pub-6904561240517963, DIRECT, f08c47fec0942fa0
+   ```
+
+   `pub-6904561240517963` is the account-wide publisher id (the left half of
+   every unit id in `ads_config.dart`), so the single record covers every app on
+   this AdMob account. The crawler resolves the **root domain** of the store
+   listing's website field and fetches only `/app-ads.txt`, which is why the file
+   that gets verified belongs to the `ideaconnect.github.io` repo (it serves
+   `idct.tech`). `website/app-ads.txt` here is a mirror of it, served at
+   `idct.tech/chromis/app-ads.txt` because that is the URL in the listing; keep
+   the two identical. Without the root file the app's inventory is "unauthorized"
+   to the buyers who check - not a block on serving ads, but a real cut in what
+   they bid.
 
 ## B. Go Pro - in-app purchase
 
@@ -98,3 +116,5 @@ includes a **Restore** button.
 | AdMob App ID | AndroidManifest meta-data (test id → real at release) |
 | Ad unit IDs | `lib/config/ads_config.dart` (M7) |
 | IAP product | `chromis_pro_mode` (one-time, non-consumable, backward-compatible purchase option) |
+| AdMob publisher id | `pub-6904561240517963` (in `app-ads.txt`, and the left half of every unit id) |
+| app-ads.txt | `https://idct.tech/app-ads.txt` - repo `ideaconnect/ideaconnect.github.io` |

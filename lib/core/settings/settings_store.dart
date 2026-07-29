@@ -4,6 +4,8 @@ import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 
+import '../persistence/atomic_file.dart';
+
 /// Tiny key/value app settings, persisted as a single `settings.json` under the
 /// app documents directory. Currently just the first-run flag; kept generic so
 /// future preferences (default export target, etc.) slot in without a new file.
@@ -17,6 +19,7 @@ class SettingsStore {
   static const _kOnboardingSeen = 'onboardingSeen';
   static const _kSegModel = 'segmentationModel';
   static const _kProEntitled = 'proEntitled';
+  static const _kRestoreProbed = 'restoreProbed';
 
   Future<File> _file() async {
     final base = _baseOverride ?? await getApplicationDocumentsDirectory();
@@ -35,8 +38,12 @@ class SettingsStore {
     }
   }
 
+  /// Atomic on purpose - see [writeFileAtomically]. Every value in this file is
+  /// one the user cannot re-enter: a truncated write reads back as `{}`, which
+  /// silently un-buys Pro (and [EntitlementController] will not restore it,
+  /// since `reconcileEntitlement` self-excludes once the flag is already false).
   Future<void> _write(Map<String, dynamic> data) async {
-    await (await _file()).writeAsString(jsonEncode(data));
+    await writeFileAtomically(await _file(), jsonEncode(data));
   }
 
   /// Whether the first-run intro has been completed (or skipped).
@@ -68,6 +75,18 @@ class SettingsStore {
   Future<void> setProEntitled(bool value) async {
     final data = await _read();
     data[_kProEntitled] = value;
+    await _write(data);
+  }
+
+  /// Whether this install has already asked Play "does this account own Pro?".
+  /// Set only after a query that actually reached Play, so a first launch with
+  /// no connection retries rather than silently giving up on a paying user.
+  Future<bool> restoreProbed() async =>
+      (await _read())[_kRestoreProbed] == true;
+
+  Future<void> setRestoreProbed(bool value) async {
+    final data = await _read();
+    data[_kRestoreProbed] = value;
     await _write(data);
   }
 }

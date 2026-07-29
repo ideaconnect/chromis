@@ -18,6 +18,10 @@ Future<void> iTapTheTool(WidgetTester tester, String param1) async {
   await scrollIntoView(tester, tool);
   await tester.tap(tool);
   await settle(tester);
+  // A tool that answers with a sheet (Bubble asks which format) leaves a modal
+  // route on top: the expand button underneath is unreachable, and tapping at
+  // its coordinates would land on the scrim and cancel the sheet.
+  if (find.byType(BottomSheet).evaluate().isNotEmpty) return;
   final expand = find.byKey(const ValueKey('expand-panel'));
   if (expand.evaluate().isNotEmpty) {
     await tester.tap(expand);

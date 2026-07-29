@@ -10,6 +10,7 @@ import 'package:chromis/core/models/layer.dart';
 import 'package:chromis/features/editor/editor_screen.dart';
 import 'package:chromis/features/editor/state/editor_controller.dart';
 import 'package:chromis/main.dart' as app;
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
@@ -106,11 +107,24 @@ void main() {
     );
     final before = container.read(editorControllerProvider).layers.length;
 
-    // One-tap dock action: add a comic bubble (addBubbleLayer + text tool).
-    // ensureVisible guards against the horizontally-scrollable dock.
-    final bubble = find.text('Bubble');
+    // Dock action: Bubble asks which format first, so the sheet's own tiles
+    // are what actually create the layer. ensureVisible guards against the
+    // horizontally-scrollable dock.
+    final bubble = find.byKey(const ValueKey('dock-Bubble'));
     await tester.ensureVisible(bubble);
     await tester.tap(bubble);
+    await settle(tester);
+
+    // Every format is drawn by the real painter here, so this also proves the
+    // shape paths render on-device before anything is committed to the canvas.
+    expect(tester.takeException(), isNull);
+    final format = find.byKey(const ValueKey('bubble-format-shout'));
+    expect(
+      format,
+      findsOneWidget,
+      reason: 'Bubble should open the format picker',
+    );
+    await tester.tap(format);
     await settle(tester);
 
     expect(tester.takeException(), isNull); // bubble painter renders on-device
@@ -118,12 +132,19 @@ void main() {
     expect(
       layers.length,
       before + 1,
-      reason: 'Tapping Bubble should add exactly one layer',
+      reason: 'Picking a format should add exactly one layer',
     );
+    final added = layers.whereType<BubbleLayer>();
     expect(
-      layers.whereType<BubbleLayer>(),
+      added,
       isNotEmpty,
       reason: 'The added layer should be a comic bubble',
+    );
+    expect(
+      added.single.shape,
+      BubbleShape.shout,
+      reason:
+          'The layer should take the format that was picked, not the default',
     );
   });
 }

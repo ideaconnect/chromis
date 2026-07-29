@@ -87,6 +87,55 @@ void main() {
     expect(await revokesFor(iap), 0);
     expect(iap.restoreCalled, isFalse);
   });
+
+  // ------------------------------------------------------- restore probe
+  // reconcileEntitlement is revoke-only by design (the test above pins it), so
+  // a reinstall - cached flag false, purchase still owned - was never checked
+  // at all: the user landed in a fully ad-supported app with recovery hidden
+  // behind a secondary button under one offering to charge them again.
+  group('probeRestoreOnce', () {
+    test('a fresh install asks Play once and remembers it did', () async {
+      final iap = _FakeIap(restoreEmits: [restored(kProProductId)]);
+      await probeRestoreOnce(iap: iap, store: store);
+      expect(iap.restoreCalled, isTrue);
+      expect(await store.restoreProbed(), isTrue);
+
+      // Second launch: no repeat query.
+      final again = _FakeIap(restoreEmits: [restored(kProProductId)]);
+      await probeRestoreOnce(iap: again, store: store);
+      expect(again.restoreCalled, isFalse);
+    });
+
+    test('an already-Pro install never probes', () async {
+      await store.setProEntitled(true);
+      final iap = _FakeIap(restoreEmits: const []);
+      await probeRestoreOnce(iap: iap, store: store);
+      expect(iap.restoreCalled, isFalse);
+      expect(await store.restoreProbed(), isFalse);
+    });
+
+    test('an offline first launch does not burn the probe', () async {
+      // The flag is set only after a query that reached Play; otherwise a
+      // paying user who first opened the app in airplane mode would never be
+      // asked about again.
+      final offline = _FakeIap(restoreThrows: true);
+      await probeRestoreOnce(iap: offline, store: store);
+      expect(offline.restoreCalled, isTrue);
+      expect(await store.restoreProbed(), isFalse);
+
+      final later = _FakeIap(restoreEmits: [restored(kProProductId)]);
+      await probeRestoreOnce(iap: later, store: store);
+      expect(later.restoreCalled, isTrue);
+      expect(await store.restoreProbed(), isTrue);
+    });
+
+    test('billing unavailable retries next launch', () async {
+      final iap = _FakeIap(available: false);
+      await probeRestoreOnce(iap: iap, store: store);
+      expect(iap.restoreCalled, isFalse);
+      expect(await store.restoreProbed(), isFalse);
+    });
+  });
 }
 
 /// Minimal [InAppPurchase] fake exposing only what reconciliation touches.

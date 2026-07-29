@@ -156,6 +156,7 @@ class _AllProjectsScreenState extends ConsumerState<AllProjectsScreen> {
       child: Row(
         children: [
           IconButton(
+            tooltip: 'Back',
             onPressed: () => context.pop(),
             icon: const Icon(
               Icons.chevron_left,

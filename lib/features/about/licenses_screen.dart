@@ -159,6 +159,7 @@ Widget _topBar(BuildContext context, String title) {
     child: Row(
       children: [
         IconButton(
+          tooltip: 'Back',
           onPressed: () => context.pop(),
           icon: const Icon(
             Icons.chevron_left,

@@ -34,9 +34,19 @@ class ProjectCanvas extends StatelessWidget {
     this.height = Project.legacyCanvasSize,
     this.grid,
     this.showCellPlaceholders = false,
+    this.gesturingLayerId,
   });
 
   final Frame frame;
+
+  /// The layer currently under a pinch/drag, if any.
+  ///
+  /// Its decode target is frozen for the duration: a pinch sweeps through
+  /// several 256-px quantization steps, and each one used to start a fresh
+  /// whole-file read + JPEG decode and leave another byte-identical entry in
+  /// the [ImageCache] under a distinct `ResizeImageKey`. Sharpness catches up
+  /// the moment the gesture ends, which is the only time anyone looks closely.
+  final String? gesturingLayerId;
 
   /// The project's canvas size in logical (pixel) units - the layer-transform
   /// coordinate space. The W×H rect is BoxFit.contain-ed and centered within
@@ -249,7 +259,10 @@ class ProjectCanvas extends StatelessWidget {
     var target = layerDecodeTarget(
       side: base,
       dpr: dpr,
-      layerScale: layer.transform.scale,
+      // Frozen at 1.0 while this layer is being pinched - see
+      // [gesturingLayerId]. The transform still applies visually; only the
+      // number of source pixels decoded stops chasing it.
+      layerScale: layer.id == gesturingLayerId ? 1.0 : layer.transform.scale,
     );
     // A crop shows only a fraction of the source across the box, so decode
     // proportionally more source pixels to keep the visible region sharp.
@@ -285,6 +298,13 @@ class ProjectCanvas extends StatelessWidget {
       fit: BoxFit.contain,
       // Shared via Flutter's ImageCache; sized decode instead of full-res.
       cacheWidth: target,
+      // Hold the last frame while a new decode target is being read from disk.
+      // Without it, every 256-px quantization step a pinch crosses nulls the
+      // image and shows an empty box through the grid border until the fresh
+      // JPEG decode lands - the photo visibly blinks several times per gesture.
+      // The masked path already made this trade (commit ec41528); this plain
+      // one was simply missed.
+      gaplessPlayback: true,
       errorBuilder: (_, _, _) =>
           _ImagePlaceholder(name: layer.name, side: 180 * scale),
     );

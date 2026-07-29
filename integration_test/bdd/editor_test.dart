@@ -10,6 +10,7 @@ import './../../test/step/i_create_a_new_blank_project.dart';
 import './../../test/step/the_editor_is_shown.dart';
 import './../../test/step/no_unhandled_error_occurred.dart';
 import './../../test/step/i_tap_the_tool.dart';
+import './../../test/step/i_pick_the_bubble_format.dart';
 import './../../test/step/a_comic_bubble_layer_is_added.dart';
 
 void main() {
@@ -26,6 +27,7 @@ void main() {
       await theAppIsFreshlyLaunched(tester);
       await iCreateANewBlankProject(tester);
       await iTapTheTool(tester, 'Bubble');
+      await iPickTheBubbleFormat(tester, 'Speech');
       await aComicBubbleLayerIsAdded(tester);
       await noUnhandledErrorOccurred(tester);
     });

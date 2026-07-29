@@ -201,3 +201,16 @@ if the two ever disagree, the HTML is the truth.)
 Any static host works (the site is served at `idct.tech/chromis`,
 alongside Sticker Maker). Upload the `website/` contents; no server code needed.
 External requests are only to Google Fonts, Google Analytics, and Web3Forms.
+
+`.github/workflows/pages.yml` does exactly that on every push to `main` that
+touches `website/`: GitHub Pages for this repo publishes it as a *project* site,
+which the org's own Pages site (`ideaconnect/ideaconnect.github.io`, custom
+domain `idct.tech`) exposes at `idct.tech/chromis/`.
+
+`app-ads.txt` here is a **mirror**, served at `idct.tech/chromis/app-ads.txt`
+because that is the URL the Play listing points at. The copy AdMob verifies is
+the one at `https://idct.tech/app-ads.txt`, in the `ideaconnect.github.io` repo -
+a crawler reduces the listing's website to its root domain and reads only
+`/app-ads.txt`, so a subpath copy is never the one that counts. **Edit the two
+together**; a mirror that contradicts the root is worse than no mirror at all.
+See [docs/monetization-setup.md](../docs/monetization-setup.md).

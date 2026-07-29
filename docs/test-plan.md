@@ -77,6 +77,18 @@ inverse within clamp; `bubbleCaptionMaxLines` (fontSize/height<=0 → 1);
 `bubbleFitFontSize` (fits → maxSize; oversize → shrinks toward 6.0). *(TextPainter
 paths need the test binding.)*
 
+Creation is separate - `test/editor/bubble_creation_test.dart`: the Bubble dock
+entry opens the format picker (all five offered, each drawn by `BubblePainter`,
+nothing added yet); the Add-layer menu's "Add bubble" reaches the same picker;
+picking any format creates a layer with *that* shape; dismissing adds none; a
+created bubble announces itself (toast + "Comic bubble" header + a pink badge on
+the dock's Bubble, while Text stays honestly lit); the panel opens scrolled to
+the format just picked (Whisper is past the fold); the panel's format row still
+reshapes in place; and `bubbleShapeTileHeight` keeps a tile inside its measured
+box at text scales 1.0-2.0, with and without the description. *(That last group
+pumps the tile alone: `EditorScreen` has its own pre-existing large-font
+overflows - top bar, outer column - which would mask it.)*
+
 ### 1.5 Editor controller - `test/editor/editor_controller_test.dart`
 Via `ProviderContainer` + `loadProject(Project.empty(...))`, fake asset paths:
 - Add: `addTextLayer`/`addBubbleLayer`(name rule)/`addEmoji`/`addImageLayer`
@@ -128,6 +140,53 @@ Via `ProviderContainer` + `loadProject(Project.empty(...))`, fake asset paths:
   persists (fake settings store); `IapService.loadProduct` null on empty list
   (fake `InAppPurchase`).
 
+### 1.9 Export output - `test/export/export_output_test.dart`
+The artefact the user keeps, decoded by an **independent** decoder
+(`package:image`, not the engine that produced the bytes): PNG signature +
+alpha kept + the corner transparent + the content opaque and the right colour;
+"not blank" (>5% of pixels painted); JPEG SOI marker + transparency flattened
+onto **white**, not black; WebP RIFF/WEBP container; `outputWidth` honoured with
+height from the canvas aspect; half-res is half in both axes AND the composition
+scales with it (not just the frame); a grid export fills its margin with the
+border colour at the chosen width; and PNG vs WebP agree on a semi-transparent
+layer - the straight-vs-premultiplied alpha trap `_rasterize` warns about.
+*Mutation-checked: flattening JPG onto black and dropping the output scale each
+fail exactly one of these.*
+
+### 1.10 Visual regression - `test/rendering/project_render_golden_test.dart`
+Four goldens driven through `ProjectRenderer` itself, so a golden **is** an
+export: all five bubble formats; compositing (shadow / rotation / opacity /
+a multiply blend **over a backdrop**, without which the blend is
+indistinguishable from normal); a photo grid proving border-as-fill, per-cell
+clipping and the free layer on top; and captions, which pin the #79 auto-fit's
+size and line count. Photo layers are avoided on purpose - an `ImageLayer` would
+make the golden depend on a fixture file and an async decode.
+
+`test/flutter_test_config.dart` swaps in a comparator with a **0.5%** pixel
+tolerance, because a developer's Windows machine and CI's Linux differ by a few
+anti-aliased pixels along curves and byte-exact goldens would teach everyone to
+ignore failures. It is tight enough to bite: a 0.72→0.80 change to the shout
+star's spike ratio produces a 3.72% diff. Regenerate with
+`flutter test --update-goldens test/rendering` and **look at the PNGs** before
+committing.
+
+The file is `@Tags(['golden'])`, so CI's `flutter test --exclude-tags golden`
+skips it - the policy `dart_test.yaml` has always documented. (ci.yml ran a bare
+`flutter test` until the first golden was written, at which point the two would
+have disagreed in the worst way.)
+
+### 1.11 Accessibility - `test/a11y_test.dart`
+`labeledTapTargetGuideline` over the editor (with layers + a selection, on the
+Layers panel, and on the bubble panel), Home and All projects - pumped at
+412x915 **with real insets**, because a zero-inset surface makes the guideline
+skip edge-flush nodes and pass vacuously. Plus direct size assertions on the two
+controls the audit named: the canvas delete handle (>=48dp) and each colour
+swatch (>=40dp).
+
+`androidTapTargetGuideline` is deliberately NOT applied wholesale - it also
+fails the Export pill (37dp) and the editable project title (21dp), which are
+the approved design.
+
 ### 1.8 Extend existing
 - **`mask_mapper_test.dart`** (extend): rotation≠0 (un-rotate), layerScale≠1,
   non-square imageSize, top/bottom crops (dy), `boxSize` override, and
@@ -169,7 +228,13 @@ Gherkin `.feature` + `bdd_widget_test`-generated tests, run via `./e2e.ps1`.
   removes selected.
 - **`editor_text.feature`** - add text, type a caption (assert `TextLayer.text`),
   pick a font (assert `fontFamily`), change size/color via provider state.
-- **`editor_bubble.feature`** - add bubble, set shape (Speech→Thought), type text,
+- **`export.feature`** - the save scenarios now assert **the image was saved to
+  the device** (the `Saved · <location>` confirmation), not merely that nothing
+  threw. `ExportScreen._save` catches everything and answers with a snack, so the
+  old "no unhandled error occurred" passed on a device where saving never worked.
+- **`editor_bubble.feature`** - the Bubble tool opens the format picker; each of
+  the five formats can be created from it (outline over `BubbleShape.values`);
+  dismissing it adds nothing; then change format (Speech→Thought), type text,
   set fill/outline colors - assert `BubbleLayer` state.
 - **`editor_photo_adjust.feature`** *(seeded photo, Pro)* - brightness/contrast/
   saturation/hue/opacity/outline sliders update `ImageLayer.adjustments`/opacity/
