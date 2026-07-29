@@ -72,6 +72,15 @@ class _EditorCanvasState extends ConsumerState<EditorCanvas> {
   Offset? _startFocal;
   String? _gestureLayerId;
 
+  /// Assigns [_gestureLayerId] and rebuilds, because [ProjectCanvas] freezes
+  /// that layer's decode target for the duration of the gesture. Without the
+  /// rebuild on release the photo would stay at its gesture-time resolution
+  /// until something else happened to repaint.
+  void _setGestureLayer(String? id) {
+    if (_gestureLayerId == id) return;
+    setState(() => _gestureLayerId = id);
+  }
+
   /// Non-null while a Photo Grid divider is being dragged. The gesture grabs
   /// the divider instead of a layer, and the delta is measured from
   /// [_dividerStart] so the controller can map from its drag-start snapshot.
@@ -231,6 +240,7 @@ class _EditorCanvasState extends ConsumerState<EditorCanvas> {
                     height: editor.project.canvasHeight,
                     grid: editor.project.grid,
                     showCellPlaceholders: true,
+                    gesturingLayerId: _gestureLayerId,
                   ),
                 // Divider handles sit above the composition but below the layer
                 // selection chrome.
@@ -359,26 +369,36 @@ class _EditorCanvasState extends ConsumerState<EditorCanvas> {
     final corner =
         t.position * scale +
         Offset(cx * cosA - cy * sinA, cx * sinA + cy * cosA);
-    const touch = 16.0;
+    // 24 rather than 16: a 48dp touch target, which is both Android's minimum
+    // and what Flutter's androidTapTargetGuideline checks. The drawn dot stays
+    // 22px - only the area that accepts the tap grew.
+    const touch = 24.0;
     return Positioned(
       key: const ValueKey('layer-delete-handle'),
       left: corner.dx - touch,
       top: corner.dy - touch,
       width: touch * 2,
       height: touch * 2,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: () => _controller.removeLayer(layer.id),
-        child: Center(
-          child: Container(
-            width: 22,
-            height: 22,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: AppColors.rose,
-              border: Border.all(color: const Color(0xFF131019), width: 2),
+      child: Semantics(
+        button: true,
+        // This is the app's most destructive control and it is not an
+        // IconButton, so `tooltip:` cannot reach it - TalkBack announced it as
+        // a bare "button" sitting on the corner of the selected layer.
+        label: 'Delete layer ${layer.name}',
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () => _controller.removeLayer(layer.id),
+          child: Center(
+            child: Container(
+              width: 22,
+              height: 22,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppColors.rose,
+                border: Border.all(color: const Color(0xFF131019), width: 2),
+              ),
+              child: const Icon(Icons.close, size: 13, color: Colors.white),
             ),
-            child: const Icon(Icons.close, size: 13, color: Colors.white),
           ),
         ),
       ),
@@ -480,11 +500,11 @@ class _EditorCanvasState extends ConsumerState<EditorCanvas> {
     final target =
         _hitTest(editor.layers, focalLogical, editor) ?? editor.selectedLayer;
     if (target == null) {
-      _gestureLayerId = null;
+      _setGestureLayer(null);
       return;
     }
     _controller.selectLayer(target.id);
-    _gestureLayerId = target.id;
+    _setGestureLayer(target.id);
     _startTransform = target.transform;
     _startFocal = focalLogical;
   }
@@ -575,7 +595,7 @@ class _EditorCanvasState extends ConsumerState<EditorCanvas> {
       return;
     }
     final id = _gestureLayerId;
-    _gestureLayerId = null;
+    _setGestureLayer(null);
     _controller.endEdit();
     if (id != null) _dropIntoCell(id);
   }

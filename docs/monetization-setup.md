@@ -69,6 +69,24 @@ rewarded to run AI features) behind a UMP consent flow.
    message. The Privacy screen already references this.
 8. **Play Data safety:** declare the **Advertising ID** (the SDK adds the
    `AD_ID` permission automatically). See M9.
+9. **app-ads.txt** - publish the record AdMob shows under *App settings* at the
+   **root** of the site the Play listing points at:
+
+   ```
+   # https://idct.tech/app-ads.txt
+   google.com, pub-6904561240517963, DIRECT, f08c47fec0942fa0
+   ```
+
+   `pub-6904561240517963` is the account-wide publisher id (the left half of
+   every unit id in `ads_config.dart`), so the single record covers every app on
+   this AdMob account. The crawler resolves the **root domain** of the store
+   listing's website field and fetches only `/app-ads.txt`, which is why the file
+   that gets verified belongs to the `ideaconnect.github.io` repo (it serves
+   `idct.tech`). `website/app-ads.txt` here is a mirror of it, served at
+   `idct.tech/chromis/app-ads.txt` because that is the URL in the listing; keep
+   the two identical. Without the root file the app's inventory is "unauthorized"
+   to the buyers who check - not a block on serving ads, but a real cut in what
+   they bid.
 
 ## B. Go Pro - in-app purchase
 
@@ -79,8 +97,13 @@ includes a **Restore** button.
 2. Create the app in Play Console with applicationId **`tech.idct.chromis`**,
    and upload a signed build to at least **Internal testing** (products don't
    return until a matching signed build is on a track).
-3. **Monetize → Products → In-app products:** create id **`pro_remove_ads`**,
-   type **one-time (non-consumable)**, set price, **Activate**.
+3. **Monetize → Products → One-time products:** the product id is
+   **`chromis_pro_mode`** and it must match `kProProductId` in
+   `lib/features/go_pro/iap.dart` exactly. Set price and **Activate**.
+   Its purchase option must be marked **backward compatible** ("Zgodność
+   wsteczna"): `in_app_purchase` speaks the legacy Play Billing product model,
+   which addresses a product by id alone and cannot name a purchase option.
+   Without that flag the query returns empty exactly as if the id were wrong.
 4. Add yourself under **Setup → License testing** so test buys aren't charged.
 5. Nothing else in code - purchase/restore/acknowledge is handled by the app
    (acknowledged within Google's 3-day window via `completePurchase`).
@@ -92,4 +115,6 @@ includes a **Restore** button.
 | applicationId | `tech.idct.chromis` |
 | AdMob App ID | AndroidManifest meta-data (test id → real at release) |
 | Ad unit IDs | `lib/config/ads_config.dart` (M7) |
-| IAP product | `pro_remove_ads` (one-time, non-consumable) |
+| IAP product | `chromis_pro_mode` (one-time, non-consumable, backward-compatible purchase option) |
+| AdMob publisher id | `pub-6904561240517963` (in `app-ads.txt`, and the left half of every unit id) |
+| app-ads.txt | `https://idct.tech/app-ads.txt` - repo `ideaconnect/ideaconnect.github.io` |

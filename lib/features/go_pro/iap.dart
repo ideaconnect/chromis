@@ -5,9 +5,21 @@ import 'package:in_app_purchase/in_app_purchase.dart';
 
 import '../../core/settings/settings_store.dart';
 
-/// The one-time, non-consumable product that removes all ads. Create this exact
-/// id in Play Console → Monetize → In-app products (see docs/monetization-setup.md).
-const kProProductId = 'pro_remove_ads';
+/// The one-time, non-consumable product that removes all ads.
+///
+/// This must match the **product id** in Play Console → Monetize → Products →
+/// One-time products exactly; a mismatch is silent. `loadProduct` simply gets an
+/// empty response, `proProductProvider` resolves to null, and the Go Pro screen
+/// shows "Purchases are temporarily unavailable" forever - there is no error to
+/// notice, only a paywall that never sells anything.
+///
+/// The product also needs a purchase option marked **backward compatible** in
+/// the console. `in_app_purchase` speaks the legacy Play Billing product model,
+/// which addresses a product by this id alone and cannot name a purchase option;
+/// without that flag the query comes back empty exactly as if the id were wrong.
+///
+/// See docs/monetization-setup.md.
+const kProProductId = 'chromis_pro_mode';
 
 // ------------------------------------------------------------- entitlement
 /// Whether the user owns Go Pro. Loads the cached flag at build; [grant] flips
@@ -63,12 +75,38 @@ class IapService {
     return resp.productDetails.first;
   }
 
-  Future<void> buy(ProductDetails product) => _iap.buyNonConsumable(
+  /// Starts the purchase. Returns whether Play actually took it.
+  ///
+  /// The `bool` matters and used to be discarded: `buyNonConsumable` answers
+  /// false for ITEM_ALREADY_OWNED, BILLING_UNAVAILABLE and
+  /// SERVICE_DISCONNECTED. In every one of those cases no Play sheet opens, so
+  /// dropping the result meant the user tapped "Upgrade" and the app did,
+  /// visibly, nothing at all.
+  Future<bool> buy(ProductDetails product) => _iap.buyNonConsumable(
     purchaseParam: PurchaseParam(productDetails: product),
   );
 
   Future<void> restore() => _iap.restorePurchases();
 }
+
+/// The last purchase error Play reported, for the Go Pro screen to show.
+///
+/// `PurchaseStatus.error` was previously handled nowhere, so a declined card or
+/// an unavailable billing service looked identical to a user changing their
+/// mind. Cleared by the screen once shown.
+class PurchaseErrorController extends Notifier<String?> {
+  @override
+  String? build() => null;
+
+  void report(String message) => state = message;
+
+  void clear() => state = null;
+}
+
+final purchaseErrorProvider =
+    NotifierProvider<PurchaseErrorController, String?>(
+      PurchaseErrorController.new,
+    );
 
 final iapServiceProvider = Provider<IapService>(
   (ref) => IapService(ref.read(inAppPurchaseProvider)),
@@ -91,14 +129,35 @@ final purchaseDeliveryProvider = Provider<void>((ref) {
       if ((p.status == PurchaseStatus.purchased ||
               p.status == PurchaseStatus.restored) &&
           p.productID == kProProductId) {
-        await ref.read(proEntitledProvider.notifier).grant();
+        // Guarded separately from completePurchase: a failed settings write
+        // must not skip the acknowledgement below, because an unacknowledged
+        // purchase is auto-refunded after three days.
+        try {
+          await ref.read(proEntitledProvider.notifier).grant();
+        } catch (_) {
+          // Entitlement will be recovered by the launch-time restore probe.
+        }
+      } else if (p.status == PurchaseStatus.error) {
+        // Deliberately NOT filtered by productID: Android reports
+        // ITEM_ALREADY_OWNED with an empty productID, which is exactly the
+        // case a user most needs told about ("you already own this, restore").
+        ref
+            .read(purchaseErrorProvider.notifier)
+            .report(p.error?.message ?? 'The purchase could not be completed');
       }
+      // `canceled` stays silent - the user closed the sheet on purpose.
       if (p.pendingCompletePurchase) {
         await iap.completePurchase(p);
       }
     }
   });
   ref.onDispose(sub.cancel);
+
+  // First launch after an install: ask Play whether this account already owns
+  // Pro. Without it a reinstall or a new device lands in a fully ad-supported
+  // app, with recovery hidden behind a secondary button under a button that
+  // offers to charge them again.
+  unawaited(probeRestoreOnce(iap: iap, store: ref.read(settingsStoreProvider)));
 
   // Catch refunds: re-check the cached Pro flag against Play, revoking only on
   // a confirmed "not owned". Any uncertainty keeps Pro. Best-effort.
@@ -110,6 +169,31 @@ final purchaseDeliveryProvider = Provider<void>((ref) {
     ),
   );
 });
+
+/// Silently asks Play whether this account already owns Pro, once per install.
+///
+/// The delivery listener above turns any `restored` Go Pro into an entitlement,
+/// so this only has to make the query. [reconcileEntitlement] cannot do it: it
+/// self-excludes when the cached flag is already false (it exists to catch
+/// refunds, and `entitlement_reconcile_test` pins that it is revoke-only).
+///
+/// The "once" flag is set ONLY on a successful query, so a first launch in
+/// airplane mode does not burn the probe.
+Future<void> probeRestoreOnce({
+  required InAppPurchase iap,
+  required SettingsStore store,
+}) async {
+  try {
+    if (await store.proEntitled()) return; // already Pro - nothing to recover
+    if (await store.restoreProbed()) return;
+    if (!await iap.isAvailable()) return; // retry next launch
+    await iap.restorePurchases();
+    await store.setRestoreProbed(true);
+  } catch (_) {
+    // Offline, billing unavailable, query failed: leave the flag unset so the
+    // next launch tries again.
+  }
+}
 
 /// Permissive launch-time re-check of the cached Pro flag against Google Play's
 /// live ownership. Calls [onRevoke] ONLY on a confirmed "not owned" - e.g. the

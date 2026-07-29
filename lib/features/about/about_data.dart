@@ -5,7 +5,15 @@ abstract final class AboutInfo {
   AboutInfo._();
 
   static const appName = 'Chromis';
-  static const appVersion = '1.0.0';
+
+  /// MUST match `version:` in pubspec.yaml (the part before the `+`).
+  ///
+  /// It is duplicated rather than read from the package at runtime, so it
+  /// drifts silently - it still read 1.0.0 two releases on, which the drawer,
+  /// the About sheet and the Licenses page were all showing to users.
+  /// `about_data_test.dart` now parses pubspec.yaml and fails if the two
+  /// disagree, so a version bump cannot forget this again.
+  static const appVersion = '1.1.0';
   static const publisher = 'IDCT · Bartosz Pachołek';
   static const contactEmail = 'bartosz@idct.tech';
 
@@ -24,6 +32,8 @@ abstract final class AboutInfo {
     'The free app shows ads (Google AdMob), which use an advertising ID.',
     'Where required, a consent prompt (UMP) lets you choose personalised or '
         'non-personalised ads.',
+    'You can change or withdraw that consent any time - "Ad privacy choices" '
+        'below reopens the form.',
     'The one-time Pro upgrade removes all ads - and the advertising ID with them.',
   ];
 }
@@ -135,7 +145,7 @@ const licenseNotices = <LicenseNotice>[
     name: 'Google Mobile Ads (AdMob) + UMP',
     by: 'Google',
     license: 'Android SDK licence · AdMob terms',
-    use: 'Banner / interstitial / rewarded ads + consent',
+    use: 'Banner / rewarded ads + consent',
   ),
   LicenseNotice(
     category: 'Monetization',

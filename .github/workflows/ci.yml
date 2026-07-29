@@ -31,8 +31,24 @@ jobs:
 
       - run: flutter analyze
 
-      - run: flutter test
+      # `--exclude-tags golden` matches what dart_test.yaml has always
+      # documented: baselines are generated on the maintainer's machine, and
+      # Skia's anti-aliasing differs enough across hosts that running them on
+      # a Linux runner would fail for reasons that are not regressions. This
+      # step used to be a bare `flutter test`, so the config and the workflow
+      # disagreed - harmless only until the first golden was written.
+      - run: flutter test --exclude-tags golden
 
       # Proves the Android scaffold (gradle, ONNX/ML Kit native, ads/IAP
       # plugins) assembles. Slow-ish; the real value gate for each milestone.
       - run: flutter build apk --debug
+
+      # The SHIPPING artifact. `release` is the only buildType with
+      # isMinifyEnabled, and proguard-rules.pro documents three separate R8
+      # strips that each killed the app at launch - one of them arrived
+      # transitively through the ads SDK and was found by a human with a USB
+      # cable, because nothing automated ever built a shrunken binary. AGP 8 /
+      # R8 fails the build on missing classes without a -dontwarn, which is
+      # exactly the rot a plugin bump introduces. Needs no secrets: the signing
+      # config falls back to debug keys when key.properties is absent.
+      - run: flutter build apk --release

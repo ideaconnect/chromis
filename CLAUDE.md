@@ -93,6 +93,35 @@ the assets carry their own corners, so nothing should clip or chip them. The ico
 before it was `#0A2127`, a couple of steps from `AppColors.panel`, and did need a
 light ground - if the artwork ever goes dark again, that is the fix.
 
+### Persistence
+
+Anything the user cannot re-enter is written through `writeFileAtomically`
+(`core/persistence/atomic_file.dart`): tmp + flush + rename, so a kill or a full
+disk leaves the previous file rather than a truncated one. Both the project
+manifests and `settings.json` use it - `settings.json` reads back as `{}` on any
+error, and `{}` means "Pro was never bought".
+
+Two GC rules that are easy to break:
+
+- **A duplicated project owns its masks.** Photos (`img_*`) are shared and
+  refcounted across manifests by `sweepOrphanAssets`; masks are NOT, because the
+  editor also runs an in-session mask GC that can only see the open document.
+  `ProjectRepository.duplicate` copies each `mask_*` for that reason.
+- **A quarantined `.json.corrupt` is read, not skipped.** Most quarantines are
+  schema rejections whose raw JSON still names its assets, and skipping them
+  aborted the sweep - which disabled orphan cleanup for the life of the install.
+  Only bytes that will not decode as JSON abort it. `list()` also un-quarantines
+  a manifest that parses again, so a downgrade is recoverable.
+
+### Ads and consent
+
+Nothing may request an ad before UMP has answered. `AdsService.consentSettled`
+is the gate; the Home banner and `showRewarded` both await it, and
+`canRequestAds` decides whether a load happens at all. Consent is NOT awaited
+inside `init()` - that would stall ads for the whole network timeout on every
+offline launch. `PrivacyScreen` carries the permanent "Ad privacy choices" entry
+point, rendered only where UMP reports it is required.
+
 ## Milestones
 
 Planned as GitHub milestones **M0-M9** with issues. Work one milestone at a time;

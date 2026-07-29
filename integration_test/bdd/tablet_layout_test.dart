@@ -19,8 +19,9 @@ void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   group('''Tablet layout''', () {
-    testWidgets('''A tablet in portrait gives the canvas the width''',
-        (tester) async {
+    testWidgets('''A tablet in portrait gives the canvas the width''', (
+      tester,
+    ) async {
       await theAppIsFreshlyLaunched(tester);
       await iCreateANewBlankProject(tester);
       await theScreenIsResizedToA(tester, 'tablet portrait');
@@ -29,8 +30,9 @@ void main() {
       await theEditorCanvasIsAtMostPxWide(tester, 460);
       await noUnhandledErrorOccurred(tester);
     });
-    testWidgets('''Home pairs its start cards on a tablet only''',
-        (tester) async {
+    testWidgets('''Home pairs its start cards on a tablet only''', (
+      tester,
+    ) async {
       await theAppIsFreshlyLaunched(tester);
       await theScreenIsResizedToA(tester, 'tablet landscape');
       await theStartCardsAreSideBySide(tester);
@@ -38,8 +40,9 @@ void main() {
       await theStartCardsAreStacked(tester);
       await noUnhandledErrorOccurred(tester);
     });
-    testWidgets('''The tool panel still hugs its content on a tablet''',
-        (tester) async {
+    testWidgets('''The tool panel still hugs its content on a tablet''', (
+      tester,
+    ) async {
       await theAppIsFreshlyLaunched(tester);
       await iCreateANewBlankProject(tester);
       await theScreenIsResizedToA(tester, 'tablet portrait');

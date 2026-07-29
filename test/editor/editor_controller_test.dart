@@ -449,6 +449,39 @@ void main() {
       expect(controller.canRedo, isFalse);
     });
 
+    test('a commit that changes nothing is not an undo step', () {
+      // Async work outlives its subject: a cut-out that finishes after its
+      // layer was deleted (or the frame switched) maps to an identical layer
+      // list. That used to push a do-nothing history entry, so the user's next
+      // Undo appeared to do nothing at all.
+      final (:container, :controller) = open(projectWith([txt(id: 'l_0')]));
+      controller.setOpacity('l_0', 0.5);
+      controller.endEdit();
+      expect(controller.canUndo, isTrue);
+
+      // Same value again, and an edit aimed at a layer that is not there.
+      controller.setOpacity('l_0', 0.5);
+      controller.endEdit();
+      controller.setOpacity('gone', 0.1);
+      controller.renameLayer('gone', 'nope');
+
+      controller.undo();
+      expect(byId(container, 'l_0').opacity, 1.0);
+      expect(
+        controller.canUndo,
+        isFalse,
+        reason: 'no-op commits must not have been recorded',
+      );
+    });
+
+    test('hasLayer reports what the live document actually holds', () {
+      final controller = open(projectWith([txt(id: 'l_0')])).controller;
+      expect(controller.hasLayer('l_0'), isTrue);
+      expect(controller.hasLayer('nope'), isFalse);
+      controller.removeLayer('l_0');
+      expect(controller.hasLayer('l_0'), isFalse);
+    });
+
     test('two edits sharing a coalesce key fold into a single undo step', () {
       final (:container, :controller) = open(projectWith([txt(id: 'l_0')]));
       controller.setOpacity('l_0', 0.8);

@@ -61,6 +61,16 @@ class EditorController extends Notifier<EditorState> {
   /// Commits a new document, recording history. When [coalesce] matches the
   /// previous commit's key, the two fold into one undo step (e.g. a drag).
   void _commit(Project next, {String? coalesce, bool clearSelection = false}) {
+    // A commit that changes nothing must not become an undo step. Several
+    // callers already guarded this by hand (setGrid, rename, setFps,
+    // duplicateLayer, setCanvasSize); doing it here covers the ones that
+    // cannot check cheaply - above all an async result that lands after its
+    // layer was deleted or the frame was switched, which used to push a
+    // do-nothing entry and make the user's next Undo look broken.
+    //
+    // Project/Frame/Layer all have complete value equality, so this is exact
+    // rather than a heuristic.
+    if (next == state.project) return;
     final coalescing =
         coalesce != null && coalesce == _coalesceKey && _undoStack.isNotEmpty;
     if (!coalescing) {
@@ -1021,6 +1031,16 @@ class EditorController extends Notifier<EditorState> {
     if (clamped == state.project.fps) return;
     _commit(state.project.copyWith(fps: clamped), coalesce: 'fps');
   }
+
+  /// Whether the live document still contains a layer with [id].
+  ///
+  /// For async work that outlives its subject: the AI overlay does not block
+  /// the dock or the Layers panel, so a multi-second cut-out can finish after
+  /// its layer was deleted or the frame switched. Applying then is a silent
+  /// no-op, so callers check first and say so.
+  bool hasLayer(String id) => state.project.frames.any(
+    (frame) => frame.layers.any((layer) => layer.id == id),
+  );
 
   /// True when [maskPath] is still reachable - referenced by the live document
   /// or by any undo/redo snapshot. A superseded mask PNG may be deleted only

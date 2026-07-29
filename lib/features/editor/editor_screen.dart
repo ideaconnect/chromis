@@ -56,11 +56,19 @@ import 'services/layer_flattener.dart';
 import 'state/editor_controller.dart';
 import 'state/editor_state.dart';
 import 'state/editor_tool.dart';
+import 'widgets/bubble_shape_sheet.dart';
 import 'widgets/canvas_size_sheet.dart';
 import 'widgets/crop_overlay.dart';
 import 'widgets/editor_canvas.dart';
 import 'widgets/filter_strip.dart';
 import 'widgets/project_canvas.dart';
+
+/// Layout of the Bubble panel's format row. Fixed widths on purpose: they are
+/// what lets [_EditorScreenState._revealBubbleFormat] compute a scroll offset
+/// arithmetically instead of measuring a lazily-built list.
+const double _kBubbleRowTile = 92;
+const double _kBubbleRowGap = 8;
+const double _kBubbleRowThumb = 68;
 
 /// Editor: top bar, model-driven project canvas, a contextual panel that swaps
 /// per tool, and the six-tab tool bar. State lives in [editorControllerProvider];
@@ -78,6 +86,10 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
   String? _editingTextId;
   final TextEditingController _bubbleTextController = TextEditingController();
   String? _editingBubbleId;
+
+  /// The Bubble panel's format row, so selecting a bubble can bring its own
+  /// format into view - the fifth of five sits past the fold on a phone.
+  final ScrollController _bubbleFormatScroll = ScrollController();
 
   // Transient tool UI state not yet backed by the model.
   bool _isPlaying = false; // frame playback (M4)
@@ -129,6 +141,15 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
 
   Timer? _saveTimer;
   Project? _pendingSave;
+
+  /// A write is in flight - a second one would race it onto the same temp file.
+  bool _saving = false;
+
+  /// Something reached disk, so Home's Recent list needs one refresh on exit.
+  bool _homeDirty = false;
+
+  /// Whether the "couldn't save" toast has already been shown this session.
+  bool _saveErrorToasted = false;
   // Captured during build so dispose() can save without touching `ref`
   // (which is unsafe once the widget is unmounting).
   ProjectRepository? _repo;
@@ -139,7 +160,9 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
   EditorController get _controller =>
       ref.read(editorControllerProvider.notifier);
 
-  void _toast(String m) => showSmToast(context, m);
+  /// [ok] false paints the toast's status dot red - the pill used to report a
+  /// failure with a success badge.
+  void _toast(String m, {bool ok = true}) => showSmToast(context, m, ok: ok);
 
   /// Closes the current undo step when a slider drag ends.
   void _endSliderEdit(double _) => _controller.endEdit();
@@ -159,29 +182,77 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
   void _scheduleSave(Project project) {
     _pendingSave = project;
     _saveTimer?.cancel();
-    _saveTimer = Timer(
-      const Duration(milliseconds: 800),
-      () => _flushSave(refreshHome: true),
-    );
+    _saveTimer = Timer(const Duration(milliseconds: 800), () {
+      unawaited(_flushSave());
+    });
   }
 
-  void _flushSave({bool refreshHome = false}) {
+  /// Writes the pending snapshot, keeping it until the write actually lands.
+  ///
+  /// This used to be a sync `void` that cleared `_pendingSave` and then dropped
+  /// the `save()` future on the floor. `ProjectRepository.save` rethrows, and
+  /// there is no zone guard or crash reporter in the app, so a full disk lost
+  /// the snapshot AND said nothing - no toast, no retry, no diagnostics.
+  ///
+  /// [_saving] matters as much as the error handling: two overlapping writers
+  /// share one `<id>.json.tmp`, and a second writer renaming a half-written
+  /// temp over the target is exactly the corruption the atomic write exists to
+  /// prevent.
+  Future<void> _flushSave() async {
     final project = _pendingSave;
-    if (project == null) return;
-    _pendingSave = null;
-    _repo?.save(project.copyWith(updatedAt: DateTime.now()));
-    // Refresh Home's Recent list - via the captured container so it works even
-    // from dispose() (a brand-new project's first save may only flush on exit).
-    if (refreshHome) _homeContainer?.invalidate(savedProjectsProvider);
+    final repo = _repo;
+    if (project == null || repo == null || _saving) return;
+    _saving = true;
+    try {
+      await repo.save(project.copyWith(updatedAt: DateTime.now()));
+      // Only now is it safe to forget - and only if no newer edit arrived
+      // while the write was in flight.
+      if (identical(_pendingSave, project)) _pendingSave = null;
+      _homeDirty = true;
+    } catch (error, stack) {
+      // The snapshot stays pending, so the next tick retries it; a newer edit
+      // supersedes it, which is also correct.
+      FlutterError.reportError(
+        FlutterErrorDetails(
+          exception: error,
+          stack: stack,
+          library: 'chromis',
+          context: ErrorDescription('autosaving the project'),
+        ),
+      );
+      _saveTimer?.cancel();
+      _saveTimer = Timer(const Duration(seconds: 5), () {
+        unawaited(_flushSave());
+      });
+      // Once per session: repeating it every 5s would bury the canvas.
+      if (mounted && !_saveErrorToasted) {
+        _saveErrorToasted = true;
+        _toast("Couldn't save - your edits are safe, still trying", ok: false);
+      }
+    } finally {
+      _saving = false;
+    }
   }
 
   @override
   void dispose() {
     _saveTimer?.cancel();
     _playTimer?.cancel();
-    _flushSave(refreshHome: true); // persist + refresh Home on the way out
+    // Last chance to persist. dispose() cannot await, so this is deliberately
+    // fire-and-forget - but its failure is reported rather than swallowed, and
+    // Home is refreshed only after it settles so a brand-new project (whose
+    // first save may only happen here) appears in Recent.
+    unawaited(
+      _flushSave().whenComplete(() {
+        // Once per editor session rather than once per debounce tick: every
+        // autosave used to invalidate this, which re-listed and re-parsed every
+        // manifest and rebuilt the offstage Home for nothing on screen.
+        if (_homeDirty) _homeContainer?.invalidate(savedProjectsProvider);
+      }),
+    );
     _textController.dispose();
     _bubbleTextController.dispose();
+    _bubbleFormatScroll.dispose();
     super.dispose();
   }
 
@@ -552,19 +623,29 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     };
   }
 
-  Widget _panelHeader(EditorTool tool, {Widget? trailing}) {
+  /// [title] overrides the tool's own name for a panel that is only one of the
+  /// tool's modes - the bubble editor lives under Text but must not claim to be
+  /// it, or adding a bubble looks like the Text tool merely opened.
+  Widget _panelHeader(EditorTool tool, {Widget? trailing, String? title}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            tool.panelTitle,
-            style: TextStyle(
-              fontFamily: AppFonts.display,
-              fontWeight: FontWeight.w600,
-              fontSize: 15,
-              color: context.tokens.accent(tool.accent),
+          // Flexible: the panel is a narrow column in landscape, and a title
+          // long enough to crowd its trailing chips must ellipsize rather than
+          // overflow the row.
+          Flexible(
+            child: Text(
+              title ?? tool.panelTitle,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontFamily: AppFonts.display,
+                fontWeight: FontWeight.w600,
+                fontSize: 15,
+                color: context.tokens.accent(tool.accent),
+              ),
             ),
           ),
           ?trailing,
@@ -614,7 +695,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         codec.dispose();
       }
     } catch (_) {
-      if (mounted) _toast("Couldn't open the photo to crop");
+      if (mounted) _toast("Couldn't open the photo to crop", ok: false);
       return;
     }
     if (!mounted) {
@@ -1035,39 +1116,56 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     final bubble = editor.selectedLayer! as BubbleLayer;
     if (_editingBubbleId != bubble.id ||
         _bubbleTextController.text != bubble.text) {
+      final entered = _editingBubbleId != bubble.id;
       _editingBubbleId = bubble.id;
       _bubbleTextController.value = TextEditingValue(
         text: bubble.text,
         selection: TextSelection.collapsed(offset: bubble.text.length),
       );
+      // Arriving at a bubble whose format sits past the fold - Whisper is the
+      // fifth of five - would otherwise open the panel on a row with nothing
+      // highlighted, right after the user picked that very format. Only on
+      // arrival: while editing, the scroll position is the user's.
+      if (entered) _revealBubbleFormat(bubble.shape);
     }
     final id = bubble.id;
     final fonts = ref.watch(availableFontsProvider);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _panelHeader(
-          EditorTool.text,
-          trailing: const _PanelHint('Comic bubble'),
-        ),
-        // Five shapes don't fit as equal tabs - horizontal pill scroll (#80).
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            children: [
-              for (final s in BubbleShape.values) ...[
-                SizedBox(
-                  width: 90,
-                  child: _segTab(
-                    _bubbleShapeLabel(s),
-                    bubble.shape == s,
-                    AppColors.pink,
-                    () => _controller.updateBubbleLayer(id, shape: s),
-                  ),
+        // No trailing hint naming the format: the row below already shows which
+        // one is on, drawn and highlighted, and a second copy is what pushed
+        // this header past a narrow landscape column.
+        _panelHeader(EditorTool.text, title: 'Comic bubble'),
+        // Formats are drawn, not just named: as five text pills, four of the
+        // five read as jargon and only the default ever got picked. Same tile
+        // as the creation sheet, so the row doubles as "you can still change
+        // your mind".
+        //
+        // The height is measured, not a constant: the tile ends in a label, so
+        // a hard 106 would overflow the moment the system font scale went up.
+        SizedBox(
+          height: bubbleShapeTileHeight(context, thumbWidth: _kBubbleRowThumb),
+          child: ListView.separated(
+            // Keyed so a test can hold on to the row while it scrolls - an
+            // off-screen tile does not exist yet in a lazy list.
+            key: const ValueKey('bubble-shape-row'),
+            controller: _bubbleFormatScroll,
+            scrollDirection: Axis.horizontal,
+            itemCount: BubbleShape.values.length,
+            separatorBuilder: (_, _) => const SizedBox(width: _kBubbleRowGap),
+            itemBuilder: (_, i) {
+              final s = BubbleShape.values[i];
+              return SizedBox(
+                width: _kBubbleRowTile,
+                child: BubbleShapeTile(
+                  shape: s,
+                  selected: bubble.shape == s,
+                  thumbWidth: _kBubbleRowThumb,
+                  onTap: () => _controller.updateBubbleLayer(id, shape: s),
                 ),
-                if (s != BubbleShape.values.last) const SizedBox(width: 8),
-              ],
-            ],
+              );
+            },
           ),
         ),
         const SizedBox(height: 12),
@@ -1180,13 +1278,56 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     );
   }
 
-  String _bubbleShapeLabel(BubbleShape s) => switch (s) {
-    BubbleShape.speech => 'Speech',
-    BubbleShape.thought => 'Thought',
-    BubbleShape.shout => 'Shout',
-    BubbleShape.caption => 'Caption',
-    BubbleShape.whisper => 'Whisper',
-  };
+  /// Adds a comic bubble, after asking which format - the four non-default
+  /// formats were unreachable at creation, and a bubble that arrived silently
+  /// under a panel headed "Text" was routinely missed.
+  ///
+  /// Dismissing the picker adds nothing, so the sheet is also the way out.
+  Future<void> _addBubble() async {
+    final shape = await showBubbleShapeSheet(context);
+    if (shape == null || !mounted) return;
+    _controller.addBubbleLayer(shape: shape);
+    _controller.setTool(EditorTool.text);
+    if (!_sidePanelOpen) setState(() => _sidePanelOpen = true);
+    // "in the panel", not "below": in landscape the panel is a rail to the
+    // left of the canvas, so a direction would be wrong half the time.
+    _toast('${bubbleShapeLabel(shape)} bubble added - edit it in the panel');
+  }
+
+  /// Scrolls the Bubble panel's format row so [shape]'s tile is on screen.
+  ///
+  /// Post-frame because the row may not exist yet: this is called from the
+  /// build that first shows the panel, and a [ScrollController] with no clients
+  /// cannot be moved.
+  void _revealBubbleFormat(BubbleShape shape) {
+    final index = BubbleShape.values.indexOf(shape);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_bubbleFormatScroll.hasClients) return;
+      final position = _bubbleFormatScroll.position;
+      // Tiles are a fixed width, so the offset is arithmetic - no need to
+      // measure, and nothing to go stale if the row rebuilds.
+      const stride = _kBubbleRowTile + _kBubbleRowGap;
+      final target = (index * stride).clamp(
+        position.minScrollExtent,
+        position.maxScrollExtent,
+      );
+      _bubbleFormatScroll.jumpTo(target);
+    });
+  }
+
+  /// Names for the swatch row, positionally matched to its colours - a screen
+  /// reader has nothing else to go on.
+  static const _colorNames = [
+    'white',
+    'black',
+    'pink',
+    'amber',
+    'green',
+    'cyan',
+    'violet',
+    'rose',
+    'orange',
+  ];
 
   /// A labelled row of 9 color swatches for the bubble fill / outline.
   Widget _swatchRow(String label, Color selected, ValueChanged<Color> onPick) {
@@ -1215,29 +1356,53 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
           ),
         ),
         Expanded(
-          child: Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              for (final c in colors)
-                GestureDetector(
-                  onTap: () => onPick(c),
-                  child: Container(
-                    width: 26,
-                    height: 26,
-                    decoration: BoxDecoration(
-                      color: c,
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: selected == c
-                            ? Colors.white
-                            : Colors.white.withValues(alpha: 0.15),
-                        width: selected == c ? 3 : 2,
+          // Horizontally scrollable rather than wrapped: nine 40dp targets do
+          // not fit one row on a 360dp phone, and letting them wrap moved the
+          // controls below the fold on a short viewport. The dots stay 26px -
+          // only the area that accepts a tap grew around them.
+          child: SizedBox(
+            height: 40,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: colors.length,
+              separatorBuilder: (_, _) => const SizedBox(width: 2),
+              itemBuilder: (_, i) {
+                final c = colors[i];
+                return Semantics(
+                  button: true,
+                  selected: selected == c,
+                  // Unlabeled, these were nine identical "button" nodes to a
+                  // screen reader, in a row whose whole purpose is which one
+                  // is which.
+                  label: '$label ${_colorNames[i]}',
+                  excludeSemantics: true,
+                  child: GestureDetector(
+                    onTap: () => onPick(c),
+                    behavior: HitTestBehavior.opaque,
+                    child: SizedBox(
+                      width: 40,
+                      height: 40,
+                      child: Center(
+                        child: Container(
+                          width: 26,
+                          height: 26,
+                          decoration: BoxDecoration(
+                            color: c,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: selected == c
+                                  ? Colors.white
+                                  : Colors.white.withValues(alpha: 0.15),
+                              width: selected == c ? 3 : 2,
+                            ),
+                          ),
+                        ),
                       ),
                     ),
                   ),
-                ),
-            ],
+                );
+              },
+            ),
           ),
         ),
       ],
@@ -1951,7 +2116,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     // looking at the purchase screen - telling them there to consider Go Pro is
     // exactly the nag this gate exists to avoid.
     if (outcome == AdGateOutcome.notRewarded && mounted) {
-      _toast('Watch the full ad to use AI, or Go Pro to remove ads');
+      _toast('Watch the full ad to use AI, or Go Pro to remove ads', ok: false);
     }
     return false;
   }
@@ -1972,7 +2137,10 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       );
       if (result == null) {
         if (mounted) {
-          _toast("Background removal isn't available on this device yet");
+          _toast(
+            "Background removal isn't available on this device yet",
+            ok: false,
+          );
         }
         return;
       }
@@ -1980,7 +2148,20 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       // off the UI isolate so the "Working…" spinner actually animates
       // (docs/reviews/2026-07-19-review.md).
       final mask = await _processCutoutMask(result.mask, refine: refine);
+      // `ref` after an await is unsafe once unmounted - in riverpod 3.x that is
+      // a real StateError, which the catch below would have swallowed as
+      // "couldn't remove the background".
+      if (!mounted) return;
       final path = await ref.read(maskStoreProvider).save(mask, id: image.id);
+      if (!mounted) return;
+      // The overlay does not block the dock or the Layers panel, so the layer
+      // may have been deleted - or the frame switched - while this ran.
+      // Applying to a document that no longer has it is a no-op that used to
+      // still toast "Background removed" over an unchanged picture.
+      if (!_controller.hasLayer(image.id)) {
+        _toast('That layer is gone - the cut-out was discarded', ok: false);
+        return;
+      }
       _maskGc.supersede(image.maskPath, path);
       _controller.setImageMask(image.id, path);
       if (mounted) {
@@ -1994,7 +2175,9 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         );
       }
     } catch (_) {
-      if (mounted) _toast("Couldn't remove the background - try again");
+      if (mounted) {
+        _toast("Couldn't remove the background - try again", ok: false);
+      }
     } finally {
       if (mounted) setState(() => _removingBg = false);
     }
@@ -2029,18 +2212,26 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       keepLargest: keepLargest,
       feather: feather,
     );
+    if (!mounted) return; // `ref` after an await needs the screen alive
     final path = await ref
         .read(maskStoreProvider)
         .save(processed, id: image.id);
+    if (!mounted) return;
+    // The layer can be deleted while this runs - nothing blocks the dock or
+    // the Layers panel during a cut-out.
+    if (!_controller.hasLayer(image.id)) {
+      _toast('That layer is gone - the cut-out was discarded', ok: false);
+      return;
+    }
     _maskGc.supersede(image.maskPath, path);
-    if (mounted) _controller.setImageMask(image.id, path);
+    _controller.setImageMask(image.id, path);
   }
 
   void _showBgSheet() {
     final selected = ref.read(editorControllerProvider).selectedLayer;
     final image = selected is ImageLayer ? selected : null;
     if (image == null) {
-      _toast('Select a photo layer to cut out');
+      _toast('Select a photo layer to cut out', ok: false);
       return;
     }
     var objectMode = false;
@@ -2075,10 +2266,18 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
               engineLabel = model.label;
               setSheet(() => stage = 'processing');
               final result = await _segment(image);
-              if (!sheetCtx.mounted) return;
+              // Deliberately the SCREEN's `mounted`, not the sheet's. The sheet
+              // is dismissible and the engine keeps running regardless, so
+              // keying the apply on `sheetCtx.mounted` meant a reflexive
+              // back-press threw a finished cut-out away with no toast, no
+              // spinner and nothing on the canvas to show for the wait.
+              if (!mounted) return;
               if (result == null) {
-                setSheet(() => stage = 'choose');
-                _toast("Background removal isn't available on this device yet");
+                if (sheetCtx.mounted) setSheet(() => stage = 'choose');
+                _toast(
+                  "Background removal isn't available on this device yet",
+                  ok: false,
+                );
                 return;
               }
               raw = result.mask;
@@ -2088,7 +2287,13 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                 keepLargest: autoRefine,
                 feather: feather.round(),
               );
-              if (!sheetCtx.mounted) return;
+              if (!mounted) return;
+              if (!sheetCtx.mounted) {
+                // Dismissed mid-run: the work landed anyway, so say so - the
+                // sheet's own "done" stage is not there to report it.
+                _toast('Background removed · $engineLabel');
+                return;
+              }
               setSheet(() => stage = 'done');
             }
 
@@ -2531,7 +2736,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       _workingMaskPath = path;
       _controller.setImageMask(layer.id, path);
     } catch (_) {
-      if (mounted) _toast("Couldn't apply the brush");
+      if (mounted) _toast("Couldn't apply the brush", ok: false);
     }
   }
 
@@ -2577,7 +2782,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       if (!mounted) return;
       switch (result.outcome) {
         case RemoveTapOutcome.miss:
-          if (mounted) _toast('Nothing to remove there');
+          if (mounted) _toast('Nothing to remove there', ok: false);
         case RemoveTapOutcome.subject:
           // The tapped blob IS (or touches) the biggest one - the free CC
           // tier can't carve an attached object out. Escalate to the
@@ -2597,7 +2802,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
           }
       }
     } catch (_) {
-      if (mounted) _toast("Couldn't remove that - try again");
+      if (mounted) _toast("Couldn't remove that - try again", ok: false);
     }
   }
 
@@ -2637,12 +2842,12 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     // honest that the CAPABILITY is missing - this is not the user's tap.
     final capability = await ref.read(aiCapabilityProvider.future);
     if (!capability.samAllowed || _samEngineFailed) {
-      if (mounted) _toast(samUnavailableMessage);
+      if (mounted) _toast(samUnavailableMessage, ok: false);
       return;
     }
     final engine = ref.read(objectSegmentationEngineProvider);
     if (!await engine.isAvailable()) {
-      if (mounted) _toast(samUnavailableMessage);
+      if (mounted) _toast(samUnavailableMessage, ok: false);
       return;
     }
     if (mounted) setState(() => _samBusy = true);
@@ -2660,13 +2865,13 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         // mask-save IO error, say) are retryable and must not disable the
         // tier.
         _samEngineFailed = true;
-        if (mounted) _toast("Couldn't remove that - try again");
+        if (mounted) _toast("Couldn't remove that - try again", ok: false);
         return;
       }
       if (!mounted) return;
       final current = _workingMask;
       if (object == null || current == null) {
-        _toast("Couldn't find an object there");
+        _toast("Couldn't find an object there", ok: false);
         return;
       }
       // Overlap with what the cutout currently keeps - a per-pixel pass over
@@ -2674,11 +2879,14 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       final stats = await _maskOverlap(current, object);
       if (!mounted) return;
       if (stats.overlap == 0) {
-        _toast("Couldn't find an object there");
+        _toast("Couldn't find an object there", ok: false);
         return;
       }
       if (stats.overlap > stats.kept * 0.8) {
-        _toast('That looks like your subject - use Erase for fine edits');
+        _toast(
+          'That looks like your subject - use Erase for fine edits',
+          ok: false,
+        );
         return;
       }
       // Fill mode: replace the object with synthesized background instead of
@@ -2693,7 +2901,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       await _applyRemovedMask(layer, next);
       if (mounted) _toast('Object removed - undo brings it back');
     } catch (_) {
-      if (mounted) _toast("Couldn't remove that - try again");
+      if (mounted) _toast("Couldn't remove that - try again", ok: false);
     } finally {
       if (mounted) setState(() => _samBusy = false);
     }
@@ -2715,7 +2923,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         final next = await _subtractObject(current, object);
         if (!mounted) return;
         await _applyRemovedMask(layer, next);
-        if (mounted) _toast('Fill unavailable - erased instead');
+        if (mounted) _toast('Fill unavailable - erased instead', ok: false);
         return;
       }
       final newPath = await ref
@@ -3140,7 +3348,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       _controller.applyMerges(specs);
       _toast(doneMessage);
     } catch (_) {
-      if (mounted) _toast("Couldn't merge those layers");
+      if (mounted) _toast("Couldn't merge those layers", ok: false);
     } finally {
       if (mounted) setState(() => _merging = false);
     }
@@ -3176,7 +3384,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         pixels: await _decodeImageSize(path),
       );
     } catch (_) {
-      if (mounted) _toast('Could not import photo');
+      if (mounted) _toast('Could not import photo', ok: false);
     }
   }
 
@@ -3219,7 +3427,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       }
       _controller.setTool(EditorTool.adjust);
     } catch (_) {
-      if (mounted) _toast('Could not import photo');
+      if (mounted) _toast('Could not import photo', ok: false);
     }
   }
 
@@ -3245,13 +3453,13 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     try {
       final path = await service.pasteFromClipboard();
       if (path == null) {
-        if (mounted) _toast('No image in clipboard');
+        if (mounted) _toast('No image in clipboard', ok: false);
         return;
       }
       _controller.addImageLayer(assetPath: path);
       _controller.setTool(EditorTool.adjust);
     } catch (_) {
-      if (mounted) _toast('Could not paste image');
+      if (mounted) _toast('Could not paste image', ok: false);
     }
   }
 
@@ -3282,6 +3490,9 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         ],
       ),
     );
+    // "Add bubble" answers with a second sheet, so the editor has to still be
+    // on screen before another route is pushed onto it.
+    if (!mounted) return;
     switch (choice) {
       case 'camera':
         await _pickPhoto(ImageSource.camera);
@@ -3292,8 +3503,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       case 'text':
         _controller.addTextLayer();
       case 'bubble':
-        _controller.addBubbleLayer();
-        _controller.setTool(EditorTool.text);
+        await _addBubble();
     }
   }
 
@@ -3582,6 +3792,14 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       }
     }
 
+    // The bubble editor is a mode of the Text tool, so the dock says so with a
+    // pink badge on Bubble rather than by stealing Text's highlight: Bubble is
+    // an action (it adds one), and painting it cyan would promise a mode whose
+    // next tap adds a second bubble. Text keeps its own highlight, so the
+    // landscape fold-on-retap still matches what is lit.
+    final onBubble =
+        editor.tool == EditorTool.text && editor.selectedLayer is BubbleLayer;
+
     return [
       // Go Pro sits first, and only for people who haven't bought it. It is the
       // one dock entry that opens a sheet instead of selecting a tool, so it
@@ -3617,11 +3835,8 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       _DockItem(
         icon: Icons.chat_bubble_outline,
         label: 'Bubble',
-        onTap: () {
-          _controller.addBubbleLayer();
-          _controller.setTool(EditorTool.text);
-          if (!_sidePanelOpen) setState(() => _sidePanelOpen = true);
-        },
+        accent: onBubble ? AppColors.pink : null,
+        onTap: _addBubble,
       ),
       _DockItem(icon: Icons.auto_awesome, label: 'AI Cut', onTap: _showBgSheet),
       _DockItem(
@@ -4131,6 +4346,7 @@ class _LayerRow extends StatelessWidget {
                   ),
                 ),
                 IconButton(
+                  tooltip: layer.visible ? 'Hide layer' : 'Show layer',
                   visualDensity: VisualDensity.compact,
                   onPressed: onToggleVisibility,
                   icon: Icon(
@@ -4154,6 +4370,7 @@ class _LayerRow extends StatelessWidget {
                   ),
                 ),
                 IconButton(
+                  tooltip: 'Delete layer',
                   visualDensity: VisualDensity.compact,
                   onPressed: onDelete,
                   icon: const Icon(
@@ -4394,6 +4611,7 @@ class _TopBar extends StatelessWidget {
       child: Row(
         children: [
           IconButton(
+            tooltip: 'Menu',
             onPressed: () => Scaffold.of(context).openDrawer(),
             icon: const Icon(
               Icons.menu,
@@ -4456,12 +4674,14 @@ class _TopBar extends StatelessWidget {
             ),
           ),
           IconButton(
+            tooltip: 'Undo',
             onPressed: canUndo ? onUndo : null,
             color: AppColors.textMuted,
             disabledColor: AppColors.textFaint,
             icon: const Icon(Icons.undo, size: 20),
           ),
           IconButton(
+            tooltip: 'Redo',
             onPressed: canRedo ? onRedo : null,
             color: AppColors.textMuted,
             disabledColor: AppColors.textFaint,

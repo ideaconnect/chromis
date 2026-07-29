@@ -1,18 +1,33 @@
 package tech.idct.chromis
 
+import android.Manifest
 import android.app.ActivityManager
 import android.content.ContentValues
 import android.content.Context
+import android.content.pm.PackageManager
+import android.media.MediaScannerConnection
 import android.os.Build
 import android.os.Bundle
 import android.os.Environment
 import android.provider.MediaStore
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 import java.io.File
 
 class MainActivity : FlutterActivity() {
+
+    /** A gallery save waiting on the pre-Q storage permission prompt. */
+    private var pendingSave: PendingSave? = null
+
+    private data class PendingSave(
+        val name: String,
+        val mime: String,
+        val bytes: ByteArray,
+        val result: MethodChannel.Result,
+    )
 
     // Remove the OS splash instantly (skip the default fade-out) the moment
     // Flutter's first frame is ready, so the native splash hands off to the
@@ -65,49 +80,92 @@ class MainActivity : FlutterActivity() {
             }
     }
 
-    /** Inserts [bytes] as a new file in the public Downloads collection. */
-    private fun saveToDownloads(
+    /**
+     * Pre-Q gallery write: `Pictures/Chromis/<name>` on the shared volume,
+     * then a media scan so it shows up in the gallery.
+     *
+     * Everything below Android 10 predates scoped storage, so this needs
+     * WRITE_EXTERNAL_STORAGE (declared with `maxSdkVersion="28"`). Without it
+     * the write threw, the channel answered `save_failed`, and the user got
+     * "Couldn't save the image" on every attempt with no way to succeed - and
+     * on the free tier, each attempt had already cost a rewarded ad.
+     *
+     * The old implementation also wrote to Downloads and never ran a media
+     * scan, so even with the permission the file would not have appeared where
+     * the UI said it would.
+     */
+    private fun saveToPicturesLegacy(
         name: String,
         mime: String,
         bytes: ByteArray,
         result: MethodChannel.Result,
     ) {
+        val granted = ContextCompat.checkSelfPermission(
+            this,
+            Manifest.permission.WRITE_EXTERNAL_STORAGE,
+        ) == PackageManager.PERMISSION_GRANTED
+        if (!granted) {
+            // Ask once, then retry from onRequestPermissionsResult. Only one
+            // save can be in flight - the export button disables itself while
+            // busy - so a single slot is enough.
+            pendingSave = PendingSave(name, mime, bytes, result)
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE),
+                REQUEST_WRITE_STORAGE,
+            )
+            return
+        }
         try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                val values = ContentValues().apply {
-                    put(MediaStore.Downloads.DISPLAY_NAME, name)
-                    put(MediaStore.Downloads.MIME_TYPE, mime)
-                    put(MediaStore.Downloads.IS_PENDING, 1)
-                }
-                val resolver = contentResolver
-                val uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
-                    ?: throw IllegalStateException("MediaStore insert returned null")
-                resolver.openOutputStream(uri)?.use { it.write(bytes) }
-                    ?: throw IllegalStateException("could not open output stream")
-                values.clear()
-                values.put(MediaStore.Downloads.IS_PENDING, 0)
-                resolver.update(uri, values, null, null)
-                result.success("Downloads/$name")
-            } else {
-                // API 26-28: legacy external Downloads dir (predates scoped storage).
-                @Suppress("DEPRECATION")
-                val dir = Environment.getExternalStoragePublicDirectory(
-                    Environment.DIRECTORY_DOWNLOADS,
-                )
-                dir.mkdirs()
-                val file = File(dir, name)
-                file.writeBytes(bytes)
-                result.success(file.absolutePath)
-            }
+            @Suppress("DEPRECATION")
+            val pictures = Environment.getExternalStoragePublicDirectory(
+                Environment.DIRECTORY_PICTURES,
+            )
+            val dir = File(pictures, "Chromis")
+            dir.mkdirs()
+            val file = File(dir, name)
+            file.writeBytes(bytes)
+            // Without this the file exists but no gallery app lists it.
+            MediaScannerConnection.scanFile(
+                this,
+                arrayOf(file.absolutePath),
+                arrayOf(mime),
+                null,
+            )
+            result.success("Pictures/Chromis/$name")
         } catch (e: Exception) {
             result.error("save_failed", e.message, null)
+        }
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray,
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode != REQUEST_WRITE_STORAGE) return
+        val save = pendingSave ?: return
+        pendingSave = null
+        val granted = grantResults.isNotEmpty() &&
+            grantResults[0] == PackageManager.PERMISSION_GRANTED
+        if (granted) {
+            saveToPicturesLegacy(save.name, save.mime, save.bytes, save.result)
+        } else {
+            // A distinct code from save_failed: Dart can tell "you said no"
+            // from "it broke", and say something the user can act on.
+            save.result.error(
+                "permission_denied",
+                "storage permission is required to save on this Android version",
+                null,
+            )
         }
     }
 
     /**
      * Inserts [bytes] as a new image in the Pictures gallery
      * (`Pictures/Chromis`) via MediaStore on Android 10+ - no runtime
-     * permission needed. Pre-Q falls back to the Downloads collection.
+     * permission needed. Pre-Q takes the legacy file + media-scan path.
      */
     private fun saveImageToGallery(
         name: String,
@@ -116,7 +174,7 @@ class MainActivity : FlutterActivity() {
         result: MethodChannel.Result,
     ) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
-            saveToDownloads(name, mime, bytes, result)
+            saveToPicturesLegacy(name, mime, bytes, result)
             return
         }
         try {
@@ -147,5 +205,6 @@ class MainActivity : FlutterActivity() {
 
     companion object {
         private const val PLATFORM_CHANNEL = "chromis/platform"
+        private const val REQUEST_WRITE_STORAGE = 4201
     }
 }

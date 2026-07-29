@@ -97,17 +97,40 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
   }
 
   Future<void> _save() async {
+    // Render BEFORE the ad gate. The ad is the price of delivering the export,
+    // so a render that fails must not cost one - the gate used to be the first
+    // statement here, and on a device where saving could not work every retry
+    // burned another rewarded ad. The ad still runs before the file is
+    // written, which is the part the gate is actually protecting.
+    setState(() => _busy = true);
+    final Uint8List bytes;
+    final ({String ext, String mime, bool alpha}) f;
+    try {
+      bytes = await _render();
+      f = _fmtInfo;
+    } catch (_) {
+      if (mounted) {
+        setState(() => _busy = false);
+        _snack('Export failed - try again');
+      }
+      return;
+    }
+    if (mounted) setState(() => _busy = false);
     if (!await _adGate()) return;
+    if (!mounted) return;
     setState(() => _busy = true);
     try {
-      final bytes = await _render();
-      final f = _fmtInfo;
       final name = 'Chromis_${DateTime.now().millisecondsSinceEpoch}.${f.ext}';
-      final loc = await ref
+      final result = await ref
           .read(platformServicesProvider)
           .saveToGallery(name, f.mime, bytes);
       if (!mounted) return;
-      _snack(loc == null ? "Couldn't save the image" : 'Saved · $loc');
+      _snack(switch (result) {
+        GallerySaveSuccess(:final location) => 'Saved · $location',
+        GallerySaveFailure(permissionDenied: true) =>
+          'Allow storage access to save to your gallery',
+        GallerySaveFailure() => "Couldn't save the image",
+      });
     } catch (_) {
       if (mounted) _snack('Export failed - try again');
     } finally {
@@ -116,11 +139,25 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
   }
 
   Future<void> _share() async {
+    // Same ordering as _save: a failed render must not cost an ad.
+    setState(() => _busy = true);
+    final Uint8List bytes;
+    final ({String ext, String mime, bool alpha}) f;
+    try {
+      bytes = await _render();
+      f = _fmtInfo;
+    } catch (_) {
+      if (mounted) {
+        setState(() => _busy = false);
+        _snack('Share failed - try again');
+      }
+      return;
+    }
+    if (mounted) setState(() => _busy = false);
     if (!await _adGate()) return;
+    if (!mounted) return;
     setState(() => _busy = true);
     try {
-      final bytes = await _render();
-      final f = _fmtInfo;
       final dir = await getTemporaryDirectory();
       final file = File(
         '${dir.path}/Chromis_${DateTime.now().millisecondsSinceEpoch}'

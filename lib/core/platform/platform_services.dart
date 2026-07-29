@@ -37,24 +37,55 @@ class PlatformServices {
     }
   }
 
-  /// Saves [bytes] as [fileName] into the Pictures gallery (Android 10+ uses
-  /// MediaStore with no runtime permission). Returns the user-visible location
-  /// (e.g. `Pictures/Chromis/…`), or null on failure.
-  Future<String?> saveToGallery(
+  /// Saves [bytes] as [fileName] into the Pictures gallery. Android 10+ goes
+  /// through MediaStore with no runtime permission; below that the native side
+  /// asks for storage access once, then writes and media-scans the file.
+  ///
+  /// Returns the user-visible location (e.g. `Pictures/Chromis/…`) on success,
+  /// or a [GallerySaveFailure] saying WHY it failed - "you declined the
+  /// permission" needs different words from "the write broke", and the caller
+  /// cannot tell them apart from a bare null.
+  Future<GallerySaveResult> saveToGallery(
     String fileName,
     String mimeType,
     Uint8List bytes,
   ) async {
     try {
-      return await _channel.invokeMethod<String>('saveImageToGallery', {
-        'fileName': fileName,
-        'mimeType': mimeType,
-        'bytes': bytes,
-      });
-    } on PlatformException {
-      return null;
+      final location = await _channel.invokeMethod<String>(
+        'saveImageToGallery',
+        {'fileName': fileName, 'mimeType': mimeType, 'bytes': bytes},
+      );
+      return location == null
+          ? const GallerySaveFailure(permissionDenied: false)
+          : GallerySaveSuccess(location);
+    } on PlatformException catch (e) {
+      return GallerySaveFailure(
+        permissionDenied: e.code == 'permission_denied',
+      );
+    } on MissingPluginException {
+      return const GallerySaveFailure(permissionDenied: false);
     }
   }
+}
+
+/// Outcome of [PlatformServices.saveToGallery].
+sealed class GallerySaveResult {
+  const GallerySaveResult();
+}
+
+final class GallerySaveSuccess extends GallerySaveResult {
+  const GallerySaveSuccess(this.location);
+
+  /// Where it landed, in words a user can act on ("Pictures/Chromis/x.png").
+  final String location;
+}
+
+final class GallerySaveFailure extends GallerySaveResult {
+  const GallerySaveFailure({required this.permissionDenied});
+
+  /// True when the user declined the pre-Android-10 storage permission, which
+  /// is recoverable by granting it - unlike every other failure here.
+  final bool permissionDenied;
 }
 
 final platformServicesProvider = Provider<PlatformServices>(

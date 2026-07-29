@@ -300,4 +300,105 @@ void main() {
       expectAgree(export, preview, blendSamples);
     });
   });
+
+  // ------------------------------------------------------------- captions
+  //
+  // Text is the OTHER thing written twice - `ProjectRenderer._paintText` for
+  // the export, `TextCaption` for the preview - and until now no parity test
+  // touched it: every probe above is a BubbleLayer with the default empty
+  // caption, so not one glyph was ever rasterised on both surfaces. The two
+  // agree today, but the doc comment on `text_caption.dart` records that they
+  // have drifted apart before, and there is plenty left to drift: tracking,
+  // the stroke join, whether the stroke paints behind the fill, and the
+  // duplicated `hasStroke` predicate.
+  //
+  // The test font draws every glyph as a filled box, which is what makes this
+  // work as a probe: a fat stroke around a solid rectangle gives an
+  // unambiguous ring to sample, with none of a real typeface's hinting.
+  group('text captions', () {
+    TextLayer caption({
+      required String id,
+      required double strokeWidth,
+      Offset position = const Offset(120, 120),
+    }) => TextLayer(
+      id: id,
+      name: id,
+      text: 'AA',
+      fontFamily: 'Roboto',
+      fontSize: 64,
+      color: const Color(0xFFFF0000),
+      strokeColor: const Color(0xFF00FFFF),
+      strokeWidth: strokeWidth,
+      transform: LayerTransform(position: position),
+    );
+
+    testWidgets('an outlined caption rasterizes identically in both paths', (
+      tester,
+    ) async {
+      await tester.runAsync(() async {
+        // A deliberately fat outline, so the ring is many pixels wide and a
+        // one-pixel disagreement in join style or stroke order still lands
+        // inside a sample rather than between two of them.
+        final frame = Frame(
+          id: 'f',
+          layers: [caption(id: 't0', strokeWidth: 14)],
+        );
+        final export = await rasterizeExport(frame);
+        final preview = await rasterizeCanvas(tester, frame);
+        expectAgree(export, preview, const {
+          'glyph centre': Offset(120, 120),
+          'inside the stroke ring': Offset(120, 88),
+          'left of the glyph block': Offset(88, 120),
+          'clear of the caption': Offset(20, 20),
+        });
+      });
+    });
+
+    testWidgets('a caption with no outline agrees too', (tester) async {
+      await tester.runAsync(() async {
+        // strokeWidth 0 takes the other branch of `hasStroke`, which is
+        // written out separately on each surface.
+        final frame = Frame(
+          id: 'f',
+          layers: [caption(id: 't1', strokeWidth: 0)],
+        );
+        final export = await rasterizeExport(frame);
+        final preview = await rasterizeCanvas(tester, frame);
+        expectAgree(export, preview, const {
+          'glyph centre': Offset(120, 120),
+          'just outside the glyph': Offset(120, 92),
+          'clear of the caption': Offset(20, 20),
+        });
+      });
+    });
+
+    testWidgets('a wrapped bubble caption agrees in both paths', (
+      tester,
+    ) async {
+      await tester.runAsync(() async {
+        // The bubble's own caption path: auto-fit size, line count, ellipsis
+        // and inset are all constants duplicated across the two renderers.
+        const frame = Frame(
+          id: 'f',
+          layers: [
+            BubbleLayer(
+              id: 'b0',
+              name: 'b0',
+              shape: BubbleShape.caption,
+              text: 'wrap this caption over a few lines',
+              transform: LayerTransform(position: Offset(120, 120)),
+            ),
+          ],
+        );
+        final export = await rasterizeExport(frame);
+        final preview = await rasterizeCanvas(tester, frame);
+        expectAgree(export, preview, const {
+          'bubble centre': Offset(120, 120),
+          'upper caption band': Offset(120, 104),
+          'lower caption band': Offset(120, 134),
+          'bubble body, clear of text': Offset(70, 120),
+        });
+      });
+    });
+  });
 }

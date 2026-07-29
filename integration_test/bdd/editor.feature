@@ -12,5 +12,6 @@ Feature: Core editing on a blank canvas
     Given the app is freshly launched
     When I create a new blank project
     And I tap the {'Bubble'} tool
+    And I pick the {'Speech'} bubble format
     Then a comic bubble layer is added
     And no unhandled error occurred

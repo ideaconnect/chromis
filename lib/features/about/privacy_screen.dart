@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_typography.dart';
 import '../../core/widgets/responsive_center.dart';
+import '../ads/consent_options.dart';
 import 'about_data.dart';
 
 /// In-app privacy summary. Mirrors `docs/legal/privacy-policy.md`; the full
@@ -86,6 +87,11 @@ class PrivacyScreen extends StatelessWidget {
                         ),
                       ),
                     const SizedBox(height: 12),
+                    // Only rendered where UMP says consent applies (the EEA/UK).
+                    // Without it, a user who answered the consent form once had
+                    // no way to change their mind - which the published policy
+                    // says they can.
+                    const AdPrivacyOptionsCard(),
                     const _LinkCard(
                       icon: Icons.link,
                       label: 'Full privacy policy',
@@ -113,6 +119,7 @@ class PrivacyScreen extends StatelessWidget {
       child: Row(
         children: [
           IconButton(
+            tooltip: 'Back',
             onPressed: () => context.pop(),
             icon: const Icon(
               Icons.chevron_left,

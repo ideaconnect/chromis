@@ -19,6 +19,7 @@ import '../../core/theme/app_typography.dart';
 import '../../core/widgets/name_prompt.dart';
 import '../../core/widgets/responsive_center.dart';
 import '../about/about_data.dart';
+import '../ads/ads_service.dart';
 import '../editor/services/image_import.dart';
 import '../editor/state/editor_controller.dart';
 import '../editor/widgets/canvas_size_sheet.dart';
@@ -656,7 +657,19 @@ class _HomeAdBannerState extends ConsumerState<_HomeAdBanner> {
   @override
   void initState() {
     super.initState();
+    unawaited(_loadWhenAllowed());
+  }
+
+  /// Waits for the UMP consent flow to settle before requesting anything.
+  ///
+  /// This used to load immediately, gated only on the Pro flag, so on a first
+  /// launch in the EEA the banner asked a production unit for an ad while the
+  /// consent form was still on screen.
+  Future<void> _loadWhenAllowed() async {
     if (ref.read(isProProvider)) return; // Pro: never request an ad
+    final ads = ref.read(adsServiceProvider);
+    await ads.consentSettled;
+    if (!mounted || ref.read(isProProvider) || !ads.canRequestAds) return;
     final ad = BannerAd(
       adUnitId: AdsConfig.banner,
       size: AdSize.banner,
@@ -681,7 +694,7 @@ class _HomeAdBannerState extends ConsumerState<_HomeAdBanner> {
       ),
     );
     _ad = ad;
-    ad.load();
+    unawaited(ad.load());
   }
 
   @override

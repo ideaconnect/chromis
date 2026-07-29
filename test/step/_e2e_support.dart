@@ -255,6 +255,30 @@ Future<void> tapText(WidgetTester tester, String label) async {
   await settle(tester);
 }
 
+/// Pumps in short slices until one of [messages] appears, and returns it -
+/// or null if none showed within [timeout].
+///
+/// For outcomes announced by a snack bar. `settle` is useless there: it pumps a
+/// fixed 3.2 s and a snack lives for 4 s, so a step that settles after the tap
+/// and then looks finds nothing and cannot tell "it failed" from "it already
+/// went away". Polling from the moment of the tap catches the message whenever
+/// it lands, however slow the work behind it was.
+Future<String?> pumpUntilAnyText(
+  WidgetTester tester,
+  List<String> messages, {
+  Duration timeout = const Duration(seconds: 20),
+  Duration slice = const Duration(milliseconds: 200),
+}) async {
+  final slices = timeout.inMilliseconds ~/ slice.inMilliseconds;
+  for (var i = 0; i < slices; i++) {
+    await tester.pump(slice);
+    for (final message in messages) {
+      if (find.textContaining(message).evaluate().isNotEmpty) return message;
+    }
+  }
+  return null;
+}
+
 /// Scrolls [finder] into view AND lets the frame settle.
 ///
 /// `ensureVisible` alone is not enough: it moves the scroll offset, but the

@@ -7,7 +7,7 @@ import '../../core/theme/app_typography.dart';
 import '../../core/widgets/responsive_center.dart';
 import 'iap.dart';
 
-/// Go Pro / paywall: the one-time `pro_remove_ads` purchase that removes all
+/// Go Pro / paywall: the one-time `chromis_pro_mode` purchase that removes all
 /// ads, with Restore. Purchase delivery + acknowledgement is handled app-wide
 /// by [purchaseDeliveryProvider]; this screen just launches buy/restore and
 /// reflects the entitlement.
@@ -23,6 +23,15 @@ class GoProScreen extends ConsumerWidget {
     final isPro = ref.watch(proEntitledProvider).asData?.value ?? false;
     final product = ref.watch(proProductProvider).asData?.value;
 
+    // Play reports a declined card or an unavailable service asynchronously,
+    // long after buy() returns - so the error arrives on the stream, not from
+    // the call. Previously nothing listened and the paywall just sat there.
+    ref.listen<String?>(purchaseErrorProvider, (_, message) {
+      if (message == null || !context.mounted) return;
+      _snack(context, message);
+      ref.read(purchaseErrorProvider.notifier).clear();
+    });
+
     Future<void> buy() async {
       if (product == null) {
         _snack(
@@ -31,13 +40,40 @@ class GoProScreen extends ConsumerWidget {
         );
         return;
       }
-      await ref.read(iapServiceProvider).buy(product);
+      final bool started;
+      try {
+        started = await ref.read(iapServiceProvider).buy(product);
+      } catch (_) {
+        if (context.mounted) {
+          _snack(context, "Couldn't start the purchase - please try again.");
+        }
+        return;
+      }
+      // false means Play never opened its sheet - most often because this
+      // account already owns the product, which Restore fixes.
+      if (!started && context.mounted) {
+        _snack(
+          context,
+          "Couldn't start the purchase - if you already bought Pro, "
+          'tap Restore purchase.',
+        );
+      }
     }
 
     Future<void> restore() async {
-      await ref.read(iapServiceProvider).restore();
-      if (context.mounted) {
-        _snack(context, 'Checking for a previous purchase…');
+      // Said BEFORE the await: restorePurchases() can take seconds, and can
+      // throw (offline is the common case), which used to leave the tap with
+      // no acknowledgement at all.
+      _snack(context, 'Checking for a previous purchase…');
+      try {
+        await ref.read(iapServiceProvider).restore();
+      } catch (_) {
+        if (context.mounted) {
+          _snack(
+            context,
+            "Couldn't reach Google Play - check your connection and try again.",
+          );
+        }
       }
     }
 
@@ -85,7 +121,7 @@ class GoProScreen extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 20),
-            _benefit('No banner or interstitial ads'),
+            _benefit('No banner or full-screen ads'),
             _benefit('Run AI Cut & object removal without a rewarded ad'),
             _benefit('One-time payment - no subscription'),
             _benefit('Supports private, on-device photo editing'),

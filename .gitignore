@@ -67,3 +67,7 @@ assets/branding/dog/
 # sticker chip nothing references. Both are reproducible; neither is deployed.
 website/assets/img/effects/dog-cutout.png
 website/assets/img/effects/dog-chip.png
+
+# Golden-test failure artifacts (diff/master/test PNGs), written by
+# `flutter test` when a golden mismatches. Debugging output, never source.
+**/test/**/failures/

@@ -81,4 +81,31 @@ void main() {
     await store.setOnboardingSeen(true);
     expect(await SettingsStore(baseDir: base).onboardingSeen(), isTrue);
   });
+
+  test('a committed value survives a killed write', () async {
+    // The file is written tmp-then-rename, so an interrupted write leaves the
+    // previous file intact rather than a truncated one. This matters because
+    // every value here is unrecoverable: `{}` reads back as "Pro was never
+    // bought", and nothing restores it.
+    final base = freshTemp();
+    final store = SettingsStore(baseDir: base);
+    await store.setProEntitled(true);
+
+    // Simulate a write that died after creating the temp file but before the
+    // rename - the exact window the atomic write exists to make survivable.
+    File('${base.path}/settings.json.tmp').writeAsStringSync('{"proEnti');
+
+    final reread = SettingsStore(baseDir: base);
+    expect(
+      await reread.proEntitled(),
+      isTrue,
+      reason: 'the last committed settings must survive a half-written temp',
+    );
+
+    // And the stray temp never shadows the real file on the next write.
+    await reread.setOnboardingSeen(true);
+    final after = SettingsStore(baseDir: base);
+    expect(await after.proEntitled(), isTrue);
+    expect(await after.onboardingSeen(), isTrue);
+  });
 }

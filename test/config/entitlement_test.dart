@@ -9,6 +9,17 @@ import 'package:in_app_purchase/in_app_purchase.dart';
 /// idempotent and persisted, `isProProvider` is false until the flag resolves,
 /// and [IapService.loadProduct] maps an empty product query to null.
 void main() {
+  test('the Pro product id still matches the one in Play Console', () {
+    // Pinned deliberately, tautological as it looks. This id is one half of a
+    // contract whose other half lives in a web console, and getting it wrong
+    // raises NO error: `loadProduct` returns an empty query, the provider
+    // resolves to null, and the Go Pro screen says "Purchases are temporarily
+    // unavailable" for every user forever. Nothing in a build, a test run or a
+    // crash report would say why. If the console product is renamed, change it
+    // here and update docs/monetization-setup.md in the same commit.
+    expect(kProProductId, 'chromis_pro_mode');
+  });
+
   group('EntitlementController', () {
     test('build() surfaces the cached proEntitled flag', () async {
       final entitled = ProviderContainer.test(

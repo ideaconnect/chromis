@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:chromis/features/about/about_data.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -12,7 +14,26 @@ void main() {
   group('AboutInfo scalars', () {
     test('appVersion is a plain semver', () {
       expect(RegExp(r'^\d+\.\d+\.\d+$').hasMatch(AboutInfo.appVersion), isTrue);
-      expect(AboutInfo.appVersion, '1.0.0'); // documented default
+    });
+
+    test('appVersion matches pubspec.yaml', () {
+      // This used to assert the literal '1.0.0' as "the documented default",
+      // which pinned the bug instead of catching it: the app shipped two more
+      // versions while the drawer, the About sheet and the Licenses page all
+      // still told users 1.0.0, and the test stayed green throughout.
+      final pubspec = File('pubspec.yaml').readAsStringSync();
+      final match = RegExp(
+        r'^version:\s*(\d+\.\d+\.\d+)',
+        multiLine: true,
+      ).firstMatch(pubspec);
+      expect(match, isNotNull, reason: 'no version: line in pubspec.yaml');
+      expect(
+        AboutInfo.appVersion,
+        match!.group(1),
+        reason:
+            'AboutInfo.appVersion is shown to users - bump it with pubspec, '
+            'or they are told the wrong version',
+      );
     });
 
     test('publisher names IDCT and is non-empty', () {
