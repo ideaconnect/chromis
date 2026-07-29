@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Published at https://idct.tech/chromis/sitemap.xml and referenced from the
+  sitemap index at https://idct.tech/sitemap.xml (repo: ideaconnect.github.io).
+  Add an entry here whenever a page is added to website/.
+
+  These three URLs match the <link rel="canonical"> on each page. GitHub Pages
+  also answers /chromis/privacy and /chromis/index.html, so the canonical tags
+  are what keep those extra spellings from being indexed separately.
+
+  <changefreq>/<priority> are omitted on purpose — Google ignores both.
+-->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://idct.tech/chromis/</loc>
+  </url>
+  <url>
+    <loc>https://idct.tech/chromis/privacy.html</loc>
+  </url>
+  <url>
+    <loc>https://idct.tech/chromis/terms.html</loc>
+  </url>
+</urlset>
