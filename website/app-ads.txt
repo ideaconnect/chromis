@@ -1,0 +1,14 @@
+# app-ads.txt - IAB Tech Lab spec v1.0. Lines starting with # are ignored.
+#
+# A MIRROR. The file AdMob actually reads is https://idct.tech/app-ads.txt, in
+# the ideaconnect.github.io repo: a crawler takes the developer website from the
+# Play listing, reduces it to the root domain and fetches only /app-ads.txt, so
+# a copy at a subpath is never what gets verified. This one exists because the
+# listing points at this page, and anything reading the URL as given finds the
+# same answer here. Change one, change the other - a mirror that disagrees with
+# the root is worse than no mirror.
+#
+# google.com = Google AdMob; pub-6904561240517963 = the AdMob publisher id
+# (account-wide, so one record covers every app on this account);
+# f08c47fec0942fa0 = Google's TAG certification id, the same for all publishers.
+google.com, pub-6904561240517963, DIRECT, f08c47fec0942fa0
