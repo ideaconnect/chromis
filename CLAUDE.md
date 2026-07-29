@@ -146,6 +146,43 @@ Bundle **only** MIT / BSD / Apache-2.0 / SIL-OFL. No GPL/LGPL (ffmpeg dropped),
 no CC-BY-NC (no `u2net_portrait` / BRIA RMBG). Register bundled font + model
 license texts in `lib/features/about/bundled_licenses.dart`.
 
+## Website (`website/`)
+
+Plain HTML/CSS - no Jekyll, no build. `.github/workflows/pages.yml` uploads the
+folder as-is on any push touching `website/**`, publishing it at
+**idct.tech/chromis/**. Pages there are flat files: `index.html`, `privacy.html`,
+`terms.html`.
+
+**`website/sitemap.xml` is hand-maintained and must always be correct.** Unlike
+the other IDCT sites - helena and gentastic generate theirs from a Liquid loop,
+nuts uses `jekyll-sitemap` - this one is a literal list, so it is the only one
+that goes stale on its own. Adding, renaming or deleting a page in `website/`
+means editing `sitemap.xml` **in the same change**. Nothing catches it if you
+forget: no build fails, no test goes red, the page simply never gets indexed.
+
+It is not just this site's sitemap. `idct.tech/sitemap.xml` is a sitemap *index*
+(repo `ideaconnect/ideaconnect.github.io`) that references this file directly and
+is submitted to Google Search Console - so if this file 404s or goes malformed,
+it is a hard error against the whole domain, not just `/chromis/`.
+
+Two rules that go with it:
+
+- **Every page needs a `<link rel="canonical">`, and it must match its `<loc>`
+  here exactly.** GitHub Pages answers both `/chromis/privacy` and
+  `/chromis/privacy.html` with a 200, so without a canonical the same page can
+  be indexed twice. The canonical for the home page is the bare directory,
+  `https://idct.tech/chromis/`, not `index.html`.
+- **`changefreq` / `priority` are omitted on purpose.** Google ignores both;
+  don't reintroduce them.
+
+Check after any page change:
+
+```bash
+python3 -c "import xml.etree.ElementTree as ET; \
+print([e[0].text for e in ET.parse('website/sitemap.xml').getroot()])"
+grep -l 'rel="canonical"' website/*.html   # every page must be listed
+```
+
 ## Commands
 
 ```bash
