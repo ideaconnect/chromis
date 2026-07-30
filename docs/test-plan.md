@@ -187,6 +187,27 @@ swatch (>=40dp).
 fails the Export pill (37dp) and the editable project title (21dp), which are
 the approved design.
 
+### 1.12 Photo crop - `test/editor/crop_button_test.dart`, `test/rendering/image_decode_test.dart`
+The Adjust panel's Crop button, driven through the real `EditorScreen` over a
+real PNG on disk: the overlay opens for both decode branches (<=1080 wide and
+downscaled), the px readout is in **source** pixels though the preview is
+capped, a corner drag reaches the model, a body drag moves without resizing,
+"Edit crop" reopens on the existing crop, cancel leaves it alone, an unreadable
+file toasts instead of crashing, and the cropped two-button Row lays out in
+portrait, in landscape and at a 1.8x text scale.
+
+This is the coverage whose absence let the button ship **dead**: it decoded with
+`ImageDescriptor.dispose()` ahead of `Codec.getNextFrame()`, which fails every
+time, and `editor_crop.feature` asserted the crop state by calling
+`setImageCrop` on the controller - so nothing had ever pressed the button.
+`image_decode_test.dart` pins the dispose order in `decodeImageFile`, now the
+app's single photo decoder, plus the width/height caps and the no-upscale rule.
+
+Two of these tests exist because a widget test could reach what a device test
+had not: the corner handles lost the gesture arena to the crop body, and a
+source under 16px inverted a `clamp` range. Both were real, neither was the
+reported crash.
+
 ### 1.8 Extend existing
 - **`mask_mapper_test.dart`** (extend): rotation≠0 (un-rotate), layerScale≠1,
   non-square imageSize, top/bottom crops (dy), `boxSize` override, and
@@ -241,6 +262,9 @@ Gherkin `.feature` + `bdd_widget_test`-generated tests, run via `./e2e.ps1`.
   outlineWidth; Reset restores identity.
 - **`editor_crop.feature`** *(seeded photo)* - `setImageCrop` state path: crop →
   `isCropped` true, "Edit crop"/"Reset crop" appear; Reset crop → full rect.
+  Note it calls the controller directly and so does **not** cover the button or
+  the crop overlay - §1.12 does that, and had to be written because this one
+  passed while the button was dead.
 - **`editor_erase.feature`** *(seeded photo)* - Erase tool → canvas drag → a
   `maskPath` is set (pure-Dart brush, no gate); Restore mode.
 - **`editor_ai_cut.feature`** *(seeded photo, Pro)* - AI Cut sheet → Remove

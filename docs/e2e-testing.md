@@ -114,6 +114,20 @@ Covered on-device: install + cold start (real ONNX/ML Kit/ads/font/routing
 init), reaching Home, creating a project, opening the editor, and blank-canvas
 edits (bubble/text layers).
 
-Not automatable here: flows behind the **system photo picker** (import → crop,
-AI background cut, MI-GAN fill, export/share) need platform-channel mocking, so
-they stay in manual device testing. See [device-testing notes](../MEMORY.md).
+Photo flows are reachable without the picker: `seedPhoto(tester)` stores a
+bundled asset through `ImageImportService` and adds it as a layer, which is what
+lets the crop/adjust/effects/erase features run here. Use it for anything that
+needs pixels rather than declaring the flow unautomatable - the crop button's
+decode failed on **every** photo and was invisible until a test actually pressed
+it (`editor_crop.feature`, first scenario).
+
+Not automatable here: what genuinely needs the **system photo picker** or a
+share sheet (choosing a real photo, export/share targets), which needs
+platform-channel mocking. See [device-testing notes](../MEMORY.md).
+
+The emulator runs **Skia**, not Impeller: `android/app/src/debug/AndroidManifest
+.xml` disables Impeller because SwiftShader's software Vulkan takes the
+emulator's GPU process down under it. So a fault that only Impeller's decoder
+reaches - as the crop decode bug was - will NOT reproduce here even on the
+device tier. That class of bug needs a release or profile build on real
+hardware.

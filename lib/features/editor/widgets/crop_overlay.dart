@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
@@ -64,6 +65,17 @@ Future<Rect?> showLayerCropOverlay(
     ),
   );
 }
+
+/// Keys on the crop box's four corner handles. Nothing in the app reads them;
+/// they exist so a test can drag a corner, which is the only way to exercise
+/// the crop editor end to end - the handles are bare hit targets with no text,
+/// no icon and no semantics to find them by.
+const cropHandleKeys = (
+  topLeft: ValueKey<String>('crop-handle-tl'),
+  topRight: ValueKey<String>('crop-handle-tr'),
+  bottomLeft: ValueKey<String>('crop-handle-bl'),
+  bottomRight: ValueKey<String>('crop-handle-br'),
+);
 
 class _CropOverlay extends StatefulWidget {
   const _CropOverlay({
@@ -164,15 +176,20 @@ class _CropOverlayState extends State<_CropOverlay> {
     final dnx = delta.dx / display.width;
     final dny = delta.dy / display.height;
     var l = _l, t = _t, r = _r, b = _b;
+    // Every bound is squeezed back into 0..1 before it is used. `clamp` throws
+    // ArgumentError on an inverted range, and the minimum crop can invert one:
+    // a source under 16 px makes `_minW` exceed the whole image, and an
+    // existing crop thinner than the minimum (persisted by an older build, or
+    // read from a hand-edited manifest) pushes `l + _minW` past 1.
     if (left) {
-      l = (l + dnx).clamp(0.0, r - _minW);
+      l = (l + dnx).clamp(0.0, math.max(0.0, r - _minW));
     } else {
-      r = (r + dnx).clamp(l + _minW, 1.0);
+      r = (r + dnx).clamp(math.min(1.0, l + _minW), 1.0);
     }
     if (top) {
-      t = (t + dny).clamp(0.0, b - _minH);
+      t = (t + dny).clamp(0.0, math.max(0.0, b - _minH));
     } else {
-      b = (b + dny).clamp(t + _minH, 1.0);
+      b = (b + dny).clamp(math.min(1.0, t + _minH), 1.0);
     }
     setState(() {
       _l = l;
@@ -256,15 +273,26 @@ class _CropOverlayState extends State<_CropOverlay> {
     }
     return LayoutBuilder(
       builder: (context, constraints) {
-        final box = Size(constraints.maxWidth, constraints.maxHeight);
-        final display = _containRect(box, widget.srcWidth / widget.srcHeight);
+        const h = 30.0; // corner handle hit size
+        // Half a handle of room on every side. A handle is centred on the
+        // crop's corner, and nothing outside this Stack can be hit-tested
+        // however permissive the clip is - so with the preview filling the box
+        // exactly, which is the normal case in portrait, the outer half of all
+        // four corners was dead to touch.
+        final box = Size(
+          math.max(1.0, constraints.maxWidth - h),
+          math.max(1.0, constraints.maxHeight - h),
+        );
+        final display = _containRect(
+          box,
+          widget.srcWidth / widget.srcHeight,
+        ).translate(h / 2, h / 2);
         final crop = Rect.fromLTRB(
           display.left + _l * display.width,
           display.top + _t * display.height,
           display.left + _r * display.width,
           display.top + _b * display.height,
         );
-        const h = 30.0; // corner handle hit size
         return Stack(
           clipBehavior: Clip.none,
           children: [
@@ -295,21 +323,25 @@ class _CropOverlayState extends State<_CropOverlay> {
               ),
             ),
             _handle(
+              cropHandleKeys.topLeft,
               crop.topLeft,
               h,
               (d) => _resize(d, display, left: true, top: true),
             ),
             _handle(
+              cropHandleKeys.topRight,
               crop.topRight,
               h,
               (d) => _resize(d, display, left: false, top: true),
             ),
             _handle(
+              cropHandleKeys.bottomLeft,
               crop.bottomLeft,
               h,
               (d) => _resize(d, display, left: true, top: false),
             ),
             _handle(
+              cropHandleKeys.bottomRight,
               crop.bottomRight,
               h,
               (d) => _resize(d, display, left: false, top: false),
@@ -320,14 +352,26 @@ class _CropOverlayState extends State<_CropOverlay> {
     );
   }
 
-  Widget _handle(Offset center, double size, ValueChanged<Offset> onDrag) {
+  Widget _handle(
+    Key key,
+    Offset center,
+    double size,
+    ValueChanged<Offset> onDrag,
+  ) {
     return Positioned(
+      key: key,
       left: center.dx - size / 2,
       top: center.dy - size / 2,
       width: size,
       height: size,
+      // Opaque, not translucent. The body's pan detector covers the whole crop
+      // rect, so a translucent handle put both recognizers in the arena and the
+      // body took the drag - and _moveBody on a full-frame crop has nowhere to
+      // move, so the corner did nothing at all. Only the single pixel exactly
+      // on the corner escaped, because that one falls outside the body's own
+      // bounds; every grab a finger actually makes is a few px inside it.
       child: GestureDetector(
-        behavior: HitTestBehavior.translucent,
+        behavior: HitTestBehavior.opaque,
         onPanUpdate: (d) => onDrag(d.delta),
         child: const SizedBox.expand(),
       ),

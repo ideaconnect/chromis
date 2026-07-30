@@ -20,6 +20,7 @@ import '../../core/models/layer_effects.dart';
 import '../../core/models/layer_transform.dart';
 import '../../core/models/project.dart';
 import '../../core/rendering/canvas_geometry.dart';
+import '../../core/rendering/image_decode.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_tokens.dart';
 import '../../core/theme/app_typography.dart';
@@ -674,41 +675,30 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
   /// Opens the per-layer crop editor over [layer]'s source photo (decoded at a
   /// preview resolution - the crop itself is normalized) and applies the result.
   Future<void> _cropSelectedImage(ImageLayer layer) async {
-    final ui.Image image;
-    final int srcW;
-    final int srcH;
-    try {
-      final bytes = await File(layer.assetPath).readAsBytes();
-      final buffer = await ui.ImmutableBuffer.fromUint8List(bytes);
-      final descriptor = await ui.ImageDescriptor.encoded(buffer);
-      srcW = descriptor.width;
-      srcH = descriptor.height;
-      final target = descriptor.width > 1080 ? 1080 : null;
-      final codec = target != null
-          ? await descriptor.instantiateCodec(targetWidth: target)
-          : await descriptor.instantiateCodec();
-      descriptor.dispose();
-      buffer.dispose();
-      try {
-        image = (await codec.getNextFrame()).image;
-      } finally {
-        codec.dispose();
-      }
-    } catch (_) {
+    // Both sides are capped: the overlay only ever displays this, and a tall
+    // stitched screenshot at full height is tens of MB of bitmap. The crop it
+    // returns is normalized, so the preview resolution does not reach the
+    // document - `sourceWidth/Height` drive the px readout instead.
+    final decoded = await decodeImageFile(
+      layer.assetPath,
+      maxWidth: 1080,
+      maxHeight: 1080,
+    );
+    if (decoded == null) {
       if (mounted) _toast("Couldn't open the photo to crop", ok: false);
       return;
     }
     if (!mounted) {
-      image.dispose();
+      decoded.image.dispose();
       return;
     }
-    // The overlay takes ownership of `image` and disposes it.
+    // The overlay takes ownership of the image and disposes it.
     final rect = await showLayerCropOverlay(
       context,
-      image: image,
+      image: decoded.image,
       initialCrop: layer.cropRect,
-      srcWidth: srcW,
-      srcHeight: srcH,
+      srcWidth: decoded.sourceWidth,
+      srcHeight: decoded.sourceHeight,
     );
     if (rect == null || !mounted) return;
     _controller.setImageCrop(layer.id, rect);
@@ -761,13 +751,21 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
           ),
         ),
         const SizedBox(height: 2),
+        // Both buttons take a FIXED SHARE of the row and ellipsize. Reset crop
+        // used to be sized to its own content, and at a large system font in
+        // the landscape rail it alone outgrew the row - 27px of overflow that
+        // no amount of shrinking the Expanded beside it could absorb.
         Row(
           children: [
             Expanded(
+              flex: 2,
               child: OutlinedButton.icon(
                 onPressed: () => _cropSelectedImage(selected),
                 icon: const Icon(Icons.crop, size: 17),
-                label: Text(selected.isCropped ? 'Edit crop' : 'Crop photo'),
+                label: Text(
+                  selected.isCropped ? 'Edit crop' : 'Crop photo',
+                  overflow: TextOverflow.ellipsis,
+                ),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: AppColors.textSecondary,
                   side: const BorderSide(color: AppColors.border),
@@ -777,19 +775,25 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
             ),
             if (selected.isCropped) ...[
               const SizedBox(width: 8),
-              OutlinedButton(
-                onPressed: () => _controller.setImageCrop(
-                  id,
-                  const Rect.fromLTRB(0, 0, 1, 1),
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => _controller.setImageCrop(
+                    id,
+                    const Rect.fromLTRB(0, 0, 1, 1),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.textMuted,
+                    side: const BorderSide(color: AppColors.border),
+                    // Min WIDTH stays 0: Size.fromHeight would set it to
+                    // infinity, and a button that demands infinite width
+                    // inside a Row is a layout error (#crop).
+                    minimumSize: const Size(0, 38),
+                  ),
+                  child: const Text(
+                    'Reset crop',
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColors.textMuted,
-                  side: const BorderSide(color: AppColors.border),
-                  // NOT Expanded, so a fixed 38 min-HEIGHT only - Size.fromHeight
-                  // sets min-WIDTH to infinity, which crashes layout here (#crop).
-                  minimumSize: const Size(0, 38),
-                ),
-                child: const Text('Reset crop'),
               ),
             ],
           ],

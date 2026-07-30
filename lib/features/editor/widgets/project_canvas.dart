@@ -10,6 +10,7 @@ import '../../../core/models/layer.dart';
 import '../../../core/models/layer_effects.dart';
 import '../../../core/models/project.dart';
 import '../../../core/rendering/canvas_geometry.dart';
+import '../../../core/rendering/image_decode.dart';
 import '../../../core/rendering/layer_effects_painter.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
@@ -422,29 +423,8 @@ class _MaskedImageState extends State<_MaskedImage> {
 
   /// Decodes [path] at most [targetWidth] px wide - never upscaled past the
   /// encoded source size.
-  static Future<ui.Image?> _decode(String path, int targetWidth) async {
-    try {
-      final bytes = await File(path).readAsBytes();
-      final buffer = await ui.ImmutableBuffer.fromUint8List(bytes);
-      final descriptor = await ui.ImageDescriptor.encoded(buffer);
-      buffer.dispose();
-      try {
-        final codec = descriptor.width > targetWidth
-            ? await descriptor.instantiateCodec(targetWidth: targetWidth)
-            : await descriptor.instantiateCodec();
-        try {
-          final frame = await codec.getNextFrame();
-          return frame.image;
-        } finally {
-          codec.dispose();
-        }
-      } finally {
-        descriptor.dispose();
-      }
-    } catch (_) {
-      return null;
-    }
-  }
+  static Future<ui.Image?> _decode(String path, int targetWidth) async =>
+      (await decodeImageFile(path, maxWidth: targetWidth))?.image;
 
   @override
   void dispose() {

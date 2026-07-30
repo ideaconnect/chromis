@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'dart:isolate';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
@@ -10,6 +9,7 @@ import '../../core/models/frame.dart';
 import '../../core/models/grid.dart';
 import '../../core/models/layer.dart';
 import '../../core/rendering/canvas_geometry.dart';
+import '../../core/rendering/image_decode.dart';
 import '../../core/rendering/layer_effects_painter.dart';
 import '../../core/widgets/text_caption.dart';
 import '../editor/widgets/bubble_view.dart';
@@ -456,29 +456,7 @@ abstract final class ProjectRenderer {
     return map;
   }
 
-  static Future<ui.Image?> _decode(String path, {int? maxWidth}) async {
-    try {
-      final file = File(path);
-      if (!file.existsSync()) return null;
-      final buffer = await ui.ImmutableBuffer.fromUint8List(
-        await file.readAsBytes(),
-      );
-      final descriptor = await ui.ImageDescriptor.encoded(buffer);
-      // Only ever downscale - never decode larger than the source.
-      final target = (maxWidth != null && descriptor.width > maxWidth)
-          ? maxWidth
-          : null;
-      final codec = await descriptor.instantiateCodec(targetWidth: target);
-      try {
-        final frame = await codec.getNextFrame();
-        return frame.image;
-      } finally {
-        codec.dispose();
-        descriptor.dispose();
-        buffer.dispose();
-      }
-    } catch (_) {
-      return null;
-    }
-  }
+  /// Only ever downscales - never decodes larger than the source.
+  static Future<ui.Image?> _decode(String path, {int? maxWidth}) async =>
+      (await decodeImageFile(path, maxWidth: maxWidth))?.image;
 }
