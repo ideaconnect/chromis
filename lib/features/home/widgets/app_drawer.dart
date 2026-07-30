@@ -9,6 +9,7 @@ import '../../../core/models/project.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_tokens.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../about/about_data.dart';
 import '../../about/about_sheet.dart';
 import '../../editor/state/editor_controller.dart';
 import '../../editor/widgets/canvas_size_sheet.dart';
@@ -86,8 +87,12 @@ class AppDrawer extends ConsumerWidget {
                           ),
                         ),
                         SizedBox(height: 2),
+                        // Read from AboutInfo, never a literal: this line was
+                        // hardcoded 'v1.0.0' and stayed there for two releases
+                        // while the About sheet had already been fixed. The
+                        // interpolation is still const - appVersion is.
                         Text(
-                          'Photo editor · v1.0.0',
+                          'Photo editor · v${AboutInfo.appVersion}',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(

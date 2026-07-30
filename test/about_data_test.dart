@@ -36,6 +36,35 @@ void main() {
       );
     });
 
+    test('no source file hardcodes a version string', () {
+      // The pubspec<->AboutInfo check above only guards the constant. The
+      // drawer header printed a literal 'v1.0.0' and so kept showing it two
+      // releases after AboutInfo was fixed - the user saw the stale version in
+      // the sidebar while the About sheet was correct. Every user-visible
+      // version must interpolate AboutInfo.appVersion, so no other file in
+      // lib/ may contain a version literal at all.
+      final literal = RegExp(r"v\d+\.\d+\.\d+|'\d+\.\d+\.\d+'");
+      final offenders = <String>[];
+      for (final f in Directory('lib').listSync(recursive: true)) {
+        if (f is! File || !f.path.endsWith('.dart')) continue;
+        if (f.path.endsWith('about_data.dart')) continue; // declares it
+        final lines = f.readAsLinesSync();
+        for (var i = 0; i < lines.length; i++) {
+          final code = lines[i].split('//').first; // ignore comments
+          if (literal.hasMatch(code)) {
+            offenders.add('${f.path}:${i + 1}: ${lines[i].trim()}');
+          }
+        }
+      }
+      expect(
+        offenders,
+        isEmpty,
+        reason:
+            'hardcoded version literal - interpolate AboutInfo.appVersion '
+            'instead:\n${offenders.join('\n')}',
+      );
+    });
+
     test('publisher names IDCT and is non-empty', () {
       expect(AboutInfo.publisher.trim(), isNotEmpty);
       expect(AboutInfo.publisher, contains('IDCT'));
