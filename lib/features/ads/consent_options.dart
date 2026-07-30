@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_typography.dart';
+import 'ads_service.dart';
 
 /// "Ad privacy choices" - reopens the UMP consent form so a user can change the
 /// answer they gave on first launch.
@@ -15,14 +17,15 @@ import '../../core/theme/app_typography.dart';
 /// Renders nothing at all outside the EEA/UK, where
 /// [PrivacyOptionsRequirementStatus.required] is never reported - a dead row
 /// that opens an empty form is worse than no row.
-class AdPrivacyOptionsCard extends StatefulWidget {
+class AdPrivacyOptionsCard extends ConsumerStatefulWidget {
   const AdPrivacyOptionsCard({super.key});
 
   @override
-  State<AdPrivacyOptionsCard> createState() => _AdPrivacyOptionsCardState();
+  ConsumerState<AdPrivacyOptionsCard> createState() =>
+      _AdPrivacyOptionsCardState();
 }
 
-class _AdPrivacyOptionsCardState extends State<AdPrivacyOptionsCard> {
+class _AdPrivacyOptionsCardState extends ConsumerState<AdPrivacyOptionsCard> {
   bool _required = false;
   bool _busy = false;
 
@@ -49,29 +52,24 @@ class _AdPrivacyOptionsCardState extends State<AdPrivacyOptionsCard> {
   Future<void> _open() async {
     if (_busy) return;
     setState(() => _busy = true);
-    try {
-      await ConsentForm.showPrivacyOptionsForm((error) {
-        if (error != null && mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text("Couldn't open ad settings: ${error.message}"),
-            ),
-          );
-        }
-      });
-    } catch (_) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Couldn't open ad settings - try again"),
-          ),
+    // Through [AdsService], never `ConsentForm` directly. Calling UMP from here
+    // showed the right form and then told nobody: `canRequestAds` kept the
+    // value it read at launch, so withdrawing consent on this screen left the
+    // Home banner on screen and the export gate still offering an ad. Going
+    // through the service re-reads the answer and publishes it, and the banner
+    // is listening. It never throws - it reports through [onError] instead.
+    await ref
+        .read(adsServiceProvider)
+        .requestConsent(
+          onError: (message) {
+            if (!mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text("Couldn't open ad settings: $message")),
+            );
+          },
         );
-      }
-    } finally {
-      if (mounted) setState(() => _busy = false);
-    }
-    // The answer may have changed what can be requested; the next launch picks
-    // it up, and existing ads are not retroactively affected either way.
+    if (mounted) setState(() => _busy = false);
+    // The answer can also change whether this entry point is required at all.
     await _check();
   }
 

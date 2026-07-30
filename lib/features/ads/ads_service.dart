@@ -35,11 +35,87 @@ class AdsService {
 
   /// Whether UMP says an ad request is permitted. False only when consent is
   /// required and has not been given.
-  bool _canRequestAds = true;
-  bool get canRequestAds => _canRequestAds;
+  ///
+  /// A notifier rather than a plain bool because this changes *mid-session*:
+  /// "Ad privacy choices" sits two taps from Home, and withdrawing consent has
+  /// to take an ad that is already on screen back off it - immediately, not at
+  /// the next cold start. Anything showing an ad listens to
+  /// [canRequestAdsListenable]; anything merely deciding once reads
+  /// [canRequestAds].
+  final ValueNotifier<bool> _canRequestAds = ValueNotifier(true);
+  bool get canRequestAds => _canRequestAds.value;
+  ValueListenable<bool> get canRequestAdsListenable => _canRequestAds;
 
   void _settleConsent() {
     if (!_consentSettled.isCompleted) _consentSettled.complete();
+  }
+
+  /// Longest anything will wait on the consent flow before carrying on without
+  /// it. Every callback path settles the completer, but the UMP SDK can simply
+  /// never call back - a captive portal, a dropped request - and both the ad
+  /// gate and [showRewarded] await it. Unbounded, that is an export that hangs
+  /// forever instead of one that falls back.
+  static const consentTimeout = Duration(seconds: 8);
+
+  Future<void> awaitConsent() =>
+      consentSettled.timeout(consentTimeout, onTimeout: () {});
+
+  /// Test seam: pins the consent outcome without a platform UMP round-trip,
+  /// which no host test can perform. Settles the gate too, so a test does not
+  /// have to pump [consentTimeout] of fake time to get past it.
+  @visibleForTesting
+  void debugSetConsent({required bool canRequestAds}) {
+    _canRequestAds.value = canRequestAds;
+    _settleConsent();
+  }
+
+  /// Re-opens the UMP consent UI and re-reads whether ads may be requested,
+  /// returning the new [canRequestAds].
+  ///
+  /// This is the only way back for someone who declined. [_canRequestAds] is
+  /// otherwise read exactly once per launch, so before this a user who turned
+  /// ads off - or who dismissed the form with the back button - had no in-app
+  /// route to turning them back on and having it take effect: the app went on
+  /// requesting nothing until the next cold start.
+  ///
+  /// Which form to show is not interchangeable.
+  /// `loadAndShowConsentFormIfRequired` does **nothing at all** once a choice
+  /// has been recorded, because none is then "required" - so changing an answer
+  /// has to go through the privacy options form instead. Calling the wrong one
+  /// looks exactly like a dead button.
+  /// [onError] surfaces UMP's own message to the user; the Privacy screen shows
+  /// it in a snackbar. Everything else is best-effort and silent.
+  ///
+  /// This is the ONLY route to the consent UI. "Ad privacy choices" used to
+  /// call `showPrivacyOptionsForm` itself, which showed the form correctly and
+  /// then told nobody: [canRequestAds] kept whatever it read at launch, so a
+  /// user who turned ads off there went on being shown the Home banner, and the
+  /// export gate went on offering an ad, for the rest of the session.
+  Future<bool> requestConsent({void Function(String message)? onError}) async {
+    void report(FormError? error) {
+      if (error == null) return;
+      debugPrint('AdsService: consent form failed - ${error.message}');
+      onError?.call(error.message);
+    }
+
+    try {
+      final status = await ConsentInformation.instance.getConsentStatus();
+      if (status == ConsentStatus.required || status == ConsentStatus.unknown) {
+        await ConsentForm.loadAndShowConsentFormIfRequired(report);
+      } else {
+        await ConsentForm.showPrivacyOptionsForm(report);
+      }
+      _canRequestAds.value = await ConsentInformation.instance.canRequestAds();
+    } catch (e) {
+      debugPrint('AdsService: re-requesting consent failed - $e');
+      // A reason, not a sentence - the caller owns the wording around it.
+      onError?.call('please try again');
+    }
+    // A user can reach this before init's own flow has answered (offline first
+    // launch, then straight to Export); nothing should keep waiting on that.
+    _settleConsent();
+    if (canRequestAds) _preloadRewarded();
+    return canRequestAds;
   }
 
   /// Initializes the Mobile Ads SDK and runs the UMP consent flow once, then
@@ -80,12 +156,13 @@ class AdsService {
                 );
               }
             });
-            _canRequestAds = await ConsentInformation.instance.canRequestAds();
+            _canRequestAds.value = await ConsentInformation.instance
+                .canRequestAds();
           } catch (e) {
             debugPrint('AdsService: consent flow failed - $e');
           }
           _settleConsent();
-          if (_canRequestAds) _preloadRewarded();
+          if (canRequestAds) _preloadRewarded();
         },
         (error) {
           // Could not reach the consent service. Requesting ads anyway is the
@@ -163,10 +240,22 @@ class AdsService {
   /// failed load never blocks the feature). Completes false only if the user
   /// dismisses without earning.
   Future<bool> showRewarded() async {
-    // Nothing may be requested before consent has answered. Fail-open applies
-    // afterwards: if consent is refused there is no ad to show, and the gate
-    // must still let the user through rather than locking the feature.
-    await consentSettled;
+    // Nothing may be requested before consent has answered - bounded, so a UMP
+    // call that never comes back cannot hang the export behind it.
+    await awaitConsent();
+    // Fail-open covers a MISSING ad (no fill, a bad unit, no network): none of
+    // those are the user's doing and none should lock the feature. A refused
+    // consent is different in kind - there is no ad because the user asked for
+    // none - and passing that through made every gated action free for anyone
+    // who declined. The gate disables the watch button in that state and
+    // offers the consent form instead; this is the backstop behind it.
+    if (!canRequestAds) {
+      debugPrint(
+        'AdsService: consent does not permit ad requests - the gate must not '
+        'pass. Offer the consent form or Go Pro.',
+      );
+      return false;
+    }
     final ad = _rewarded;
     if (ad == null) {
       debugPrint(

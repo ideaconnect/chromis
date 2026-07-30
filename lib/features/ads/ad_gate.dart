@@ -46,7 +46,15 @@ enum AdGateOutcome {
 
   /// They chose to watch, but the ad ended without earning the reward. The only
   /// ending worth explaining to the user.
-  notRewarded;
+  notRewarded,
+
+  /// Ads are switched off by the user's own consent choice, so there is no ad
+  /// to watch - and they left without either allowing ads or upgrading.
+  ///
+  /// Separate from [dismissed] because the sheet has already explained the
+  /// situation and offered both ways out: a caller must not follow it with a
+  /// "watch the full ad" nag, which is advice they cannot act on.
+  adsDeclined;
 
   bool get allows => this == AdGateOutcome.allowed;
 }
@@ -73,6 +81,15 @@ abstract final class AdGate {
   }) async {
     if (ref.read(isProProvider)) return AdGateOutcome.allowed;
 
+    final ads = ref.read(adsServiceProvider);
+    // The ad is what pays for this action, so someone who turned ads off is
+    // asked again here - once, on the way in - rather than quietly getting it
+    // for free. Only when we already KNOW ads are blocked: `canRequestAds`
+    // starts true and answers synchronously, so the ordinary path adds nothing
+    // to wait for.
+    if (!ads.canRequestAds) await ads.requestConsent();
+    if (!context.mounted) return AdGateOutcome.dismissed;
+
     final choice = await showModalBottomSheet<AdGateChoice>(
       context: context,
       // So the sheet may use the height it needs; SheetBody caps and scrolls it.
@@ -84,7 +101,13 @@ abstract final class AdGate {
       builder: (_) =>
           AdGateSheet(title: title, message: message, watchLabel: watchLabel),
     );
-    if (!context.mounted || choice == null) return AdGateOutcome.dismissed;
+    if (!context.mounted || choice == null) {
+      // Leaving a sheet that had nothing to offer is not the same as declining
+      // an ad that was on the table.
+      return ads.canRequestAds
+          ? AdGateOutcome.dismissed
+          : AdGateOutcome.adsDeclined;
+    }
     if (choice == AdGateChoice.goPro) {
       unawaited(context.pushNamed(Routes.goPro));
       return AdGateOutcome.wentToPro;
@@ -96,7 +119,7 @@ abstract final class AdGate {
 }
 
 /// The gate's UI. Public only so a widget test can pump it directly.
-class AdGateSheet extends StatelessWidget {
+class AdGateSheet extends ConsumerStatefulWidget {
   const AdGateSheet({
     super.key,
     required this.title,
@@ -109,15 +132,44 @@ class AdGateSheet extends StatelessWidget {
   final String watchLabel;
 
   @override
+  ConsumerState<AdGateSheet> createState() => _AdGateSheetState();
+}
+
+class _AdGateSheetState extends ConsumerState<AdGateSheet> {
+  bool _askingConsent = false;
+
+  /// Whether ads are off because of the user's consent choice, so there is no
+  /// ad to offer. Read live rather than passed in: answering the form from
+  /// inside this sheet has to flip it without reopening anything.
+  bool get _blocked => !ref.read(adsServiceProvider).canRequestAds;
+
+  Future<void> _reviewConsent() async {
+    if (_askingConsent) return;
+    setState(() => _askingConsent = true);
+    try {
+      await ref.read(adsServiceProvider).requestConsent();
+    } finally {
+      // The form may have been answered either way; rebuilding is what turns
+      // the watch button back on, or leaves the warning standing.
+      if (mounted) setState(() => _askingConsent = false);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final blocked = _blocked;
     return SheetBody(
       padding: const EdgeInsets.fromLTRB(22, 14, 22, 22),
       children: [
         const SizedBox(height: 4),
-        const Icon(Icons.play_circle_outline, color: AppColors.cyan, size: 36),
+        Icon(
+          blocked ? Icons.block_outlined : Icons.play_circle_outline,
+          color: blocked ? AppColors.amber : AppColors.cyan,
+          size: 36,
+        ),
         const SizedBox(height: 12),
         Text(
-          title,
+          widget.title,
           textAlign: TextAlign.center,
           style: const TextStyle(
             fontFamily: AppFonts.display,
@@ -128,7 +180,7 @@ class AdGateSheet extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         Text(
-          message,
+          widget.message,
           textAlign: TextAlign.center,
           style: const TextStyle(
             fontFamily: AppFonts.ui,
@@ -137,15 +189,25 @@ class AdGateSheet extends StatelessWidget {
             color: AppColors.textMuted,
           ),
         ),
+        if (blocked) ...[
+          const SizedBox(height: 16),
+          _ConsentWarning(busy: _askingConsent, onReview: _reviewConsent),
+        ],
         const SizedBox(height: 22),
         FilledButton.icon(
           key: const ValueKey('ad-gate-watch'),
-          onPressed: () => Navigator.pop(context, AdGateChoice.watch),
+          // Greyed out, not hidden: the action still costs an ad, and the
+          // warning directly above says why there is none to watch.
+          onPressed: blocked
+              ? null
+              : () => Navigator.pop(context, AdGateChoice.watch),
           icon: const Icon(Icons.play_arrow_rounded),
-          label: Text(watchLabel),
+          label: Text(widget.watchLabel),
           style: FilledButton.styleFrom(
             backgroundColor: AppColors.cyan,
             foregroundColor: AppColors.cutoutInk,
+            disabledBackgroundColor: AppColors.cyan.withValues(alpha: 0.22),
+            disabledForegroundColor: AppColors.textFaint,
             minimumSize: const Size.fromHeight(50),
             textStyle: const TextStyle(
               fontFamily: AppFonts.display,
@@ -185,6 +247,77 @@ class AdGateSheet extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Shown in place of a watchable ad when the user's consent choice has switched
+/// ads off entirely.
+///
+/// Says what is true and gives both ways forward, because the state is one the
+/// user chose and can unchoose: allow ads and this action stays free, or buy
+/// Pro and it never needs an ad again. It deliberately does not argue - the
+/// consent form itself lets them decline again, and this reappears if they do.
+class _ConsentWarning extends StatelessWidget {
+  const _ConsentWarning({required this.busy, required this.onReview});
+
+  final bool busy;
+  final VoidCallback onReview;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      key: const ValueKey('ad-gate-consent-warning'),
+      padding: const EdgeInsets.fromLTRB(14, 13, 14, 13),
+      decoration: BoxDecoration(
+        color: AppColors.amber.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.amber.withValues(alpha: 0.45)),
+      ),
+      child: Column(
+        children: [
+          // Deliberately not export-specific: the AI tools use this same gate.
+          const Text(
+            "You've chosen not to allow ads, so there is no ad to watch - and "
+            'ads are what keep Chromis free.\n\n'
+            'Allow ads to carry on for free, or go Pro to use everything with '
+            'no ads at all.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontFamily: AppFonts.ui,
+              fontSize: 12.5,
+              height: 1.45,
+              color: AppColors.textSecondary,
+            ),
+          ),
+          const SizedBox(height: 12),
+          FilledButton.icon(
+            key: const ValueKey('ad-gate-consent'),
+            onPressed: busy ? null : onReview,
+            icon: busy
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: AppColors.cutoutInk,
+                    ),
+                  )
+                : const Icon(Icons.privacy_tip_outlined, size: 18),
+            label: const Text('Review ad consent'),
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.amber,
+              foregroundColor: AppColors.cutoutInk,
+              minimumSize: const Size.fromHeight(44),
+              textStyle: const TextStyle(
+                fontFamily: AppFonts.display,
+                fontWeight: FontWeight.w700,
+                fontSize: 14,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

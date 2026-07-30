@@ -122,6 +122,21 @@ inside `init()` - that would stall ads for the whole network timeout on every
 offline launch. `PrivacyScreen` carries the permanent "Ad privacy choices" entry
 point, rendered only where UMP reports it is required.
 
+Consent is not a launch-time constant. **Every route to the consent UI goes
+through `AdsService.requestConsent`** - "Ad privacy choices" called `ConsentForm`
+directly and told nobody, so withdrawing consent there left `canRequestAds`
+stale for the session: banner still up, export gate still offering an ad.
+`canRequestAds` is a `ValueNotifier`; the Home banner listens and takes itself
+down the moment consent is withdrawn (and loads when it is granted).
+
+An empty ad slot is ambiguous - Pro, no-fill and a broken request all render
+nothing - so in **debug** builds the Home banner retries once on
+`AdsConfig.testBanner` and captions the slot with the real unit's error. The
+real unit is still requested first, deliberately: a dev build that only ever
+asks the test unit is how a unit that serves nothing reaches production, where
+it reads as zero revenue rather than as a bug. See `docs/monetization-setup.md`
+("The Home banner shows nothing").
+
 ## Milestones
 
 Planned as GitHub milestones **M0-M9** with issues. Work one milestone at a time;

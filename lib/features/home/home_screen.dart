@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -33,8 +34,8 @@ import 'widgets/project_tile.dart';
 
 /// Home screen: brand header, the "New project" hero action, quickstart chips
 /// and a grid of the user's saved projects (from [savedProjectsProvider]).
-/// A side [AppDrawer] hosts navigation + Go Pro; a placeholder ad banner sits
-/// at the bottom until the real AdMob banner lands in M7.
+/// A side [AppDrawer] hosts navigation + Go Pro; [_HomeAdBanner] is the ad slot
+/// pinned to the bottom for free users.
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
@@ -638,11 +639,8 @@ class _EmptyRecent extends StatelessWidget {
   }
 }
 
-/// Placeholder 320×50 banner slot pinned to the bottom of Home. The real
-/// AdMob banner (hidden when Pro) is wired in M7; the "Remove ads" chip already
-/// routes to the Go Pro paywall.
-/// Home's bottom ad slot: a real AdMob banner (Google test unit until real ids
-/// are set) with a "Remove ads →" link to Go Pro. Renders nothing for Pro users.
+/// Home's bottom ad slot: a real AdMob banner with a "Remove ads →" link to Go
+/// Pro. Renders nothing for Pro users.
 class _HomeAdBanner extends ConsumerStatefulWidget {
   const _HomeAdBanner();
 
@@ -654,10 +652,39 @@ class _HomeAdBannerState extends ConsumerState<_HomeAdBanner> {
   BannerAd? _ad;
   bool _loaded = false;
 
+  /// Debug builds only: why the real unit produced nothing, and whether what is
+  /// in the slot came from Google's test unit instead. Null in release, where
+  /// the slot just stays empty.
+  String? _devStatus;
+  bool _devFallback = false;
+
+  late final AdsService _ads = ref.read(adsServiceProvider);
+
   @override
   void initState() {
     super.initState();
+    _ads.canRequestAdsListenable.addListener(_onConsentChanged);
     unawaited(_loadWhenAllowed());
+  }
+
+  /// Consent is not decided once. "Ad privacy choices" is two taps away in the
+  /// drawer, and the ad gate offers the same form - so withdrawing it has to
+  /// take the banner off the screen NOW, and granting it has to put one there
+  /// without waiting for a cold start. Neither happened before: the slot read
+  /// `canRequestAds` once, at launch.
+  void _onConsentChanged() {
+    if (!mounted) return;
+    if (_ads.canRequestAds) {
+      if (_ad == null) _load(AdsConfig.banner);
+      return;
+    }
+    _ad?.dispose();
+    setState(() {
+      _ad = null;
+      _loaded = false;
+      _devFallback = false;
+      _devStatus = null;
+    });
   }
 
   /// Waits for the UMP consent flow to settle before requesting anything.
@@ -667,29 +694,69 @@ class _HomeAdBannerState extends ConsumerState<_HomeAdBanner> {
   /// consent form was still on screen.
   Future<void> _loadWhenAllowed() async {
     if (ref.read(isProProvider)) return; // Pro: never request an ad
-    final ads = ref.read(adsServiceProvider);
-    await ads.consentSettled;
-    if (!mounted || ref.read(isProProvider) || !ads.canRequestAds) return;
+    await _ads.consentSettled;
+    if (!mounted || ref.read(isProProvider) || !_ads.canRequestAds) return;
+    _load(AdsConfig.banner);
+  }
+
+  void _load(String unitId) {
     final ad = BannerAd(
-      adUnitId: AdsConfig.banner,
+      adUnitId: unitId,
       size: AdSize.banner,
       request: const AdRequest(),
       listener: BannerAdListener(
-        onAdLoaded: (_) {
-          if (mounted) setState(() => _loaded = true);
+        onAdLoaded: (loaded) {
+          // A load can land after consent was withdrawn, which nulls [_ad]
+          // out from under it. Putting that ad on screen would show an ad to
+          // someone who just turned ads off.
+          if (!mounted || !identical(_ad, loaded)) {
+            loaded.dispose();
+            return;
+          }
+          setState(() => _loaded = true);
         },
         onAdFailedToLoad: (ad, error) {
+          final current = identical(_ad, ad);
           ad.dispose();
+          if (!current) return; // superseded; not this slot's business
           _ad = null; // avoid a second dispose() when the widget is disposed
           // The slot hides itself when there is no ad, so a banner that never
           // loads is completely silent - no placeholder, no log, nothing to
           // tell "Pro user" apart from "this failed". Say why. Code 3 is no
           // fill, which on a dev phone usually just means the device is not in
-          // AdsConfig.testDeviceIds.
+          // AdsConfig.testDeviceIds - and on ANY device can mean the console
+          // unit itself is not serving.
           debugPrint(
             'Home banner failed to load (code ${error.code} ${error.domain}): '
-            '${error.message} [unit ${AdsConfig.banner}]',
+            '${error.message} [unit $unitId]',
           );
+          // Everything past here is the debug diagnostic. A release build ends
+          // exactly where it always did: the log line above, and an empty slot.
+          if (!kDebugMode || !mounted) return;
+          final reason = 'code ${error.code}: ${error.message}';
+          // A debug build retries once on Google's always-filling test unit.
+          // Not to paper over the failure - the line above already named it,
+          // and the badge below keeps saying so for as long as the fallback is
+          // what you are looking at - but because "no banner at all" is the one
+          // symptom that cannot tell a broken slot from an idle ad unit. With
+          // the test unit filling the same slot, it can: a banner means the
+          // request path, the consent gate and the layout are all fine and the
+          // problem is entirely console-side.
+          if (unitId != AdsConfig.testBanner) {
+            setState(() {
+              _devFallback = true;
+              _devStatus = 'real unit $reason';
+            });
+            _load(AdsConfig.testBanner);
+            return;
+          }
+          setState(() {
+            _devStatus = _devFallback
+                // Both units failed, so it is not the unit: no network, no
+                // Play services, or the SDK never initialised.
+                ? '${_devStatus!}; test unit failed too ($reason)'
+                : reason;
+          });
         },
       ),
     );
@@ -699,6 +766,7 @@ class _HomeAdBannerState extends ConsumerState<_HomeAdBanner> {
 
   @override
   void dispose() {
+    _ads.canRequestAdsListenable.removeListener(_onConsentChanged);
     _ad?.dispose();
     super.dispose();
   }
@@ -706,11 +774,41 @@ class _HomeAdBannerState extends ConsumerState<_HomeAdBanner> {
   @override
   Widget build(BuildContext context) {
     final ad = _ad;
-    // Hide the slot for Pro users, and while there's no ad to show (still
-    // loading or no-fill) - no stuck "Ad" placeholder pinned to the bottom.
-    if (ref.watch(isProProvider) || !_loaded || ad == null) {
-      return const SizedBox.shrink();
+    // No slot for Pro users - not even the debug notice below, which would
+    // otherwise put an ad-shaped box in front of the one group that paid not to
+    // see one.
+    if (ref.watch(isProProvider)) return const SizedBox.shrink();
+    if (!_loaded || ad == null) {
+      // Nothing to show yet (still loading, or no fill). Release keeps the slot
+      // collapsed rather than pinning a stuck "Ad" placeholder to the bottom;
+      // a debug build says what went wrong instead of vanishing.
+      final status = _devStatus;
+      if (!kDebugMode || status == null) return const SizedBox.shrink();
+      return _chrome(
+        showRemoveAds: false,
+        child: _DevAdNotice('No banner - $status'),
+      );
     }
+    return _chrome(
+      // An unlabelled test ad in a dev build is worse than an empty slot: it
+      // looks like proof the real unit works.
+      devBadge: kDebugMode && _devFallback
+          ? 'TEST UNIT · ${_devStatus!}'
+          : null,
+      child: SizedBox(
+        width: ad.size.width.toDouble(),
+        height: ad.size.height.toDouble(),
+        child: AdWidget(ad: ad),
+      ),
+    );
+  }
+
+  /// The slot itself: the card, its column cap, and the Go Pro link above it.
+  Widget _chrome({
+    required Widget child,
+    bool showRemoveAds = true,
+    String? devBadge,
+  }) {
     return SafeArea(
       top: false,
       child: Padding(
@@ -732,23 +830,28 @@ class _HomeAdBannerState extends ConsumerState<_HomeAdBanner> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                GestureDetector(
-                  onTap: () => context.pushNamed(Routes.goPro),
-                  behavior: HitTestBehavior.opaque,
-                  child: const Padding(
-                    padding: EdgeInsets.only(bottom: 4, right: 2),
-                    child: Align(
-                      alignment: Alignment.centerRight,
-                      child: Text(
-                        'Remove ads →',
-                        style: TextStyle(
-                          fontFamily: AppFonts.ui,
-                          fontSize: 10.5,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.textSecondary,
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 4, right: 2),
+                  child: Row(
+                    children: [
+                      if (devBadge != null)
+                        Expanded(child: _DevAdNotice(devBadge, inline: true)),
+                      const Spacer(),
+                      if (showRemoveAds)
+                        GestureDetector(
+                          onTap: () => context.pushNamed(Routes.goPro),
+                          behavior: HitTestBehavior.opaque,
+                          child: const Text(
+                            'Remove ads →',
+                            style: TextStyle(
+                              fontFamily: AppFonts.ui,
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
+                    ],
                   ),
                 ),
                 Container(
@@ -759,16 +862,41 @@ class _HomeAdBannerState extends ConsumerState<_HomeAdBanner> {
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: AppColors.borderFaint),
                   ),
-                  child: SizedBox(
-                    width: ad.size.width.toDouble(),
-                    height: ad.size.height.toDouble(),
-                    child: AdWidget(ad: ad),
-                  ),
+                  child: child,
                 ),
               ],
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Debug-only caption for the ad slot, naming what AdMob said. Never built in a
+/// release build - see [_HomeAdBannerState.build].
+class _DevAdNotice extends StatelessWidget {
+  const _DevAdNotice(this.message, {this.inline = false});
+
+  final String message;
+
+  /// Sits on the badge line above the card rather than filling the card.
+  final bool inline;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      message,
+      key: const ValueKey('home-banner-dev-notice'),
+      maxLines: 2,
+      overflow: TextOverflow.ellipsis,
+      textAlign: inline ? TextAlign.left : TextAlign.center,
+      style: TextStyle(
+        fontFamily: AppFonts.ui,
+        fontSize: inline ? 9 : 10,
+        fontWeight: FontWeight.w700,
+        height: 1.25,
+        color: AppColors.amber,
       ),
     );
   }

@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:chromis/core/theme/app_theme.dart';
 import 'package:chromis/features/ads/ad_gate.dart';
+import 'package:chromis/features/ads/ads_service.dart';
 import 'package:chromis/features/go_pro/iap.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -225,11 +226,206 @@ void main() {
     expect(outcome!.allows, isFalse);
   });
 
+  _consentGateTests();
+
   test('only one outcome lets the action through', () {
     // If a new ending is added, it must be a deliberate decision whether it
     // proceeds - so the mapping is pinned rather than left to `!= dismissed`.
     expect(AdGateOutcome.values.where((o) => o.allows), [
       AdGateOutcome.allowed,
     ]);
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Consent-blocked gate.
+//
+// An ad is the price of a free export, so a user whose consent choice switched
+// ads off must not simply be waved through - that was the hole: `showRewarded`
+// fails open on a missing ad, and "the user refused ads" looked identical to
+// "AdMob had no fill", so declining consent quietly bought the whole free tier.
+// ---------------------------------------------------------------------------
+
+/// Consent state without a platform UMP round-trip, which no host test can do.
+class _FakeAds extends AdsService {
+  _FakeAds({required this.allowed, this.grantsOnAsk = false});
+
+  bool allowed;
+
+  /// Whether answering the re-opened form turns ads back on.
+  final bool grantsOnAsk;
+
+  int asked = 0;
+  int watched = 0;
+
+  @override
+  bool get canRequestAds => allowed;
+
+  @override
+  Future<bool> requestConsent({void Function(String message)? onError}) async {
+    asked++;
+    if (grantsOnAsk) allowed = true;
+    return allowed;
+  }
+
+  @override
+  Future<bool> showRewarded() async {
+    watched++;
+    return true;
+  }
+}
+
+void _consentGateTests() {
+  final watch = find.byKey(const ValueKey('ad-gate-watch'));
+  final goPro = find.byKey(const ValueKey('ad-gate-go-pro'));
+  final consent = find.byKey(const ValueKey('ad-gate-consent'));
+  final warning = find.byKey(const ValueKey('ad-gate-consent-warning'));
+
+  Future<void> pumpSheet(WidgetTester tester, _FakeAds ads) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          isProProvider.overrideWithValue(false),
+          adsServiceProvider.overrideWithValue(ads),
+        ],
+        child: MaterialApp(
+          theme: buildAppTheme(),
+          home: const Scaffold(
+            body: AdGateSheet(
+              title: 'Watch a short ad to export',
+              message: 'Free exports are supported by a short ad.',
+              watchLabel: 'Watch & export',
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+  }
+
+  testWidgets('consent refused: watch is disabled and says why', (
+    tester,
+  ) async {
+    await pumpSheet(tester, _FakeAds(allowed: false));
+
+    expect(warning, findsOneWidget, reason: 'the state must be explained');
+    expect(
+      tester.widget<FilledButton>(watch).onPressed,
+      isNull,
+      reason: 'there is no ad to watch, so the action must be greyed out',
+    );
+    // Both ways out are named, and the upgrade still works.
+    expect(consent, findsOneWidget);
+    expect(tester.widget<OutlinedButton>(goPro).onPressed, isNotNull);
+    expect(find.textContaining('Allow ads'), findsOneWidget);
+    expect(find.textContaining('go Pro'), findsOneWidget);
+  });
+
+  testWidgets('allowing ads from the sheet re-enables watch in place', (
+    tester,
+  ) async {
+    final ads = _FakeAds(allowed: false, grantsOnAsk: true);
+    await pumpSheet(tester, ads);
+    expect(tester.widget<FilledButton>(watch).onPressed, isNull);
+
+    await tester.tap(consent);
+    await tester.pumpAndSettle();
+
+    expect(ads.asked, 1, reason: 'the consent form must be re-opened');
+    expect(
+      tester.widget<FilledButton>(watch).onPressed,
+      isNotNull,
+      reason: 'consent given - the ad is available without reopening the sheet',
+    );
+    expect(warning, findsNothing);
+  });
+
+  testWidgets('declining again leaves the gate closed', (tester) async {
+    final ads = _FakeAds(allowed: false);
+    await pumpSheet(tester, ads);
+    await tester.tap(consent);
+    await tester.pumpAndSettle();
+
+    expect(ads.asked, 1);
+    expect(warning, findsOneWidget, reason: 'still no ad, still explained');
+    expect(tester.widget<FilledButton>(watch).onPressed, isNull);
+  });
+
+  testWidgets('the gate re-asks on the way in, and reports adsDeclined', (
+    tester,
+  ) async {
+    final ads = _FakeAds(allowed: false);
+    AdGateOutcome? outcome;
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          isProProvider.overrideWithValue(false),
+          adsServiceProvider.overrideWithValue(ads),
+        ],
+        child: MaterialApp(
+          theme: buildAppTheme(),
+          home: Consumer(
+            builder: (context, ref, _) => Scaffold(
+              body: ElevatedButton(
+                onPressed: () async {
+                  outcome = await AdGate.run(
+                    context,
+                    ref,
+                    title: 't',
+                    message: 'm',
+                    watchLabel: 'w',
+                  );
+                },
+                child: const Text('go'),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('go'));
+    await tester.pumpAndSettle();
+    expect(
+      ads.asked,
+      1,
+      reason: 'a user who turned ads off is asked again before being refused',
+    );
+
+    await tester.tapAt(const Offset(10, 10)); // dismiss
+    await tester.pumpAndSettle();
+    expect(
+      outcome,
+      AdGateOutcome.adsDeclined,
+      reason:
+          'distinct from `dismissed`, so callers do not tell someone to watch '
+          'an ad that does not exist',
+    );
+    expect(outcome!.allows, isFalse, reason: 'and the export must not happen');
+    expect(ads.watched, 0);
+  });
+
+  testWidgets('an allowed user is never asked and keeps the plain sheet', (
+    tester,
+  ) async {
+    final ads = _FakeAds(allowed: true);
+    await pumpSheet(tester, ads);
+    expect(warning, findsNothing);
+    expect(tester.widget<FilledButton>(watch).onPressed, isNotNull);
+    expect(ads.asked, 0, reason: 'nothing to re-ask - do not nag');
+  });
+
+  test('showRewarded does not fail open when consent forbids ads', () async {
+    // The backstop behind the disabled button, and the actual hole this closes:
+    // `showRewarded` returns true when there is no ad, so before this a user
+    // who declined consent got every gated action for free - indistinguishable
+    // from a no-fill.
+    //
+    // Only the refused branch is asserted here. The fail-open branch it must
+    // NOT disturb reaches `RewardedInterstitialAd.load`, and the AdMob channel
+    // carries its own message codec that the test messenger cannot encode for,
+    // so exercising it on the host is not possible; the gate-level tests above
+    // cover the allowed path instead.
+    final blocked = AdsService()..debugSetConsent(canRequestAds: false);
+    expect(await blocked.showRewarded(), isFalse);
   });
 }

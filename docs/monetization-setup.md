@@ -40,8 +40,9 @@ rewarded to run AI features) behind a UMP consent flow.
    watching the ad" symptom. If you ever swap the console unit to a plain
    *Rewarded* (a better fit for this app's hand-built opt-in sheet - see the note
    below), you must change `AdsService` and `_testRewarded` back in the same
-   commit. The banner is unaffected; it fills and shows "Test Ad" on an emulator,
-   which the SDK auto-registers as a test device.
+   commit. The banner is unaffected - it is a separate unit, and as of
+   2026-07-30 the only one of the two that does **not** fill; see
+   "The Home banner shows nothing" below.
 
    > **Format fit.** The export gate shows its own "Watch a short ad to export"
    > sheet, and a rewarded interstitial then shows the SDK's own intro/opt-out on
@@ -87,6 +88,46 @@ rewarded to run AI features) behind a UMP consent flow.
    the two identical. Without the root file the app's inventory is "unauthorized"
    to the buyers who check - not a block on serving ads, but a real cut in what
    they bid.
+
+### The Home banner shows nothing
+
+The slot renders nothing at all when there is no ad - by design, so a Pro user
+and a no-fill look identical from the outside. In a **debug** build they no
+longer do: the banner requests the real unit, and if that fails it retries once
+on Google's `testBanner` and captions the slot in amber with the real unit's
+error (`TEST UNIT · real unit code 3: No fill.`). A banner with that caption is
+the diagnosis: the request path, the consent gate and the layout are all fine,
+and the problem is entirely console-side. No caption and no banner means the
+load is still in flight, Pro is on, or consent forbids the request.
+
+**Open as of 2026-07-30: `…/7987729825` (banner) returns code 3 "No fill" on
+every request.** Verified on the emulator, which the SDK auto-registers as a
+test device (`I Ads: This request is sent from a test device.`), and previously
+on the dev phone. What rules out the app, the SDK and the consent flow: in the
+same session, from the same app id, the **rewarded** unit `…/3027192977` fills.
+So it is not app-level review, not `app-ads.txt`, not UMP, not the missing test
+device id. It is that unit. Worth checking in the console, in this order:
+
+1. Which **app** owns `…/7987729825`. A unit belonging to a different app in the
+   same account still looks right - it carries the same `pub-6904561240517963`
+   half - and no-fills forever. The manifest's app id is
+   `ca-app-pub-6904561240517963~5964201716`.
+2. The unit's **status** - paused/archived units no-fill, as do units under
+   *Ad serving limited*.
+3. The unit's **format** is Banner. A format mismatch normally says so
+   (`Ad unit doesn't match format`) rather than "No fill", so this is unlikely,
+   but it is one console click.
+4. Whether it was **created within the last few hours** - new units take a
+   while to start serving. Not the explanation here: this one was wired on
+   2026-07-24.
+
+Re-check with:
+
+```bash
+adb logcat -c && adb shell am force-stop tech.idct.chromis \
+  && adb shell am start -n tech.idct.chromis/.MainActivity
+adb logcat -d -s flutter:V Ads:V | grep -iE "banner|Ad failed|test device"
+```
 
 ## B. Go Pro - in-app purchase
 

@@ -44,6 +44,18 @@ abstract final class AdsConfig {
   static const _testBanner = 'ca-app-pub-3940256099942544/6300978111';
   static const _testInterstitial = 'ca-app-pub-3940256099942544/1033173712';
 
+  /// The test banner unit, reachable by name so a **debug** build can retry on
+  /// it after the real unit no-fills - see `_HomeAdBanner`. Google's test units
+  /// always fill, so this is the difference between "the slot is broken" and
+  /// "the slot works, the unit isn't serving", which is otherwise invisible: a
+  /// no-fill hides the slot completely, exactly like a Pro user's.
+  ///
+  /// Deliberately NOT wired into [banner]: the real unit has to be REQUESTED to
+  /// be seen failing. Silently developing against test units is how a unit that
+  /// serves nothing reaches production - it shows up as zero revenue, not as a
+  /// bug report.
+  static String get testBanner => _testBanner;
+
   /// Rewarded **INTERSTITIAL**, matching what [AdsService] loads - Google
   /// publishes a different demo unit per format, and asking for the plain
   /// Rewarded one (`…/5224354917`) with `RewardedInterstitialAd.load` fails with
