@@ -208,6 +208,28 @@ had not: the corner handles lost the gesture arena to the crop body, and a
 source under 16px inverted a `clamp` range. Both were real, neither was the
 reported crash.
 
+### 1.13 Layer scale + rotation - `test/editor/layer_transform_sliders_test.dart`
+The Adjust panel's Scale and Rotation sliders, driven through the real
+`EditorScreen`: a text or bubble layer gets them (Adjust used to answer anything
+but an `ImageLayer` with an empty hint), a photo keeps them alongside its own
+crop and colour controls, and nothing selected is still the empty state.
+
+The rest is what the sliders are FOR. A caption at 6% is a couple of pixels
+across, which is smaller than any finger can pinch - the hit box IS the layer -
+so the test drives it back from there and pins both ends of the range against
+the pinch gesture's own clamp (0.2-6.0), which is the number the two paths have
+to share. Rotation is swept a pixel at a time across the middle of its track:
+the model must come to rest either exactly level or a visible angle away, never
+at the 0.4° that reads as a mistake. A layer already past a full turn (the
+canvas accumulates rotation across pinches) shows its wrapped angle without the
+panel rewriting the layer, and one drag stays one undo step.
+
+A photo that fills a **grid cell** has neither slider, and that is the
+assertion: `EditorCanvas._clampToCell` keeps a cell photo covering its cell, so
+an unclamped slider would be a second path to the hole in the collage that clamp
+exists to prevent. A caption in a cell still gets them - captions are never
+clamped there.
+
 ### 1.8 Extend existing
 - **`mask_mapper_test.dart`** (extend): rotation≠0 (un-rotate), layerScale≠1,
   non-square imageSize, top/bottom crops (dy), `boxSize` override, and

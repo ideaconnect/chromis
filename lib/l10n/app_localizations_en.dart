@@ -552,6 +552,12 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get scale => 'Scale';
+
+  @override
+  String get rotation => 'Rotation';
+
+  @override
   String get brightness => 'Brightness';
 
   @override
@@ -577,10 +583,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get adjustEmptyHint =>
-      'Adjustments apply to a photo layer.\nSelect a photo, or tap Add to import one.';
+      'Select a layer to resize, rotate or adjust it.\nOr tap Add to import a photo.';
 
   @override
   String get effectsLink => 'Filters, HDR, vignette, shadow…';
+
+  @override
+  String get effectsLinkLayer => 'Blend, shadow, outline…';
 
   @override
   String get textEmptyHint => 'Select a text layer, or add one.';

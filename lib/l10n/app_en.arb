@@ -292,6 +292,14 @@
       }
     }
   },
+  "scale": "Scale",
+  "@scale": {
+    "description": "Adjust panel slider: the selected layer's size, shown as a percentage."
+  },
+  "rotation": "Rotation",
+  "@rotation": {
+    "description": "Adjust panel slider: the selected layer's angle, in degrees."
+  },
   "brightness": "Brightness",
   "contrast": "Contrast",
   "saturation": "Saturation",
@@ -300,8 +308,12 @@
   "size": "Size",
   "color": "Color",
   "off": "Off",
-  "adjustEmptyHint": "Adjustments apply to a photo layer.\nSelect a photo, or tap Add to import one.",
+  "adjustEmptyHint": "Select a layer to resize, rotate or adjust it.\nOr tap Add to import a photo.",
   "effectsLink": "Filters, HDR, vignette, shadow…",
+  "effectsLinkLayer": "Blend, shadow, outline…",
+  "@effectsLinkLayer": {
+    "description": "The same link as effectsLink, from a text or bubble layer - which has no filters, HDR or vignette."
+  },
   "textEmptyHint": "Select a text layer, or add one.",
   "addText": "Add text",
   "tapFontToPreview": "Tap a font to preview",

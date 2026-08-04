@@ -562,6 +562,12 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String get scale => 'Skalierung';
+
+  @override
+  String get rotation => 'Drehung';
+
+  @override
   String get brightness => 'Helligkeit';
 
   @override
@@ -587,10 +593,13 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get adjustEmptyHint =>
-      'Anpassungen gelten für eine Fotoebene.\nWähle ein Foto aus oder tippe auf Hinzufügen, um eins zu importieren.';
+      'Wähle eine Ebene aus, um sie zu skalieren, zu drehen oder anzupassen.\nOder tippe auf Hinzufügen, um ein Foto zu importieren.';
 
   @override
   String get effectsLink => 'Filter, HDR, Vignette, Schatten…';
+
+  @override
+  String get effectsLinkLayer => 'Mischmodus, Schatten, Kontur…';
 
   @override
   String get textEmptyHint => 'Wähle eine Textebene aus oder füge eine hinzu.';

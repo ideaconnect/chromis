@@ -559,6 +559,12 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
+  String get scale => 'Escala';
+
+  @override
+  String get rotation => 'Rotación';
+
+  @override
   String get brightness => 'Brillo';
 
   @override
@@ -584,10 +590,13 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get adjustEmptyHint =>
-      'Los ajustes se aplican a una capa de foto.\nSelecciona una foto o toca Añadir para importar una.';
+      'Selecciona una capa para escalarla, girarla o ajustarla.\nO toca Añadir para importar una foto.';
 
   @override
   String get effectsLink => 'Filtros, HDR, viñeta, sombra…';
+
+  @override
+  String get effectsLinkLayer => 'Fusión, sombra, contorno…';
 
   @override
   String get textEmptyHint => 'Selecciona una capa de texto o añade una.';

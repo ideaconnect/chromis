@@ -743,6 +743,65 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     _toast(_l10n.photoCropped);
   }
 
+  /// [radians] as degrees in (-180, 180].
+  ///
+  /// The canvas ACCUMULATES rotation - a second pinch adds to whatever the
+  /// first left - so a layer can legitimately sit at 400°, which the slider has
+  /// no room for. 400° and 40° are the same picture, so the slider shows the
+  /// wrapped angle and writes it back plainly; nothing on screen moves.
+  static double _degreesOf(double radians) {
+    final deg = (radians * 180 / math.pi) % 360;
+    return deg > 180 ? deg - 360 : deg;
+  }
+
+  /// The pinch gesture's own scale clamp (`EditorCanvas._onScaleUpdate`). The
+  /// sliders share it so the two ways of resizing a layer cannot disagree about
+  /// how small or large one may get.
+  static const double _minLayerScale = 0.2;
+  static const double _maxLayerScale = 6.0;
+
+  /// Scale + rotation for the selected layer, whatever its type.
+  ///
+  /// The canvas can already pinch-zoom and twist a layer, but a caption or a
+  /// bubble created small - or scaled down by accident - is the one thing a
+  /// finger cannot get back: the hit box IS the layer, so past a certain size
+  /// there is nothing left to grab and the layer is stranded on the canvas. A
+  /// slider does not depend on the layer's size, so it is always a way in.
+  List<Widget> _placementSliders(Layer layer) {
+    final id = layer.id;
+    final t = layer.transform;
+    final degrees = _degreesOf(t.rotation);
+    return [
+      LabeledSlider(
+        label: _l10n.scale,
+        value: t.scale * 100,
+        min: _minLayerScale * 100,
+        max: _maxLayerScale * 100,
+        accent: context.colors.teal,
+        valueLabel: '${(t.scale * 100).round()}%',
+        onChanged: (v) =>
+            _controller.updateTransform(id, t.copyWith(scale: v / 100)),
+        onChangeEnd: _endSliderEdit,
+      ),
+      LabeledSlider(
+        label: _l10n.rotation,
+        value: degrees,
+        min: -180,
+        max: 180,
+        accent: context.colors.teal,
+        valueLabel: '${degrees.round()}°',
+        onChanged: (v) => _controller.updateTransform(
+          id,
+          // Snapped to straight over the last couple of degrees: a caption a
+          // hair off level reads as a mistake rather than a choice, and a
+          // slider cannot be nudged to an exact value the way a field can.
+          t.copyWith(rotation: (v.abs() < 2 ? 0.0 : v) * math.pi / 180),
+        ),
+        onChangeEnd: _endSliderEdit,
+      ),
+    ];
+  }
+
   Widget _adjustPanel(EditorState editor) {
     final selected = editor.selectedLayer;
     // Adding a photo/text/bubble is reachable right from the default tool -
@@ -752,7 +811,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       icon: Icons.add,
       onTap: _showAddMenu,
     );
-    if (selected is! ImageLayer) {
+    if (selected == null) {
       return Column(
         children: [
           _panelHeader(EditorTool.adjust, trailing: addChip),
@@ -760,10 +819,22 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         ],
       );
     }
+    // Crop and the colour sliders reach the photo's PIXELS, so they are a photo
+    // layer's alone; scale, rotation and opacity are the layer itself and work
+    // on a caption or a bubble just as well. Adjust used to answer anything but
+    // an ImageLayer with the empty hint, which left a caption pinched too small
+    // to touch with no way back - the hit box is the layer, so there was
+    // nothing left to grab.
+    final photo = selected is ImageLayer ? selected : null;
+    // A photo that FILLS a grid cell is placed by the cell, not by the user:
+    // `EditorCanvas._clampToCell` keeps it covering, because a cell photo
+    // shrunk aside leaves a hole in the collage that reads as a bug. A slider
+    // here would be a second path to that state with none of the clamp, so a
+    // cell photo keeps pinch-to-zoom (which is clamped) and no sliders. The
+    // problem the sliders solve does not arise there anyway - a cell photo
+    // fills its cell, and captions and bubbles in a cell are free layers.
+    final placeable = selected.cellId == null || photo == null;
     final id = selected.id;
-    final adj = selected.adjustments;
-    void update(ImageAdjustments next) =>
-        _controller.updateImageAdjustments(id, next);
     return Column(
       children: [
         _panelHeader(
@@ -776,104 +847,37 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Flexible(child: addChip),
-              const SizedBox(width: 8),
-              Flexible(
-                child: PillChip(
-                  label: _l10n.reset,
-                  onTap: () {
-                    // Only this panel's own sliders - the chosen filter / HDR
-                    // survive, and Effects has its own Reset for those.
-                    _controller.updateImageAdjustments(id, adj.resetSliders());
-                    _controller.setOpacity(id, 1);
-                  },
+              if (photo != null) ...[
+                const SizedBox(width: 8),
+                Flexible(
+                  child: PillChip(
+                    label: _l10n.reset,
+                    onTap: () {
+                      // Only this panel's own colour sliders - the chosen
+                      // filter / HDR survive, and Effects has its own Reset for
+                      // those. Scale and rotation are placement, not an
+                      // adjustment: dropping a photo back to 100% and straight
+                      // would undo how it was framed, which is not what a user
+                      // reaching for "reset the sliders" is asking for.
+                      _controller.updateImageAdjustments(
+                        id,
+                        photo.adjustments.resetSliders(),
+                      );
+                      _controller.setOpacity(id, 1);
+                    },
+                  ),
                 ),
-              ),
+              ],
             ],
           ),
         ),
         const SizedBox(height: 2),
-        // STACKED, not a 2:1 Row. Sharing a row gave Reset crop a third of the
-        // panel minus an M3 OutlinedButton's 24dp of padding a side, which is
-        // about 72dp of text on a 360dp phone - enough for English "Reset crop"
-        // (68dp) and for nothing else. German rendered "Zuschnitt …" next to a
-        // full "Zuschnitt bearbeiten", i.e. two buttons whose visible labels
-        // were the same word and one of them cut; fr, es and cs were as bad.
-        // No wording fixes it - "Zuschnitt zurücksetzen" is simply the term -
-        // and no flex ratio does either, since the two labels want 200dp each
-        // in German against 324dp of panel. Full width gives every language
-        // room, and the panel scrolls, so the second line costs nothing.
-        //
-        // Size.fromHeight is safe HERE because the parent is a Column, which
-        // hands down a bounded width. It is NOT safe inside a Row - that sets
-        // the minimum width to infinity, which is the layout error (#crop)
-        // this row previously worked around by sharing the space instead.
-        OutlinedButton.icon(
-          onPressed: () => _cropSelectedImage(selected),
-          icon: const Icon(Icons.crop, size: 17),
-          label: Text(
-            selected.isCropped ? _l10n.editCrop : _l10n.cropPhoto,
-            overflow: TextOverflow.ellipsis,
-          ),
-          style: OutlinedButton.styleFrom(
-            foregroundColor: context.colors.textSecondary,
-            side: BorderSide(color: context.colors.border),
-            minimumSize: const Size.fromHeight(38),
-          ),
-        ),
-        if (selected.isCropped) ...[
-          const SizedBox(height: 8),
-          OutlinedButton(
-            onPressed: () =>
-                _controller.setImageCrop(id, const Rect.fromLTRB(0, 0, 1, 1)),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: context.colors.textMuted,
-              side: BorderSide(color: context.colors.border),
-              minimumSize: const Size.fromHeight(38),
-            ),
-            child: Text(_l10n.resetCrop, overflow: TextOverflow.ellipsis),
-          ),
-        ],
-        const SizedBox(height: 6),
-        LabeledSlider(
-          label: _l10n.brightness,
-          value: adj.brightness * 100,
-          min: 0,
-          max: 200,
-          accent: context.colors.amber,
-          valueLabel: '${(adj.brightness * 100).round()}%',
-          onChanged: (v) => update(adj.copyWith(brightness: v / 100)),
-          onChangeEnd: _endSliderEdit,
-        ),
-        LabeledSlider(
-          label: _l10n.contrast,
-          value: adj.contrast * 100,
-          min: 0,
-          max: 200,
-          accent: context.colors.cyan,
-          valueLabel: '${(adj.contrast * 100).round()}%',
-          onChanged: (v) => update(adj.copyWith(contrast: v / 100)),
-          onChangeEnd: _endSliderEdit,
-        ),
-        LabeledSlider(
-          label: _l10n.saturation,
-          value: adj.saturation * 100,
-          min: 0,
-          max: 200,
-          accent: context.colors.pink,
-          valueLabel: '${(adj.saturation * 100).round()}%',
-          onChanged: (v) => update(adj.copyWith(saturation: v / 100)),
-          onChangeEnd: _endSliderEdit,
-        ),
-        LabeledSlider(
-          label: _l10n.hue,
-          value: adj.hue,
-          min: -180,
-          max: 180,
-          accent: context.colors.violet,
-          valueLabel: '${adj.hue.round()}°',
-          onChanged: (v) => update(adj.copyWith(hue: v)),
-          onChangeEnd: _endSliderEdit,
-        ),
+        // Geometry first - crop, then scale and rotation - and colour after,
+        // so the one button in the panel stays at the top of it rather than
+        // splitting the slider stack in two.
+        if (photo != null) ..._cropControls(photo),
+        if (placeable) ..._placementSliders(selected),
+        if (photo != null) ..._colorSliders(photo),
         LabeledSlider(
           label: _l10n.opacity,
           value: selected.opacity * 100,
@@ -888,7 +892,10 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         OutlinedButton.icon(
           onPressed: () => _controller.setTool(EditorTool.effects),
           icon: const Icon(Icons.auto_fix_high, size: 17),
-          label: Text(_l10n.effectsLink),
+          label: Text(
+            photo == null ? _l10n.effectsLinkLayer : _l10n.effectsLink,
+            overflow: TextOverflow.ellipsis,
+          ),
           style: OutlinedButton.styleFrom(
             foregroundColor: context.colors.teal,
             side: BorderSide(color: context.colors.border),
@@ -897,6 +904,107 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         ),
       ],
     );
+  }
+
+  /// The crop entry point - a photo layer's alone, like everything else in
+  /// Adjust that reaches pixels rather than the layer's transform.
+  List<Widget> _cropControls(ImageLayer selected) {
+    final id = selected.id;
+    return [
+      // STACKED, not a 2:1 Row. Sharing a row gave Reset crop a third of the
+      // panel minus an M3 OutlinedButton's 24dp of padding a side, which is
+      // about 72dp of text on a 360dp phone - enough for English "Reset crop"
+      // (68dp) and for nothing else. German rendered "Zuschnitt …" next to a
+      // full "Zuschnitt bearbeiten", i.e. two buttons whose visible labels
+      // were the same word and one of them cut; fr, es and cs were as bad.
+      // No wording fixes it - "Zuschnitt zurücksetzen" is simply the term -
+      // and no flex ratio does either, since the two labels want 200dp each
+      // in German against 324dp of panel. Full width gives every language
+      // room, and the panel scrolls, so the second line costs nothing.
+      //
+      // Size.fromHeight is safe HERE because the parent is a Column, which
+      // hands down a bounded width. It is NOT safe inside a Row - that sets
+      // the minimum width to infinity, which is the layout error (#crop)
+      // this row previously worked around by sharing the space instead.
+      OutlinedButton.icon(
+        onPressed: () => _cropSelectedImage(selected),
+        icon: const Icon(Icons.crop, size: 17),
+        label: Text(
+          selected.isCropped ? _l10n.editCrop : _l10n.cropPhoto,
+          overflow: TextOverflow.ellipsis,
+        ),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: context.colors.textSecondary,
+          side: BorderSide(color: context.colors.border),
+          minimumSize: const Size.fromHeight(38),
+        ),
+      ),
+      if (selected.isCropped) ...[
+        const SizedBox(height: 8),
+        OutlinedButton(
+          onPressed: () =>
+              _controller.setImageCrop(id, const Rect.fromLTRB(0, 0, 1, 1)),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: context.colors.textMuted,
+            side: BorderSide(color: context.colors.border),
+            minimumSize: const Size.fromHeight(38),
+          ),
+          child: Text(_l10n.resetCrop, overflow: TextOverflow.ellipsis),
+        ),
+      ],
+      const SizedBox(height: 6),
+    ];
+  }
+
+  /// The colour half of Adjust, which reaches the photo's pixels and so exists
+  /// only for a photo layer.
+  List<Widget> _colorSliders(ImageLayer selected) {
+    final id = selected.id;
+    final adj = selected.adjustments;
+    void update(ImageAdjustments next) =>
+        _controller.updateImageAdjustments(id, next);
+    return [
+      LabeledSlider(
+        label: _l10n.brightness,
+        value: adj.brightness * 100,
+        min: 0,
+        max: 200,
+        accent: context.colors.amber,
+        valueLabel: '${(adj.brightness * 100).round()}%',
+        onChanged: (v) => update(adj.copyWith(brightness: v / 100)),
+        onChangeEnd: _endSliderEdit,
+      ),
+      LabeledSlider(
+        label: _l10n.contrast,
+        value: adj.contrast * 100,
+        min: 0,
+        max: 200,
+        accent: context.colors.cyan,
+        valueLabel: '${(adj.contrast * 100).round()}%',
+        onChanged: (v) => update(adj.copyWith(contrast: v / 100)),
+        onChangeEnd: _endSliderEdit,
+      ),
+      LabeledSlider(
+        label: _l10n.saturation,
+        value: adj.saturation * 100,
+        min: 0,
+        max: 200,
+        accent: context.colors.pink,
+        valueLabel: '${(adj.saturation * 100).round()}%',
+        onChanged: (v) => update(adj.copyWith(saturation: v / 100)),
+        onChangeEnd: _endSliderEdit,
+      ),
+      LabeledSlider(
+        label: _l10n.hue,
+        value: adj.hue,
+        min: -180,
+        max: 180,
+        accent: context.colors.violet,
+        valueLabel: '${adj.hue.round()}°',
+        onChanged: (v) => update(adj.copyWith(hue: v)),
+        onChangeEnd: _endSliderEdit,
+      ),
+    ];
   }
 
   // ------------------------------------------------------------ Text

@@ -563,6 +563,12 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String get scale => 'Échelle';
+
+  @override
+  String get rotation => 'Rotation';
+
+  @override
   String get brightness => 'Luminosité';
 
   @override
@@ -588,10 +594,13 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get adjustEmptyHint =>
-      'Les réglages s\'appliquent à un calque photo.\nSélectionnez une photo ou touchez Ajouter pour en importer une.';
+      'Sélectionnez un calque pour le redimensionner, le faire pivoter ou le régler.\nOu touchez Ajouter pour importer une photo.';
 
   @override
   String get effectsLink => 'Filtres, HDR, vignettage, ombre…';
+
+  @override
+  String get effectsLinkLayer => 'Fusion, ombre, contour…';
 
   @override
   String get textEmptyHint =>

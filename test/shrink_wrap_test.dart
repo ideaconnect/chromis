@@ -101,7 +101,7 @@ void main() {
     // The Adjust panel with nothing selected is a title plus two lines. Its
     // SURFACE is what must hug that - the scroll view inside shrink-wraps
     // either way, so measuring it proves nothing.
-    expect(find.textContaining('Adjustments apply'), findsOneWidget);
+    expect(find.textContaining('Select a layer'), findsOneWidget);
     final height = tester
         .getSize(find.byKey(const ValueKey('tool-panel')))
         .height;

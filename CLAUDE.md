@@ -104,6 +104,32 @@ The widget half (`core/widgets/layer_effects_box.dart`) MUST use raw
 it has to live inside one recorded picture, and `Opacity`/`ColorFiltered`/
 `ImageFiltered` each push a compositing layer that would split it.
 
+### Layer placement
+
+**Adjust is a panel for any layer, not only a photo.** Its top half - Scale,
+Rotation, Opacity - reads `Layer.transform` through `updateTransform`, so it
+works on a caption or a bubble; the crop button and the four colour sliders
+reach pixels and stay an `ImageLayer`'s alone (`_photoAdjustments`). It answered
+anything else with an empty hint before, which left one state with **no way
+out**: the canvas hit box IS the layer, so a caption or bubble created small -
+or pinched down by accident - is smaller than a finger and cannot be grabbed to
+be made big again. A slider does not depend on the layer's size.
+
+`_minLayerScale`/`_maxLayerScale` are the pinch gesture's own clamp
+(`EditorCanvas._onScaleUpdate`), duplicated deliberately so the two ways of
+resizing a layer cannot disagree about how small or large one may get - change
+one and change the other. Rotation is shown wrapped into (-180°, 180°] because
+the canvas ACCUMULATES it across pinches and a layer really can sit at 400°, and
+it snaps to straight over the last couple of degrees, which a slider cannot hit
+on purpose.
+
+**A photo that fills a grid cell gets neither slider.** `_clampToCell` keeps a
+cell photo covering its cell, because one shrunk aside leaves a hole in the
+collage that reads as a bug; a slider would be a second path to that state with
+none of the clamp. Nothing is lost - a cell photo fills its cell, so it is never
+the layer you cannot touch. Captions and bubbles in a cell keep the sliders:
+they are never clamped there, only clipped.
+
 ### Landscape
 
 `EditorScreen` branches on `maxWidth > maxHeight`: the dock becomes a rail down

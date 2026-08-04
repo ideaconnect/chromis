@@ -559,6 +559,12 @@ class AppLocalizationsCs extends AppLocalizations {
   }
 
   @override
+  String get scale => 'Měřítko';
+
+  @override
+  String get rotation => 'Otočení';
+
+  @override
   String get brightness => 'Jas';
 
   @override
@@ -584,10 +590,13 @@ class AppLocalizationsCs extends AppLocalizations {
 
   @override
   String get adjustEmptyHint =>
-      'Úpravy fungují jen na vrstvě s fotkou.\nVyber fotku, nebo klepni na Přidat a nějakou naimportuj.';
+      'Vyber vrstvu, kterou chceš zvětšit, otočit nebo upravit.\nNebo klepni na Přidat a naimportuj fotku.';
 
   @override
   String get effectsLink => 'Filtry, HDR, vinětace, stín…';
+
+  @override
+  String get effectsLinkLayer => 'Prolnutí, stín, obrys…';
 
   @override
   String get textEmptyHint => 'Vyber textovou vrstvu, nebo nějakou přidej.';

@@ -563,6 +563,12 @@ class AppLocalizationsPl extends AppLocalizations {
   }
 
   @override
+  String get scale => 'Skala';
+
+  @override
+  String get rotation => 'Obrót';
+
+  @override
   String get brightness => 'Jasność';
 
   @override
@@ -588,10 +594,13 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get adjustEmptyHint =>
-      'Korekty dotyczą warstwy ze zdjęciem.\nWybierz zdjęcie albo dotknij „Dodaj”, aby je zaimportować.';
+      'Wybierz warstwę, aby zmienić jej rozmiar, obrócić ją lub skorygować.\nAlbo dotknij „Dodaj”, aby zaimportować zdjęcie.';
 
   @override
   String get effectsLink => 'Filtry, HDR, winieta, cień…';
+
+  @override
+  String get effectsLinkLayer => 'Mieszanie, cień, obrys…';
 
   @override
   String get textEmptyHint => 'Wybierz warstwę tekstową albo dodaj nową.';

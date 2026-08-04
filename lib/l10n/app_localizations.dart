@@ -1084,6 +1084,18 @@ abstract class AppLocalizations {
   /// **'Cropped to {width}×{height}'**
   String croppedTo(int width, int height);
 
+  /// Adjust panel slider: the selected layer's size, shown as a percentage.
+  ///
+  /// In en, this message translates to:
+  /// **'Scale'**
+  String get scale;
+
+  /// Adjust panel slider: the selected layer's angle, in degrees.
+  ///
+  /// In en, this message translates to:
+  /// **'Rotation'**
+  String get rotation;
+
   /// No description provided for @brightness.
   ///
   /// In en, this message translates to:
@@ -1135,7 +1147,7 @@ abstract class AppLocalizations {
   /// No description provided for @adjustEmptyHint.
   ///
   /// In en, this message translates to:
-  /// **'Adjustments apply to a photo layer.\nSelect a photo, or tap Add to import one.'**
+  /// **'Select a layer to resize, rotate or adjust it.\nOr tap Add to import a photo.'**
   String get adjustEmptyHint;
 
   /// No description provided for @effectsLink.
@@ -1143,6 +1155,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Filters, HDR, vignette, shadow…'**
   String get effectsLink;
+
+  /// The same link as effectsLink, from a text or bubble layer - which has no filters, HDR or vignette.
+  ///
+  /// In en, this message translates to:
+  /// **'Blend, shadow, outline…'**
+  String get effectsLinkLayer;
 
   /// No description provided for @textEmptyHint.
   ///
