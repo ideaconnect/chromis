@@ -10,7 +10,7 @@ Chromis est un éditeur photo dont l'IA tourne sur l'appareil. Détourez un suje
 
 UNE IA QUI TOURNE SUR L'APPAREIL
 • Une touche enlève l'arrière-plan et laisse le sujet sur fond transparent. Deux modèles : la segmentation intégrée d'Android, ou U2-Net, open source, embarqué dans l'app.
-• Touchez l'objet à faire disparaître : il est découpé de la photo.
+• Touchez l'objet à faire disparaître : l'arrière-plan est reconstitué à sa place, ou vous le découpez en transparence.
 • Affinez : nettoyage auto des points isolés, bord adouci, ou retouche au pinceau effacer et restaurer.
 • U2-Net est embarqué : les détourages marchent hors connexion.
 

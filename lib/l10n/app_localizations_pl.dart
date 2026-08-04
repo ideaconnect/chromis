@@ -800,10 +800,11 @@ class AppLocalizationsPl extends AppLocalizations {
   String get restore => 'Przywróć';
 
   @override
-  String get fillAi => 'Wypełnij (AI)';
+  String get fillIn => 'Wypełnij';
 
   @override
-  String get fillExplainer => 'Wypełnianie zastępuje obiekt pasującym tłem.';
+  String get fillExplainer =>
+      'Wypełnianie odtwarza tło na podstawie reszty zdjęcia.';
 
   @override
   String get eraseExplainer => 'Wymazywanie wycina obiekt do przezroczystości.';
@@ -932,7 +933,7 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get fillUnavailable =>
-      'Wypełnianie niedostępne - obiekt został wymazany';
+      'Nie udało się odtworzyć tła - obiekt został wymazany';
 
   @override
   String get objectFilled =>

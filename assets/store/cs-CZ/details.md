@@ -10,7 +10,7 @@ Chromis je editor fotek, jehož AI běží přímo ve vašem telefonu. Vyřízn�
 
 AI, KTERÁ BĚŽÍ VE VAŠEM TELEFONU
 • Jedno klepnutí odstraní pozadí a nechá objekt na průhledném podkladu. Na výběr jsou dva modely: vestavěná segmentace Androidu, nebo otevřený U2-Net, který je součástí aplikace.
-• Klepněte na objekt, který má zmizet, a vyřízne se z fotky.
+• Klepněte na objekt, který má zmizet: pozadí se obnoví na jeho místě, nebo jej vyříznete do průhledna.
 • Výsledek dolaďte: automaticky ukliďte drobné smítky, změkčete okraj řezu, nebo jej opravte ručně štětcem pro mazání a obnovení.
 • Model U2-Net je uvnitř aplikace, takže výřezy fungují i bez připojení.
 

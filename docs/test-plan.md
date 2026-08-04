@@ -340,7 +340,12 @@ because nothing had ever been below the fold.
   drive the model and that preview and export agree; whether a look is *good*
   is a human call. `./tool/seed_device_photos.ps1` puts a spread of landscapes,
   animals and a low-light portrait in the device gallery for exactly that.
-- **Generative Fill / MI-GAN** - no bundled `migan.onnx`; option hidden.
+- **Fill quality on real photographs** - `content_fill_test.dart` proves the
+  object is gone and the rest of the photo is untouched; whether the rebuilt
+  background *reads* as background is a human call, and it is the thing that
+  varies most by subject. `./tool/seed_device_photos.ps1` seeds the spread.
+- **Generative Fill / MI-GAN tier** - no bundled `migan.onnx`, so Fill in always
+  falls through to content-aware fill. The tier itself is untested on-device.
 - **MobileSAM object removal on <3 GiB devices** - capability-denied by hardware.
 - **Frames / animation UI** - exists in code but is **UI-unreachable** (no dock
   entry / no `setTool(frames)`); do not write E2E until product exposes it.

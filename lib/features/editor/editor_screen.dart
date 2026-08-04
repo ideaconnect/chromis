@@ -45,6 +45,7 @@ import '../home/project_repository.dart';
 import '../home/widgets/app_drawer.dart';
 import '../segmentation/ai_capability.dart';
 import '../segmentation/alpha_mask.dart';
+import '../segmentation/engines/inpaint/content_fill_engine.dart';
 import '../segmentation/engines/inpaint/inpaint_engine.dart';
 import '../segmentation/engines/object/mobile_sam_engine.dart';
 import '../segmentation/mask_brush.dart';
@@ -112,9 +113,12 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
   double _brushSize = 40;
   bool _removingBg = false; // AI cut-out in progress
   bool _removeObjectMode = false; // tap-to-remove mode in the cutout tool (#83)
-  bool _fillMode =
-      false; // Fill (MI-GAN inpaint) vs Erase in remove-object mode
-  bool _inpainting = false; // MI-GAN generative fill in progress
+  // Fill (rebuild the background) vs Erase (cut to transparency) in
+  // remove-object mode. Fill is the DEFAULT because it is what "remove object"
+  // means to nearly everyone who taps it - erasing to a transparent hole was
+  // read as a broken fill often enough to be the bug report that added this.
+  bool _fillMode = true;
+  bool _inpainting = false; // fill in progress (either tier)
   bool _samBusy = false; // MobileSAM object segmentation in progress (#86)
   bool _merging = false; // flatten / merge-down render in progress
   // Landscape only: whether the tool column beside the rail is showing.
@@ -1961,40 +1965,45 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         ],
         if (removeMode) ...[
           _emptyHint(_l10n.objectRemoveHint),
-          if (ref.watch(inpaintAvailableProvider).asData?.value ?? false) ...[
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: _segTab(
-                    _l10n.erase,
-                    !_fillMode,
-                    context.colors.rose,
-                    () => setState(() => _fillMode = false),
-                  ),
+          const SizedBox(height: 8),
+          // What "remove" is going to MEAN - two genuinely different results.
+          // This chooser used to be built only when the optional MI-GAN asset
+          // was bundled, which no shipped build has ever had: every tap erased
+          // the object to a transparent hole, with nothing on screen saying so
+          // and no way to ask for anything else. Most people tap "remove
+          // object" expecting the background to close over it, so Fill leads
+          // and Erase stays one tap away.
+          Row(
+            children: [
+              Expanded(
+                child: _segTab(
+                  _l10n.fillIn,
+                  _fillMode,
+                  context.colors.cyan,
+                  () => setState(() => _fillMode = true),
                 ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: _segTab(
-                    _l10n.fillAi,
-                    _fillMode,
-                    context.colors.cyan,
-                    () => setState(() => _fillMode = true),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 3),
-            Text(
-              _fillMode ? _l10n.fillExplainer : _l10n.eraseExplainer,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontFamily: AppFonts.ui,
-                fontSize: 10.5,
-                color: context.colors.textMuted,
               ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _segTab(
+                  _l10n.erase,
+                  !_fillMode,
+                  context.colors.rose,
+                  () => setState(() => _fillMode = false),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 3),
+          Text(
+            _fillMode ? _l10n.fillExplainer : _l10n.eraseExplainer,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontFamily: AppFonts.ui,
+              fontSize: 10.5,
+              color: context.colors.textMuted,
             ),
-          ],
+          ),
         ] else ...[
           _emptyHint(
             image == null ? _l10n.cutoutSelectPhoto : _l10n.cutoutHint,
@@ -2938,9 +2947,8 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
           // point-prompt model (#86): tap coords are already source px.
           await _samRemoveAt(layer, maskPoint);
         case RemoveTapOutcome.removed:
-          if (_fillMode &&
-              (ref.read(inpaintAvailableProvider).asData?.value ?? false)) {
-            // Fill the removed blob with synthesized background rather than
+          if (_fillMode) {
+            // Fill the removed blob with rebuilt background rather than
             // cutting it out to transparency.
             final blob = await _removedRegion(_workingMask!, result.mask!);
             if (!mounted) return;
@@ -3053,9 +3061,9 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     }
   }
 
-  /// Generative fill (MI-GAN): replaces the tapped [object] region in [layer]'s
-  /// photo with synthesized background, swapping in the new image. Falls back to
-  /// erasing (subtract from [current]) when the model is absent or fails.
+  /// Fill: replaces the tapped [object] region in [layer]'s photo with rebuilt
+  /// background, swapping in the new image. Falls back to erasing (subtract
+  /// from [current]) when neither fill tier can produce a result.
   Future<void> _inpaintObject(
     ImageLayer layer,
     AlphaMask object,
@@ -3083,10 +3091,22 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     }
   }
 
+  /// The two fill tiers, best first. MI-GAN invents plausible content and wins
+  /// on structured scenes, but it is an OPTIONAL bundled model (see
+  /// docs/inpaint-setup.md) and absent from the shipped app; content-aware fill
+  /// only rebuilds from texture the photo already has, and always runs. Trying
+  /// them in order is what lets Fill be offered unconditionally - the feature
+  /// no longer disappears with the asset.
   Future<Uint8List?> _tryInpaint(ImageLayer layer, AlphaMask object) async {
     try {
       final bytes = await File(layer.assetPath).readAsBytes();
-      return await ref.read(inpaintEngineProvider).inpaint(bytes, object);
+      if (ref.read(inpaintAvailableProvider).asData?.value ?? false) {
+        final generated = await ref
+            .read(inpaintEngineProvider)
+            .inpaint(bytes, object);
+        if (generated != null) return generated;
+      }
+      return await ref.read(contentFillEngineProvider).fill(bytes, object);
     } catch (_) {
       return null;
     }

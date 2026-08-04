@@ -801,11 +801,11 @@ class AppLocalizationsFr extends AppLocalizations {
   String get restore => 'Restaurer';
 
   @override
-  String get fillAi => 'Remplir (IA)';
+  String get fillIn => 'Remplir';
 
   @override
   String get fillExplainer =>
-      'Le remplissage remplace l\'objet par un arrière-plan assorti.';
+      'Le remplissage reconstitue l\'arrière-plan à partir du reste de la photo.';
 
   @override
   String get eraseExplainer =>
@@ -938,7 +938,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get fillUnavailable =>
-      'Remplissage indisponible - objet effacé à la place';
+      'Impossible de reconstituer cette zone - objet effacé à la place';
 
   @override
   String get objectFilled => 'Objet rempli - Annuler restaure l\'original';

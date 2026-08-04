@@ -789,11 +789,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get restore => 'Restore';
 
   @override
-  String get fillAi => 'Fill (AI)';
+  String get fillIn => 'Fill in';
 
   @override
   String get fillExplainer =>
-      'Fill replaces the object with matching background.';
+      'Fill rebuilds the background from the rest of the photo.';
 
   @override
   String get eraseExplainer => 'Erase cuts the object out to transparency.';
@@ -920,7 +920,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'That looks like your subject - use Erase for fine edits';
 
   @override
-  String get fillUnavailable => 'Fill unavailable - erased instead';
+  String get fillUnavailable => 'Couldn\'t rebuild that area - erased instead';
 
   @override
   String get objectFilled => 'Object filled in - undo reverts';

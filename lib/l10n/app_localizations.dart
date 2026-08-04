@@ -1534,16 +1534,16 @@ abstract class AppLocalizations {
   /// **'Restore'**
   String get restore;
 
-  /// No description provided for @fillAi.
+  /// No description provided for @fillIn.
   ///
   /// In en, this message translates to:
-  /// **'Fill (AI)'**
-  String get fillAi;
+  /// **'Fill in'**
+  String get fillIn;
 
   /// No description provided for @fillExplainer.
   ///
   /// In en, this message translates to:
-  /// **'Fill replaces the object with matching background.'**
+  /// **'Fill rebuilds the background from the rest of the photo.'**
   String get fillExplainer;
 
   /// No description provided for @eraseExplainer.
@@ -1771,7 +1771,7 @@ abstract class AppLocalizations {
   /// No description provided for @fillUnavailable.
   ///
   /// In en, this message translates to:
-  /// **'Fill unavailable - erased instead'**
+  /// **'Couldn\'t rebuild that area - erased instead'**
   String get fillUnavailable;
 
   /// No description provided for @objectFilled.

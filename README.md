@@ -16,7 +16,8 @@ The build is planned as [GitHub milestones + issues](../../milestones):
 - **M2** AI background removal - ML Kit + bundled **U²-Netp** (ONNX)
 - **M3** Manual tools - fast brush erase, crop, adjust (light/color/detail)
 - **M4** Text & comic bubbles (rotatable/re-tailed)
-- **M5** Object removal - **MobileSAM** tap-to-select + optional MI-GAN inpaint
+- **M5** Object removal - **MobileSAM** tap-to-select, then fill in (PatchMatch
+  content-aware fill, or optional MI-GAN) or erase to transparency
 - **M6** Export & share - PNG (transparent) / JPG / WebP
 - **M7** Ads - AdMob banner/interstitial/rewarded + UMP consent
 - **M8** Go Pro IAP - one-time `pro_remove_ads`, removes all ads

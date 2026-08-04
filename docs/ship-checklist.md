@@ -251,7 +251,9 @@ Upload `build/app/outputs/bundle/release/app-release.aab`.
   (which segments *any* tapped object, more precisely) and would add the
   `google_mlkit_object_detection` native dependency + model. Say the word and I'll
   add it.
-- **MI-GAN inpaint fill** after object erase. Object removal currently erases to
-  transparent; generative fill-behind is a larger ONNX addition. Optional.
+- **MI-GAN generative fill.** Object removal now offers Fill in (the default)
+  as well as Erase, backed by pure-Dart content-aware fill that always runs;
+  the MI-GAN tier is a drop-in ONNX asset that would be tried ahead of it. No
+  UI change either way - see `docs/inpaint-setup.md`. Optional.
 
 Everything else from the original scope is implemented.

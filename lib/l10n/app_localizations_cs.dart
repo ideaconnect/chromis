@@ -796,10 +796,10 @@ class AppLocalizationsCs extends AppLocalizations {
   String get restore => 'Obnovit';
 
   @override
-  String get fillAi => 'Vyplnit (AI)';
+  String get fillIn => 'Vyplnit';
 
   @override
-  String get fillExplainer => 'Vyplnění nahradí objekt navazujícím pozadím.';
+  String get fillExplainer => 'Vyplnění obnoví pozadí z okolních částí fotky.';
 
   @override
   String get eraseExplainer => 'Mazání vymaže objekt do průhledna.';
@@ -931,7 +931,8 @@ class AppLocalizationsCs extends AppLocalizations {
       'Vypadá to jako tvůj hlavní motiv – na jemné úpravy použij Mazání';
 
   @override
-  String get fillUnavailable => 'Vyplnění není dostupné – objekt byl vymazán';
+  String get fillUnavailable =>
+      'Tuto oblast se nepodařilo obnovit – objekt byl vymazán';
 
   @override
   String get objectFilled => 'Objekt vyplněn – Zpět to vrátí';

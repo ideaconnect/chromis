@@ -10,7 +10,7 @@ Chromis es un editor de fotos cuya IA funciona en tu móvil. Recorta un sujeto, 
 
 IA QUE FUNCIONA EN TU MÓVIL
 • Un toque quita el fondo y deja el sujeto sobre transparencia. Dos modelos: la segmentación integrada de Android o U2-Net, de código abierto, incluido en la app.
-• Toca el objeto que sobra y queda recortado de la foto.
+• Toca el objeto que sobra: el fondo se reconstruye en su lugar, o lo recortas y queda transparente.
 • Refina: limpia las motas automáticamente, suaviza el borde del recorte o corrígelo a mano con el pincel de borrar y restaurar.
 • U2-Net viaja dentro de la app: los recortes funcionan sin conexión.
 

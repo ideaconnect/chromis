@@ -10,7 +10,7 @@ Chromis is a photo editor whose AI runs on your phone. Cut a subject out of a ph
 
 AI THAT RUNS ON YOUR PHONE
 • One tap removes the background and leaves your subject on transparency. Pick between two models: Android's built in segmentation, or an open source U2-Net bundled inside the app.
-• Tap an object you want gone and it is cut out of the photo.
+• Tap an object you want gone: fill the background back in over it, or cut it out to transparency.
 • Refine the result: auto clean up stray specks, soften the cut edge, or fix it by hand with an erase and restore brush.
 • The U2-Net model ships inside the app, so cut-outs still work with no connection.
 

@@ -796,11 +796,11 @@ class AppLocalizationsEs extends AppLocalizations {
   String get restore => 'Restaurar';
 
   @override
-  String get fillAi => 'Rellenar (IA)';
+  String get fillIn => 'Rellenar';
 
   @override
   String get fillExplainer =>
-      'Rellenar sustituye el objeto por un fondo que combina.';
+      'Rellenar reconstruye el fondo con el resto de la foto.';
 
   @override
   String get eraseExplainer => 'Borrar quita el objeto y deja transparencia.';
@@ -931,7 +931,8 @@ class AppLocalizationsEs extends AppLocalizations {
       'Eso parece tu sujeto: usa Borrar para ajustes finos';
 
   @override
-  String get fillUnavailable => 'Relleno no disponible: se borró en su lugar';
+  String get fillUnavailable =>
+      'No se pudo reconstruir esa zona: se borró en su lugar';
 
   @override
   String get objectFilled => 'Objeto rellenado: deshaz para revertir';

@@ -10,7 +10,7 @@ Chromis ist ein Fotoeditor, dessen KI auf deinem Handy läuft. Stelle ein Motiv 
 
 KI, DIE AUF DEINEM HANDY LÄUFT
 • Ein Tippen entfernt den Hintergrund und lässt das Motiv auf Transparenz stehen. Zwei Modelle: Androids eingebaute Segmentierung oder das quelloffene U2-Net in der App.
-• Tippe ein Objekt an, das weg soll, und es wird aus dem Foto geschnitten.
+• Tippe ein Objekt an, das weg soll: Der Hintergrund wird an seiner Stelle rekonstruiert, oder du schneidest es heraus.
 • Verfeinern: Sprenkel automatisch entfernen, Schnittkante weichzeichnen oder mit Radier- und Wiederherstellpinsel nachbessern.
 • U2-Net steckt in der App, Freisteller funktionieren also auch ohne Verbindung.
 

@@ -799,11 +799,11 @@ class AppLocalizationsDe extends AppLocalizations {
   String get restore => 'Wiederherstellen';
 
   @override
-  String get fillAi => 'Füllen (KI)';
+  String get fillIn => 'Füllen';
 
   @override
   String get fillExplainer =>
-      'Füllen ersetzt das Objekt durch passenden Hintergrund.';
+      'Füllen rekonstruiert den Hintergrund aus dem übrigen Foto.';
 
   @override
   String get eraseExplainer =>
@@ -935,7 +935,8 @@ class AppLocalizationsDe extends AppLocalizations {
       'Das sieht nach deinem Motiv aus - nutze Radieren für feine Korrekturen';
 
   @override
-  String get fillUnavailable => 'Füllen nicht verfügbar - stattdessen radiert';
+  String get fillUnavailable =>
+      'Dieser Bereich ließ sich nicht rekonstruieren - stattdessen radiert';
 
   @override
   String get objectFilled => 'Objekt gefüllt - Rückgängig stellt es wieder her';

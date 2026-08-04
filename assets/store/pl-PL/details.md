@@ -10,7 +10,7 @@ Chromis to edytor zdjęć, którego AI działa na Twoim telefonie. Wytnij obiekt
 
 AI, KTÓRE DZIAŁA NA TWOIM TELEFONIE
 • Jedno dotknięcie usuwa tło i zostawia obiekt na przezroczystości. Do wyboru dwa modele: wbudowana segmentacja Androida albo otwartoźródłowy U2-Net dołączony do aplikacji.
-• Dotknij obiektu, który ma zniknąć, a zostanie wycięty ze zdjęcia.
+• Dotknij obiektu, który ma zniknąć: tło zostanie odtworzone w jego miejscu albo wytniesz go do przezroczystości.
 • Dopracuj wynik: automatycznie usuń drobinki, zmiękcz krawędź cięcia albo popraw ją ręcznie pędzlem wymazywania i przywracania.
 • Model U2-Net jest w aplikacji, więc wycinanie działa też bez połączenia.
 

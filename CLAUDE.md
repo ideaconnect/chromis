@@ -130,6 +130,50 @@ none of the clamp. Nothing is lost - a cell photo fills its cell, so it is never
 the layer you cannot touch. Captions and bubbles in a cell keep the sliders:
 they are never clamped there, only clipped.
 
+### Object removal: which pixels, and what goes there
+
+Removing an object is two questions, and only the first one was ever really
+answered. *Which pixels* is the segmentation tier ladder - connected component,
+then MobileSAM on a tap the free tier can't carve out. *What goes there* is
+**Fill in** (rebuild the background) or **Erase** (cut to transparency), and
+that choice now leads the Remove-object panel with a one-line explainer under
+it. **Fill is the default**: "remove object" means a closed background to nearly
+everyone who taps it, and a transparent hole read as a broken fill often enough
+to be the bug report that changed this.
+
+**A user-visible choice must not be gated on an optional asset.** The chooser
+existed from the start, built only when `inpaintAvailableProvider` found
+`assets/models/migan.onnx` in the asset manifest - an OPTIONAL model no shipped
+build has ever bundled. So the branch was dead: every tap erased, nothing on
+screen said so, and there was no way to ask for anything else. The panel renders
+fine either way and the gate is a runtime provider rather than a compile-time
+flag, so nothing could catch it but a test that entered the mode, which is what
+`test/editor/object_fill_mode_test.dart` now is.
+
+Fill has **two tiers, tried in order by `_tryInpaint`**: MI-GAN if bundled, then
+`ContentFillEngine`, which is pure Dart and always runs. The floor is what lets
+Fill be offered unconditionally. **The tier is invisible to the user on
+purpose** - it is not a mode anyone picks, and the old label "Fill (AI)" was a
+promise the shipped app could not keep.
+
+`content_fill_engine.dart` fills a **window** around the object (its bbox plus
+75% of its longer side, downscaled only past 512 px), not the whole photo. That
+is the difference between a patch and a smudge: MI-GAN squeezes the entire image
+into 512², so a 100 px object in a 2000 px photo is synthesized ~25 px wide and
+blown back up, where the window keeps a small object at native resolution - and
+matching locally finds better patches anyway. The composite is weighted, and the
+region SYNTHESIZED runs one blur radius wider than the region weighted at full
+strength, or the seam fades back into the object's own colour fringe instead of
+into clean photo.
+
+`patch_match.dart` is the algorithm (PatchMatch + Wexler voting), byte arrays in
+and out so it runs in `Isolate.run` and tests without decoding an image. Two
+invariants it must keep: **known pixels are never written** - the result
+composites over the full-resolution photo, so writing outside the hole would
+resample the whole window as a soft rectangle around every removed object - and
+a fill it cannot do returns **null** rather than a smear, which is what makes
+the editor fall back to erasing and say so. See `docs/inpaint-setup.md`.
+
 ### Landscape
 
 `EditorScreen` branches on `maxWidth > maxHeight`: the dock becomes a rail down
