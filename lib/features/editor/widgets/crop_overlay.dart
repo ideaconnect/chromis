@@ -5,9 +5,10 @@ import 'package:flutter/material.dart';
 
 import '../../../core/models/frame.dart';
 import '../../../core/models/grid.dart';
-import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_tokens.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/checkerboard.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../export/project_renderer.dart';
 
 /// Opens a full-screen freeform crop editor over the current composition and
@@ -219,19 +220,19 @@ class _CropOverlayState extends State<_CropOverlay> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: const Text('Crop'),
+        title: Text(AppLocalizations.of(context).crop),
         leading: IconButton(
-          tooltip: 'Cancel crop',
+          tooltip: AppLocalizations.of(context).cancelCrop,
           icon: const Icon(Icons.close),
           onPressed: () => Navigator.of(context).pop(),
         ),
         actions: [
           TextButton(
             onPressed: _preview == null ? null : _apply,
-            style: TextButton.styleFrom(foregroundColor: AppColors.cyan),
-            child: const Text(
-              'Done',
-              style: TextStyle(
+            style: TextButton.styleFrom(foregroundColor: context.colors.cyan),
+            child: Text(
+              AppLocalizations.of(context).done,
+              style: const TextStyle(
                 fontFamily: AppFonts.display,
                 fontWeight: FontWeight.w700,
                 fontSize: 15,
@@ -258,17 +259,20 @@ class _CropOverlayState extends State<_CropOverlay> {
 
   Widget _canvasArea() {
     if (_failed) {
-      return const Center(
+      return Center(
         child: Text(
-          'Preview unavailable',
-          style: TextStyle(fontFamily: AppFonts.ui, color: AppColors.textMuted),
+          AppLocalizations.of(context).previewUnavailable,
+          style: TextStyle(
+            fontFamily: AppFonts.ui,
+            color: context.colors.textMuted,
+          ),
         ),
       );
     }
     final preview = _preview;
     if (preview == null) {
-      return const Center(
-        child: CircularProgressIndicator(color: AppColors.cyan),
+      return Center(
+        child: CircularProgressIndicator(color: context.colors.cyan),
       );
     }
     return LayoutBuilder(
@@ -298,11 +302,7 @@ class _CropOverlayState extends State<_CropOverlay> {
           children: [
             Positioned.fromRect(
               rect: display,
-              child: const Checkerboard(
-                cell: 12,
-                base: Color(0xFF0E1B2A),
-                tile: Color(0xFF15263A),
-              ),
+              child: const Checkerboard(cell: 12),
             ),
             Positioned.fromRect(
               rect: display,
@@ -311,7 +311,11 @@ class _CropOverlayState extends State<_CropOverlay> {
             Positioned.fill(
               child: IgnorePointer(
                 child: CustomPaint(
-                  painter: _CropPainter(display: display, crop: crop),
+                  painter: _CropPainter(
+                    display: display,
+                    crop: crop,
+                    accent: context.colors.cyan,
+                  ),
                 ),
               ),
             ),
@@ -388,11 +392,11 @@ class _CropOverlayState extends State<_CropOverlay> {
         children: [
           Text(
             '$w × $ph px',
-            style: const TextStyle(
+            style: TextStyle(
               fontFamily: AppFonts.ui,
               fontSize: 13,
               fontWeight: FontWeight.w700,
-              color: AppColors.textSecondary,
+              color: context.colors.textSecondary,
             ),
           ),
           TextButton.icon(
@@ -402,9 +406,11 @@ class _CropOverlayState extends State<_CropOverlay> {
               _r = 1;
               _b = 1;
             }),
-            style: TextButton.styleFrom(foregroundColor: AppColors.textMuted),
+            style: TextButton.styleFrom(
+              foregroundColor: context.colors.textMuted,
+            ),
             icon: const Icon(Icons.crop_free, size: 18),
-            label: const Text('Reset'),
+            label: Text(AppLocalizations.of(context).reset),
           ),
         ],
       ),
@@ -413,10 +419,18 @@ class _CropOverlayState extends State<_CropOverlay> {
 }
 
 class _CropPainter extends CustomPainter {
-  _CropPainter({required this.display, required this.crop});
+  _CropPainter({
+    required this.display,
+    required this.crop,
+    required this.accent,
+  });
 
   final Rect display;
   final Rect crop;
+
+  /// Passed in rather than read from a constant: a painter has no context, and
+  /// the accent is a different colour in the light theme.
+  final Color accent;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -432,7 +446,7 @@ class _CropPainter extends CustomPainter {
     canvas.drawRect(
       crop,
       Paint()
-        ..color = AppColors.cyan
+        ..color = accent
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2,
     );
@@ -448,7 +462,7 @@ class _CropPainter extends CustomPainter {
     }
     // Corner ticks (draw inward from each corner).
     final tick = Paint()
-      ..color = AppColors.cyan
+      ..color = accent
       ..style = PaintingStyle.stroke
       ..strokeWidth = 4
       ..strokeCap = StrokeCap.round;
@@ -466,5 +480,5 @@ class _CropPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_CropPainter old) =>
-      old.crop != crop || old.display != display;
+      old.crop != crop || old.display != display || old.accent != accent;
 }

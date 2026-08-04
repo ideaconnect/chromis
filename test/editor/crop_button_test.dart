@@ -11,6 +11,7 @@ import 'package:chromis/features/editor/widgets/crop_overlay.dart';
 import 'package:chromis/features/editor/widgets/project_canvas.dart';
 import 'package:chromis/features/go_pro/iap.dart';
 import 'package:chromis/features/home/project_repository.dart';
+import 'package:chromis/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -123,7 +124,9 @@ void main() {
       UncontrolledProviderScope(
         container: container,
         child: MaterialApp(
-          theme: buildAppTheme(),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          theme: darkAppTheme,
           home: MediaQuery(
             data: MediaQueryData(
               size: surface,
@@ -372,9 +375,23 @@ void main() {
     expect(edit.left, greaterThanOrEqualTo(0));
     expect(reset.right, lessThanOrEqualTo(surface.width));
     expect(
-      reset.left,
-      greaterThanOrEqualTo(edit.right),
+      reset.top,
+      greaterThanOrEqualTo(edit.bottom),
       reason: 'the two buttons must not be laid on top of each other',
+    );
+    // They are STACKED now, not side by side. Sharing a row left Reset crop a
+    // third of the panel less 48dp of M3 button padding - about 72dp of text,
+    // which fits English "Reset crop" and no translation of it: German showed
+    // "Zuschnitt …" beside a full "Zuschnitt bearbeiten". Full width is what
+    // makes the label readable in every language, so pin that rather than the
+    // old horizontal order.
+    expect(
+      reset.width,
+      closeTo(edit.width, 1),
+      reason:
+          'Reset crop must get the same full panel width as Edit crop, not a '
+          'third of it - measuring against the panel, which is the landscape '
+          'rail here, not against the surface',
     );
   });
 }

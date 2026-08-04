@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 
-import '../theme/app_colors.dart';
+import '../theme/app_tokens.dart';
 import '../theme/app_typography.dart';
 
 /// The currently-visible toast, if any. A new toast replaces it so rapid
@@ -150,14 +150,14 @@ class _ToastPill extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
           decoration: BoxDecoration(
-            color: AppColors.chipSurface,
+            color: context.colors.chipSurface,
             borderRadius: BorderRadius.circular(30),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
-            boxShadow: const [
+            border: Border.all(color: context.colors.border),
+            boxShadow: [
               BoxShadow(
-                color: Color(0x80000000),
+                color: context.colors.shadow,
                 blurRadius: 30,
-                offset: Offset(0, 12),
+                offset: const Offset(0, 12),
               ),
             ],
           ),
@@ -168,7 +168,7 @@ class _ToastPill extends StatelessWidget {
                 width: 8,
                 height: 8,
                 decoration: BoxDecoration(
-                  color: ok ? AppColors.green : AppColors.rose,
+                  color: ok ? context.colors.green : context.colors.rose,
                   shape: BoxShape.circle,
                 ),
               ),
@@ -176,9 +176,9 @@ class _ToastPill extends StatelessWidget {
               Flexible(
                 child: Text(
                   message,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: AppFonts.ui,
-                    color: Colors.white,
+                    color: context.colors.textPrimary,
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
                   ),

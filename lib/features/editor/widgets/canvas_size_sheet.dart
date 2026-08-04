@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../core/models/project.dart';
-import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_tokens.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/sheet_body.dart';
+import '../../../l10n/app_localizations.dart';
+import '../../../l10n/localized_labels.dart';
 
 /// A canvas dimension preset offered in the size sheet.
 class CanvasPreset {
@@ -37,12 +39,12 @@ Future<CanvasSizeResult?> showCanvasSizeSheet(
   int? initialWidth,
   int? initialHeight,
   bool allowScaleContent = false,
-  String confirmLabel = 'Create',
+  String? confirmLabel,
 }) {
   return showModalBottomSheet<CanvasSizeResult>(
     context: context,
     isScrollControlled: true,
-    backgroundColor: AppColors.panel,
+    backgroundColor: context.colors.panel,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
     ),
@@ -51,7 +53,7 @@ Future<CanvasSizeResult?> showCanvasSizeSheet(
       initialWidth: initialWidth,
       initialHeight: initialHeight,
       allowScaleContent: allowScaleContent,
-      confirmLabel: confirmLabel,
+      confirmLabel: confirmLabel ?? AppLocalizations.of(context).create,
     ),
   );
 }
@@ -118,15 +120,16 @@ class _CanvasSizeSheetState extends State<_CanvasSizeSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return SheetBody(
       children: [
         Text(
           widget.title,
-          style: const TextStyle(
+          style: TextStyle(
             fontFamily: AppFonts.display,
             fontWeight: FontWeight.w700,
             fontSize: 17,
-            color: AppColors.textPrimary,
+            color: context.colors.textPrimary,
           ),
         ),
         const SizedBox(height: 14),
@@ -136,25 +139,28 @@ class _CanvasSizeSheetState extends State<_CanvasSizeSheet> {
           children: [for (final p in _presets) _presetChip(p)],
         ),
         const SizedBox(height: 18),
-        const Text(
-          'CUSTOM (PIXELS)',
+        Text(
+          l10n.customPixels,
           style: TextStyle(
             fontFamily: AppFonts.ui,
             fontSize: 10.5,
             fontWeight: FontWeight.w800,
             letterSpacing: 0.4,
-            color: AppColors.textMuted,
+            color: context.colors.textMuted,
           ),
         ),
         const SizedBox(height: 8),
         Row(
           children: [
-            Expanded(child: _numField(_w, 'Width')),
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 10),
-              child: Text('×', style: TextStyle(color: AppColors.textMuted)),
+            Expanded(child: _numField(_w, l10n.width)),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              child: Text(
+                '×',
+                style: TextStyle(color: context.colors.textMuted),
+              ),
             ),
-            Expanded(child: _numField(_h, 'Height')),
+            Expanded(child: _numField(_h, l10n.height)),
           ],
         ),
         if (widget.allowScaleContent) ...[
@@ -162,23 +168,23 @@ class _CanvasSizeSheetState extends State<_CanvasSizeSheet> {
           SwitchListTile(
             contentPadding: EdgeInsets.zero,
             value: _scale,
-            activeThumbColor: AppColors.cyan,
+            activeThumbColor: context.colors.cyan,
             onChanged: (v) => setState(() => _scale = v),
-            title: const Text(
-              'Scale layers to fit',
+            title: Text(
+              l10n.scaleLayersToFit,
               style: TextStyle(
                 fontFamily: AppFonts.ui,
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
+                color: context.colors.textPrimary,
               ),
             ),
-            subtitle: const Text(
-              'Resample the whole composition to the new size',
+            subtitle: Text(
+              l10n.scaleLayersToFitSub,
               style: TextStyle(
                 fontFamily: AppFonts.ui,
                 fontSize: 11,
-                color: AppColors.textMuted,
+                color: context.colors.textMuted,
               ),
             ),
           ),
@@ -191,9 +197,9 @@ class _CanvasSizeSheetState extends State<_CanvasSizeSheet> {
                 ).pop((width: _wv, height: _hv, scaleContent: _scale))
               : null,
           style: FilledButton.styleFrom(
-            backgroundColor: AppColors.cyan,
-            foregroundColor: AppColors.cutoutInk,
-            disabledBackgroundColor: AppColors.elevated,
+            backgroundColor: context.colors.cyan,
+            foregroundColor: context.colors.onAccent,
+            disabledBackgroundColor: context.colors.elevated,
             minimumSize: const Size.fromHeight(50),
           ),
           child: Text(
@@ -217,32 +223,34 @@ class _CanvasSizeSheetState extends State<_CanvasSizeSheet> {
         padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 9),
         decoration: BoxDecoration(
           color: active
-              ? AppColors.cyan.withValues(alpha: 0.16)
-              : AppColors.card,
+              ? context.colors.cyan.withValues(alpha: 0.16)
+              : context.colors.card,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: active ? AppColors.cyan : AppColors.borderFaint,
+            color: active ? context.colors.cyan : context.colors.borderFaint,
           ),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              p.label,
+              p.labelOf(AppLocalizations.of(context)),
               style: TextStyle(
                 fontFamily: AppFonts.ui,
                 fontSize: 12.5,
                 fontWeight: FontWeight.w700,
-                color: active ? AppColors.textPrimary : AppColors.textSecondary,
+                color: active
+                    ? context.colors.textPrimary
+                    : context.colors.textSecondary,
               ),
             ),
             const SizedBox(height: 1),
             Text(
               p.sub,
-              style: const TextStyle(
+              style: TextStyle(
                 fontFamily: AppFonts.ui,
                 fontSize: 10,
-                color: AppColors.textMuted,
+                color: context.colors.textMuted,
               ),
             ),
           ],
@@ -256,17 +264,17 @@ class _CanvasSizeSheetState extends State<_CanvasSizeSheet> {
       controller: c,
       keyboardType: TextInputType.number,
       inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-      style: const TextStyle(
+      style: TextStyle(
         fontFamily: AppFonts.ui,
         fontSize: 15,
         fontWeight: FontWeight.w700,
-        color: AppColors.textPrimary,
+        color: context.colors.textPrimary,
       ),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: const TextStyle(color: AppColors.textMuted, fontSize: 12),
+        labelStyle: TextStyle(color: context.colors.textMuted, fontSize: 12),
         filled: true,
-        fillColor: AppColors.inputField,
+        fillColor: context.colors.inputField,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 14,
           vertical: 12,

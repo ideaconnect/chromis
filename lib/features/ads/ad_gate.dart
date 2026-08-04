@@ -5,9 +5,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../app/router.dart';
-import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_tokens.dart';
 import '../../core/theme/app_typography.dart';
 import '../../core/widgets/sheet_body.dart';
+import '../../l10n/app_localizations.dart';
 import '../go_pro/iap.dart';
 import 'ads_service.dart';
 
@@ -94,7 +95,7 @@ abstract final class AdGate {
       context: context,
       // So the sheet may use the height it needs; SheetBody caps and scrolls it.
       isScrollControlled: true,
-      backgroundColor: AppColors.panel,
+      backgroundColor: context.colors.panel,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -157,6 +158,7 @@ class _AdGateSheetState extends ConsumerState<AdGateSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final blocked = _blocked;
     return SheetBody(
       padding: const EdgeInsets.fromLTRB(22, 14, 22, 22),
@@ -164,29 +166,29 @@ class _AdGateSheetState extends ConsumerState<AdGateSheet> {
         const SizedBox(height: 4),
         Icon(
           blocked ? Icons.block_outlined : Icons.play_circle_outline,
-          color: blocked ? AppColors.amber : AppColors.cyan,
+          color: blocked ? context.colors.amber : context.colors.cyan,
           size: 36,
         ),
         const SizedBox(height: 12),
         Text(
           widget.title,
           textAlign: TextAlign.center,
-          style: const TextStyle(
+          style: TextStyle(
             fontFamily: AppFonts.display,
             fontWeight: FontWeight.w700,
             fontSize: 18,
-            color: AppColors.textPrimary,
+            color: context.colors.textPrimary,
           ),
         ),
         const SizedBox(height: 8),
         Text(
           widget.message,
           textAlign: TextAlign.center,
-          style: const TextStyle(
+          style: TextStyle(
             fontFamily: AppFonts.ui,
             fontSize: 13,
             height: 1.4,
-            color: AppColors.textMuted,
+            color: context.colors.textMuted,
           ),
         ),
         if (blocked) ...[
@@ -204,10 +206,12 @@ class _AdGateSheetState extends ConsumerState<AdGateSheet> {
           icon: const Icon(Icons.play_arrow_rounded),
           label: Text(widget.watchLabel),
           style: FilledButton.styleFrom(
-            backgroundColor: AppColors.cyan,
-            foregroundColor: AppColors.cutoutInk,
-            disabledBackgroundColor: AppColors.cyan.withValues(alpha: 0.22),
-            disabledForegroundColor: AppColors.textFaint,
+            backgroundColor: context.colors.cyan,
+            foregroundColor: context.colors.onAccent,
+            disabledBackgroundColor: context.colors.cyan.withValues(
+              alpha: 0.22,
+            ),
+            disabledForegroundColor: context.colors.textFaint,
             minimumSize: const Size.fromHeight(50),
             textStyle: const TextStyle(
               fontFamily: AppFonts.display,
@@ -224,11 +228,11 @@ class _AdGateSheetState extends ConsumerState<AdGateSheet> {
           key: const ValueKey('ad-gate-go-pro'),
           onPressed: () => Navigator.pop(context, AdGateChoice.goPro),
           icon: const Icon(Icons.workspace_premium_outlined, size: 19),
-          label: const Text('Go Pro - remove ads'),
+          label: Text(l10n.goProRemoveAdsPlain),
           style: OutlinedButton.styleFrom(
-            foregroundColor: AppColors.gold,
+            foregroundColor: context.colors.gold,
             minimumSize: const Size.fromHeight(50),
-            side: const BorderSide(color: AppColors.gold, width: 1.4),
+            side: BorderSide(color: context.colors.gold, width: 1.4),
             textStyle: const TextStyle(
               fontFamily: AppFonts.display,
               fontWeight: FontWeight.w700,
@@ -237,13 +241,13 @@ class _AdGateSheetState extends ConsumerState<AdGateSheet> {
           ),
         ),
         const SizedBox(height: 4),
-        const Text(
-          'One-time purchase. No subscription.',
+        Text(
+          l10n.oneTimeNoSubscription,
           textAlign: TextAlign.center,
           style: TextStyle(
             fontFamily: AppFonts.ui,
             fontSize: 11.5,
-            color: AppColors.textFaint,
+            color: context.colors.textFaint,
           ),
         ),
       ],
@@ -270,24 +274,21 @@ class _ConsentWarning extends StatelessWidget {
       key: const ValueKey('ad-gate-consent-warning'),
       padding: const EdgeInsets.fromLTRB(14, 13, 14, 13),
       decoration: BoxDecoration(
-        color: AppColors.amber.withValues(alpha: 0.10),
+        color: context.colors.amber.withValues(alpha: 0.10),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.amber.withValues(alpha: 0.45)),
+        border: Border.all(color: context.colors.amber.withValues(alpha: 0.45)),
       ),
       child: Column(
         children: [
           // Deliberately not export-specific: the AI tools use this same gate.
-          const Text(
-            "You've chosen not to allow ads, so there is no ad to watch - and "
-            'ads are what keep Chromis free.\n\n'
-            'Allow ads to carry on for free, or go Pro to use everything with '
-            'no ads at all.',
+          Text(
+            AppLocalizations.of(context).adsDeclinedExplainer,
             textAlign: TextAlign.center,
             style: TextStyle(
               fontFamily: AppFonts.ui,
               fontSize: 12.5,
               height: 1.45,
-              color: AppColors.textSecondary,
+              color: context.colors.textSecondary,
             ),
           ),
           const SizedBox(height: 12),
@@ -295,19 +296,19 @@ class _ConsentWarning extends StatelessWidget {
             key: const ValueKey('ad-gate-consent'),
             onPressed: busy ? null : onReview,
             icon: busy
-                ? const SizedBox(
+                ? SizedBox(
                     width: 16,
                     height: 16,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      color: AppColors.cutoutInk,
+                      color: context.colors.onAccent,
                     ),
                   )
                 : const Icon(Icons.privacy_tip_outlined, size: 18),
-            label: const Text('Review ad consent'),
+            label: Text(AppLocalizations.of(context).reviewAdConsent),
             style: FilledButton.styleFrom(
-              backgroundColor: AppColors.amber,
-              foregroundColor: AppColors.cutoutInk,
+              backgroundColor: context.colors.amber,
+              foregroundColor: context.colors.onAccent,
               minimumSize: const Size.fromHeight(44),
               textStyle: const TextStyle(
                 fontFamily: AppFonts.display,

@@ -186,6 +186,11 @@ class EditorController extends Notifier<EditorState> {
     return layer;
   }
 
+  /// [text] doubles as the layer's name, so UI callers pass the localized
+  /// word for "Text". It keeps an English default so the controller stays
+  /// usable from a test with no localizations to hand - the same reason
+  /// [addImageLayer] and [addBubbleLayer] below take a label rather than
+  /// reaching for one.
   TextLayer addTextLayer({
     String text = 'Text',
     String fontFamily = 'Bangers',
@@ -206,8 +211,12 @@ class EditorController extends Notifier<EditorState> {
   /// in the Layers panel (#73). Additional photos land cascade-offset from
   /// center (24 logical px per existing photo, cycling) so a new image never
   /// exactly buries the one below (#74).
-  ImageLayer addImageLayer({required String assetPath, String? name}) {
-    final resolved = name ?? _nextPhotoName();
+  ImageLayer addImageLayer({
+    required String assetPath,
+    String? name,
+    String photoLabel = 'Photo',
+  }) {
+    final resolved = name ?? _nextPhotoName(photoLabel);
     final existing = state.layers.whereType<ImageLayer>().length;
     final cascade = (existing % 5) * 24.0;
     final center = state.project.canvasCenter;
@@ -230,6 +239,7 @@ class EditorController extends Notifier<EditorState> {
     required String assetPath,
     required String cellId,
     Size? pixels,
+    String photoLabel = 'Photo',
   }) {
     final project = state.project;
     final grid = project.grid;
@@ -242,7 +252,7 @@ class EditorController extends Notifier<EditorState> {
     final scale = pixels == null
         ? 1.0
         : photoCoverScale(pixels, rect.width, rect.height);
-    final name = _nextPhotoName();
+    final name = _nextPhotoName(photoLabel);
     return _addLayer(
       () => ImageLayer(
         id: _newId('l'),
@@ -254,18 +264,19 @@ class EditorController extends Notifier<EditorState> {
     );
   }
 
-  /// The smallest unused "Photo N" name on the current frame ("Photo" = N 1).
-  String _nextPhotoName() {
+  /// The smallest unused "<label> N" name on the current frame
+  /// ([photoLabel] alone = N 1).
+  String _nextPhotoName(String photoLabel) {
     final names = state.layers
         .whereType<ImageLayer>()
         .map((l) => l.name)
         .toSet();
-    if (!names.contains('Photo')) return 'Photo';
+    if (!names.contains(photoLabel)) return photoLabel;
     var n = 2;
-    while (names.contains('Photo $n')) {
+    while (names.contains('$photoLabel $n')) {
       n++;
     }
-    return 'Photo $n';
+    return '$photoLabel $n';
   }
 
   /// Drops an [emoji] onto the canvas as a decorative (no outline/shadow) text
@@ -499,10 +510,11 @@ class EditorController extends Notifier<EditorState> {
   BubbleLayer addBubbleLayer({
     String text = '',
     BubbleShape shape = BubbleShape.speech,
+    String bubbleLabel = 'Bubble',
   }) => _addLayer(
     () => BubbleLayer(
       id: _newId('l'),
-      name: text.isEmpty ? 'Bubble' : text,
+      name: text.isEmpty ? bubbleLabel : text,
       text: text,
       shape: shape,
       transform: LayerTransform(

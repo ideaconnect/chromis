@@ -6,9 +6,10 @@ import 'package:go_router/go_router.dart';
 
 import '../../../app/router.dart';
 import '../../../core/models/project.dart';
-import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_tokens.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../core/widgets/app_logo.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../about/about_data.dart';
 import '../../about/about_sheet.dart';
 import '../../editor/state/editor_controller.dart';
@@ -26,10 +27,14 @@ class AppDrawer extends ConsumerWidget {
     navigator.pop(); // close the drawer
     // The drawer element is now gone - show the sheet on the stable nav context.
     final ctx = navigator.context;
-    final size = await showCanvasSizeSheet(ctx, title: 'New project');
+    final size = await showCanvasSizeSheet(
+      ctx,
+      title: AppLocalizations.of(ctx).newProject,
+    );
     if (size == null || !ctx.mounted) return;
     final project = Project.empty(
       id: 'pe_${DateTime.now().microsecondsSinceEpoch}',
+      name: AppLocalizations.of(ctx).untitledProject,
       width: size.width,
       height: size.height,
       createdAt: DateTime.now(),
@@ -42,9 +47,9 @@ class AppDrawer extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final tokens = context.tokens;
+    final l10n = AppLocalizations.of(context);
     return Drawer(
-      backgroundColor: AppColors.panel,
+      backgroundColor: context.colors.panel,
       child: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -53,52 +58,43 @@ class AppDrawer extends ConsumerWidget {
               padding: const EdgeInsets.fromLTRB(18, 20, 18, 16),
               child: Row(
                 children: [
-                  Container(
-                    width: 42,
-                    height: 42,
-                    decoration: BoxDecoration(
-                      gradient: tokens.logoGradient,
-                      borderRadius: BorderRadius.circular(13),
-                    ),
-                    child: const Icon(
-                      Icons.auto_awesome,
-                      color: Colors.white,
-                      size: 22,
-                    ),
-                  ),
+                  // The real launcher artwork, like the About sheet's lockup -
+                  // not a generic sparkle on the token gradient. This header is
+                  // the app naming itself, so it has to be the same mark the
+                  // user tapped to get here.
+                  const AppLogo(size: 42, radius: 13),
                   const SizedBox(width: 11),
                   // Expanded, not intrinsic: the drawer is a fixed 304dp wide
                   // whatever the screen is, so a wide accessibility text scale
                   // (or a longer subtitle) has to ellipsize rather than
                   // overflow the header row.
-                  const Expanded(
+                  Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Chromis',
+                          AboutInfo.appName,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             fontFamily: AppFonts.display,
                             fontWeight: FontWeight.w700,
                             fontSize: 15,
-                            color: AppColors.textPrimary,
+                            color: context.colors.textPrimary,
                           ),
                         ),
-                        SizedBox(height: 2),
+                        const SizedBox(height: 2),
                         // Read from AboutInfo, never a literal: this line was
                         // hardcoded 'v1.0.0' and stayed there for two releases
-                        // while the About sheet had already been fixed. The
-                        // interpolation is still const - appVersion is.
+                        // while the About sheet had already been fixed.
                         Text(
-                          'Photo editor · v${AboutInfo.appVersion}',
+                          l10n.drawerSubtitle(AboutInfo.appVersion),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             fontFamily: AppFonts.ui,
                             fontSize: 10.5,
-                            color: AppColors.textMuted,
+                            color: context.colors.textMuted,
                           ),
                         ),
                       ],
@@ -107,7 +103,7 @@ class AppDrawer extends ConsumerWidget {
                 ],
               ),
             ),
-            const Divider(height: 1, color: AppColors.border),
+            Divider(height: 1, color: context.colors.border),
             // The item list scrolls rather than pushing the footer off the
             // bottom: a phone in landscape leaves barely 400px of drawer.
             Expanded(
@@ -116,7 +112,7 @@ class AppDrawer extends ConsumerWidget {
                 children: [
                   _DrawerItem(
                     icon: Icons.home_outlined,
-                    label: 'Home & projects',
+                    label: l10n.drawerHome,
                     onTap: () {
                       Navigator.of(context).pop();
                       context.goNamed(Routes.home);
@@ -124,20 +120,28 @@ class AppDrawer extends ConsumerWidget {
                   ),
                   _DrawerItem(
                     icon: Icons.add_photo_alternate_outlined,
-                    label: 'New project',
+                    label: l10n.newProject,
                     onTap: () => _newProject(context, ref),
                   ),
                   _DrawerItem(
                     icon: Icons.grid_view_rounded,
-                    label: 'All projects',
+                    label: l10n.allProjects,
                     onTap: () {
                       Navigator.of(context).pop();
                       context.pushNamed(Routes.allProjects);
                     },
                   ),
                   _DrawerItem(
+                    icon: Icons.settings_outlined,
+                    label: l10n.settings,
+                    onTap: () {
+                      Navigator.of(context).pop();
+                      context.pushNamed(Routes.settings);
+                    },
+                  ),
+                  _DrawerItem(
                     icon: Icons.info_outline,
-                    label: 'About',
+                    label: l10n.about,
                     onTap: () {
                       Navigator.of(context).pop();
                       showAboutSheet(context);
@@ -145,7 +149,7 @@ class AppDrawer extends ConsumerWidget {
                   ),
                   _DrawerItem(
                     icon: Icons.privacy_tip_outlined,
-                    label: 'Privacy & Cookies',
+                    label: l10n.privacyTitle,
                     onTap: () {
                       Navigator.of(context).pop();
                       context.pushNamed(Routes.privacy);
@@ -153,7 +157,7 @@ class AppDrawer extends ConsumerWidget {
                   ),
                   _DrawerItem(
                     icon: Icons.description_outlined,
-                    label: 'Licenses',
+                    label: l10n.licenses,
                     onTap: () {
                       Navigator.of(context).pop();
                       context.pushNamed(Routes.licenses);
@@ -173,15 +177,15 @@ class AppDrawer extends ConsumerWidget {
                   },
                 ),
               ),
-            const Padding(
-              padding: EdgeInsets.only(bottom: 14),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 14),
               child: Text(
-                'IDCT · Bartosz Pachołek',
+                AboutInfo.publisher,
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontFamily: AppFonts.ui,
                   fontSize: 10.5,
-                  color: AppColors.textMuted,
+                  color: context.colors.textMuted,
                 ),
               ),
             ),
@@ -206,14 +210,14 @@ class _DrawerItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      leading: Icon(icon, color: AppColors.textSecondary, size: 22),
+      leading: Icon(icon, color: context.colors.textSecondary, size: 22),
       title: Text(
         label,
-        style: const TextStyle(
+        style: TextStyle(
           fontFamily: AppFonts.ui,
           fontSize: 14,
           fontWeight: FontWeight.w600,
-          color: AppColors.textPrimary,
+          color: context.colors.textPrimary,
         ),
       ),
       onTap: onTap,
@@ -240,29 +244,29 @@ class _GoProButton extends StatelessWidget {
         child: InkWell(
           borderRadius: BorderRadius.circular(14),
           onTap: onTap,
-          child: const Padding(
-            padding: EdgeInsets.symmetric(vertical: 14),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 14),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(
                   Icons.workspace_premium,
-                  color: AppColors.cutoutInk,
+                  color: context.colors.onAccent,
                   size: 18,
                 ),
-                SizedBox(width: 8),
+                const SizedBox(width: 8),
                 // Flexible so a large system font scale shrinks the label
                 // instead of overflowing the button, which is fixed-width.
                 Flexible(
                   child: Text(
-                    'Go Pro · remove ads',
+                    AppLocalizations.of(context).goProRemoveAds,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       fontFamily: AppFonts.display,
                       fontWeight: FontWeight.w700,
                       fontSize: 13.5,
-                      color: AppColors.cutoutInk,
+                      color: context.colors.onAccent,
                     ),
                   ),
                 ),

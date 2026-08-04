@@ -6,6 +6,8 @@ import 'package:chromis/features/editor/state/editor_controller.dart';
 import 'package:chromis/features/editor/widgets/bubble_shape_sheet.dart';
 import 'package:chromis/features/editor/widgets/project_canvas.dart';
 import 'package:chromis/features/go_pro/iap.dart';
+import 'package:chromis/l10n/app_localizations.dart';
+import 'package:chromis/l10n/app_localizations_en.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -36,7 +38,9 @@ void main() {
         // not about how far along the row it sits.
         overrides: [isProProvider.overrideWithValue(true)],
         child: MaterialApp(
-          theme: buildAppTheme(),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          theme: darkAppTheme,
           home: Builder(
             builder: (context) => MediaQuery(
               data: MediaQuery.of(
@@ -227,7 +231,9 @@ void main() {
         setSurface(tester, const Size(412, 915));
         await tester.pumpWidget(
           MaterialApp(
-            theme: buildAppTheme(),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            theme: darkAppTheme,
             home: Builder(
               builder: (context) => MediaQuery(
                 data: MediaQuery.of(
@@ -244,7 +250,10 @@ void main() {
                         children: [
                           for (final shape in BubbleShape.values)
                             SizedBox(
-                              width: blurb ? 165 : 92,
+                              // 116 mirrors _kBubbleRowTile in editor_screen.dart; it was
+                              // widened from 92 so translated format
+                              // names stop being cut.
+                              width: blurb ? 165 : 116,
                               height: bubbleShapeTileHeight(
                                 inner,
                                 thumbWidth: blurb ? 88 : 68,
@@ -300,8 +309,13 @@ void main() {
   });
 
   test('every format has a distinct name and description', () {
-    final labels = BubbleShape.values.map(bubbleShapeLabel).toSet();
-    final blurbs = BubbleShape.values.map(bubbleShapeBlurb).toSet();
+    final l10n = AppLocalizationsEn();
+    final labels = BubbleShape.values
+        .map((s) => bubbleShapeLabel(l10n, s))
+        .toSet();
+    final blurbs = BubbleShape.values
+        .map((s) => bubbleShapeBlurb(l10n, s))
+        .toSet();
     expect(labels, hasLength(BubbleShape.values.length));
     expect(blurbs, hasLength(BubbleShape.values.length));
   });

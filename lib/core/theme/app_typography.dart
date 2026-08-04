@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'app_colors.dart';
+import 'app_palette.dart';
 
 /// Font families bundled in `assets/fonts` and declared in `pubspec.yaml`.
 abstract final class AppFonts {
@@ -28,9 +28,13 @@ abstract final class AppFonts {
   ];
 }
 
-/// Builds the app-wide [TextTheme] on the primary UI font.
-TextTheme buildTextTheme() {
-  const base = TextStyle(fontFamily: AppFonts.ui, color: AppColors.textPrimary);
+/// Builds the app-wide [TextTheme] on the primary UI font, in [palette]'s ink.
+///
+/// Takes the palette rather than reading a constant: the default text colour is
+/// the one thing every screen inherits, so getting it from the theme is what
+/// keeps an unstyled `Text` legible in light as well as dark.
+TextTheme buildTextTheme(AppPalette palette) {
+  final base = TextStyle(fontFamily: AppFonts.ui, color: palette.textPrimary);
   return TextTheme(
     displayLarge: base.copyWith(
       fontFamily: AppFonts.display,
@@ -49,13 +53,13 @@ TextTheme buildTextTheme() {
     titleMedium: base.copyWith(fontSize: 15, fontWeight: FontWeight.w600),
     bodyLarge: base.copyWith(fontSize: 14, fontWeight: FontWeight.w500),
     bodyMedium: base.copyWith(fontSize: 13, fontWeight: FontWeight.w500),
-    bodySmall: base.copyWith(fontSize: 12, color: AppColors.textMuted),
+    bodySmall: base.copyWith(fontSize: 12, color: palette.textMuted),
     labelLarge: base.copyWith(fontSize: 13, fontWeight: FontWeight.w700),
     labelMedium: base.copyWith(fontSize: 11.5, fontWeight: FontWeight.w600),
     labelSmall: base.copyWith(
       fontSize: 10.5,
       fontWeight: FontWeight.w600,
-      color: AppColors.textMuted,
+      color: palette.textMuted,
     ),
   );
 }

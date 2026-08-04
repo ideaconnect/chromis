@@ -15,6 +15,8 @@ import 'package:chromis/features/home/widgets/app_drawer.dart';
 import 'package:chromis/features/home/widgets/new_project_sheet.dart';
 import 'package:chromis/features/home/widgets/project_tile.dart';
 import 'package:chromis/features/onboarding/onboarding_screen.dart';
+import 'package:chromis/features/settings/settings_screen.dart';
+import 'package:chromis/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -48,7 +50,12 @@ void main() {
     setSurface(tester, size);
     await tester.pumpWidget(
       ProviderScope(
-        child: MaterialApp(theme: buildAppTheme(), home: home),
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          theme: darkAppTheme,
+          home: home,
+        ),
       ),
     );
     await tester.pump(const Duration(milliseconds: 400));
@@ -64,7 +71,9 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         child: MaterialApp(
-          theme: buildAppTheme(),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          theme: darkAppTheme,
           home: Builder(
             builder: (context) => Scaffold(
               body: Center(
@@ -113,6 +122,11 @@ void main() {
 
       testWidgets('editor', (tester) async {
         await pumpScreen(tester, size, const EditorScreen());
+        expect(tester.takeException(), isNull);
+      });
+
+      testWidgets('settings', (tester) async {
+        await pumpScreen(tester, size, const SettingsScreen());
         expect(tester.takeException(), isNull);
       });
 
@@ -190,7 +204,9 @@ void main() {
           ProviderScope(
             overrides: [isProProvider.overrideWithValue(false)],
             child: MaterialApp(
-              theme: buildAppTheme(),
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+              theme: darkAppTheme,
               home: const EditorScreen(),
             ),
           ),
@@ -246,7 +262,9 @@ void main() {
         await tester.pumpWidget(
           ProviderScope(
             child: MaterialApp(
-              theme: buildAppTheme(),
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+              theme: darkAppTheme,
               home: Scaffold(
                 body: Center(
                   child: SizedBox(
@@ -283,7 +301,9 @@ void main() {
         await tester.pumpWidget(
           ProviderScope(
             child: MaterialApp(
-              theme: buildAppTheme(),
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+              theme: darkAppTheme,
               home: Scaffold(
                 key: key,
                 drawer: const AppDrawer(),

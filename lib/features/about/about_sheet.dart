@@ -3,10 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../app/router.dart';
-import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_tokens.dart';
 import '../../core/theme/app_typography.dart';
 import '../../core/widgets/app_logo.dart';
 import '../../core/widgets/sheet_body.dart';
+import '../../l10n/app_localizations.dart';
 import '../go_pro/iap.dart';
 import 'about_data.dart';
 
@@ -17,7 +18,7 @@ Future<void> showAboutSheet(BuildContext context) {
     context: context,
     // So the sheet may use the height it needs; SheetBody caps and scrolls it.
     isScrollControlled: true,
-    backgroundColor: AppColors.panel,
+    backgroundColor: context.colors.panel,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
     ),
@@ -38,13 +39,14 @@ class _AboutSheet extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
     return SheetBody(
       children: [
         const SizedBox(height: 2),
-        const Row(
+        Row(
           children: [
-            AppLogo(size: 46, radius: 14),
-            SizedBox(width: 12),
+            const AppLogo(size: 46, radius: 14),
+            const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -55,7 +57,7 @@ class _AboutSheet extends ConsumerWidget {
                       fontFamily: AppFonts.display,
                       fontWeight: FontWeight.w700,
                       fontSize: 18,
-                      color: AppColors.textPrimary,
+                      color: context.colors.textPrimary,
                     ),
                   ),
                   Text(
@@ -63,7 +65,7 @@ class _AboutSheet extends ConsumerWidget {
                     style: TextStyle(
                       fontFamily: AppFonts.ui,
                       fontSize: 11.5,
-                      color: AppColors.textMuted,
+                      color: context.colors.textMuted,
                     ),
                   ),
                 ],
@@ -75,23 +77,23 @@ class _AboutSheet extends ConsumerWidget {
         if (!ref.watch(isProProvider)) ...[
           _AboutRow(
             icon: Icons.workspace_premium_outlined,
-            label: 'Go Pro · remove ads',
-            sub: 'One-time upgrade - no ads, ever',
+            label: l10n.goProRemoveAds,
+            sub: l10n.goProRowSub,
             onTap: () => _go(context, Routes.goPro),
           ),
           const SizedBox(height: 10),
         ],
         _AboutRow(
           icon: Icons.verified_user_outlined,
-          label: 'Privacy & Cookies',
-          sub: 'On-device editing · how ads work',
+          label: l10n.privacyTitle,
+          sub: l10n.privacyRowSub,
           onTap: () => _go(context, Routes.privacy),
         ),
         const SizedBox(height: 10),
         _AboutRow(
           icon: Icons.article_outlined,
-          label: 'Open-source licenses',
-          sub: 'The great work we build on',
+          label: l10n.openSourceLicenses,
+          sub: l10n.licensesRowSub,
           onTap: () => _go(context, Routes.licenses),
         ),
       ],
@@ -122,9 +124,9 @@ class _AboutRow extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
           decoration: BoxDecoration(
-            color: AppColors.card,
+            color: context.colors.card,
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: AppColors.borderFaint),
+            border: Border.all(color: context.colors.borderFaint),
           ),
           child: Row(
             children: [
@@ -132,10 +134,10 @@ class _AboutRow extends StatelessWidget {
                 width: 38,
                 height: 38,
                 decoration: BoxDecoration(
-                  color: AppColors.violet.withValues(alpha: 0.16),
+                  color: context.colors.violet.withValues(alpha: 0.16),
                   borderRadius: BorderRadius.circular(11),
                 ),
-                child: Icon(icon, size: 19, color: AppColors.violetLight),
+                child: Icon(icon, size: 19, color: context.colors.violetLight),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -144,29 +146,29 @@ class _AboutRow extends StatelessWidget {
                   children: [
                     Text(
                       label,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontFamily: AppFonts.ui,
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimary,
+                        color: context.colors.textPrimary,
                       ),
                     ),
                     const SizedBox(height: 1),
                     Text(
                       sub,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontFamily: AppFonts.ui,
                         fontSize: 11.5,
-                        color: AppColors.textMuted,
+                        color: context.colors.textMuted,
                       ),
                     ),
                   ],
                 ),
               ),
-              const Icon(
+              Icon(
                 Icons.chevron_right,
                 size: 20,
-                color: AppColors.textFaint,
+                color: context.colors.textFaint,
               ),
             ],
           ),

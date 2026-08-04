@@ -4,6 +4,7 @@ import 'package:chromis/core/theme/app_theme.dart';
 import 'package:chromis/features/ads/ad_gate.dart';
 import 'package:chromis/features/ads/ads_service.dart';
 import 'package:chromis/features/go_pro/iap.dart';
+import 'package:chromis/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -23,7 +24,9 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         child: MaterialApp(
-          theme: buildAppTheme(),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          theme: darkAppTheme,
           home: const Scaffold(
             body: AdGateSheet(
               title: 'Unlock AI tools',
@@ -84,7 +87,9 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           child: MaterialApp(
-            theme: buildAppTheme(),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            theme: darkAppTheme,
             home: Scaffold(
               body: Builder(
                 builder: (context) => ElevatedButton(
@@ -118,7 +123,9 @@ void main() {
       ProviderScope(
         overrides: [isProProvider.overrideWithValue(true)],
         child: MaterialApp(
-          theme: buildAppTheme(),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          theme: darkAppTheme,
           home: Consumer(
             builder: (context, ref, _) => Scaffold(
               body: ElevatedButton(
@@ -188,7 +195,9 @@ void main() {
         ProviderScope(
           overrides: [isProProvider.overrideWithValue(false)],
           child: MaterialApp(
-            theme: buildAppTheme(),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            theme: darkAppTheme,
             // A real Navigator, so pushing Go Pro from inside the gate works.
             routes: {'/pro': (_) => const Scaffold(body: Text('PRO'))},
             home: Consumer(
@@ -262,7 +271,10 @@ class _FakeAds extends AdsService {
   bool get canRequestAds => allowed;
 
   @override
-  Future<bool> requestConsent({void Function(String message)? onError}) async {
+  Future<bool> requestConsent({
+    void Function(String message)? onError,
+    String genericReason = 'please try again',
+  }) async {
     asked++;
     if (grantsOnAsk) allowed = true;
     return allowed;
@@ -289,7 +301,9 @@ void _consentGateTests() {
           adsServiceProvider.overrideWithValue(ads),
         ],
         child: MaterialApp(
-          theme: buildAppTheme(),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          theme: darkAppTheme,
           home: const Scaffold(
             body: AdGateSheet(
               title: 'Watch a short ad to export',
@@ -363,7 +377,9 @@ void _consentGateTests() {
           adsServiceProvider.overrideWithValue(ads),
         ],
         child: MaterialApp(
-          theme: buildAppTheme(),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          theme: darkAppTheme,
           home: Consumer(
             builder: (context, ref, _) => Scaffold(
               body: ElevatedButton(

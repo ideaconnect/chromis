@@ -23,7 +23,7 @@ Three things stand between that file and a shippable set:
     guarantees. The gradient fills the rest, so a mask cuts gradient.
 
 No plate this time. The previous icon's tile was #0A2127, a couple of steps from
-`AppColors.panel`, and needed a light ground to read on our own dark surfaces.
+the old dark panel colour, and needed a light ground to read on our own surfaces.
 This tile is mid-tone teal (~#2A6A83 at its darkest corner, ~3:1 against the
 panel and over 4:1 across its lighter half) and reads on dark unaided - checked
 by eye at 160/96/46/34/32px against both the app panel and the site surface. A

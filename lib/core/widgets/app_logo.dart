@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
+
 /// The app's brand mark (the icon tile artwork), for in-app lockups.
 ///
 /// The asset is the whole tile with its own corners already baked in and
@@ -10,7 +12,7 @@ import 'package:flutter/material.dart';
 /// tile on the website. [radius] therefore shapes [shadow] and nothing else.
 ///
 /// No light plate: this tile's gradient is mid-tone teal and reads on
-/// `AppColors.panel` unaided. (The icon this replaced was #0A2127, within a
+/// `context.colors.panel` unaided. (The icon this replaced was #0A2127, within a
 /// couple of steps of the panel, and did need one - if the artwork ever goes
 /// dark again, that is the fix.)
 class AppLogo extends StatelessWidget {
@@ -34,7 +36,7 @@ class AppLogo extends StatelessWidget {
   Widget build(BuildContext context) {
     return Semantics(
       container: true,
-      label: 'Chromis logo',
+      label: AppLocalizations.of(context).appLogo,
       image: true,
       child: Container(
         width: size,

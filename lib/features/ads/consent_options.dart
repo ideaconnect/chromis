@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
-import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_tokens.dart';
 import '../../core/theme/app_typography.dart';
+import '../../l10n/app_localizations.dart';
 import 'ads_service.dart';
 
 /// "Ad privacy choices" - reopens the UMP consent form so a user can change the
@@ -61,10 +62,15 @@ class _AdPrivacyOptionsCardState extends ConsumerState<AdPrivacyOptionsCard> {
     await ref
         .read(adsServiceProvider)
         .requestConsent(
+          genericReason: AppLocalizations.of(context).pleaseTryAgain,
           onError: (message) {
             if (!mounted) return;
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text("Couldn't open ad settings: $message")),
+              SnackBar(
+                content: Text(
+                  AppLocalizations.of(context).adSettingsFailed(message),
+                ),
+              ),
             );
           },
         );
@@ -79,7 +85,7 @@ class _AdPrivacyOptionsCardState extends ConsumerState<AdPrivacyOptionsCard> {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Material(
-        color: AppColors.card,
+        color: context.colors.card,
         borderRadius: BorderRadius.circular(14),
         child: InkWell(
           onTap: _busy ? null : _open,
@@ -88,32 +94,32 @@ class _AdPrivacyOptionsCardState extends ConsumerState<AdPrivacyOptionsCard> {
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
             child: Row(
               children: [
-                const Icon(
+                Icon(
                   Icons.privacy_tip_outlined,
                   size: 20,
-                  color: AppColors.textSecondary,
+                  color: context.colors.textSecondary,
                 ),
                 const SizedBox(width: 12),
-                const Expanded(
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Ad privacy choices',
+                        AppLocalizations.of(context).adPrivacyChoices,
                         style: TextStyle(
                           fontFamily: AppFonts.ui,
                           fontSize: 13.5,
                           fontWeight: FontWeight.w700,
-                          color: AppColors.textPrimary,
+                          color: context.colors.textPrimary,
                         ),
                       ),
-                      SizedBox(height: 2),
+                      const SizedBox(height: 2),
                       Text(
-                        'Change the consent you gave for personalised ads',
+                        AppLocalizations.of(context).adPrivacyChoicesSub,
                         style: TextStyle(
                           fontFamily: AppFonts.ui,
                           fontSize: 11.5,
-                          color: AppColors.textMuted,
+                          color: context.colors.textMuted,
                         ),
                       ),
                     ],
@@ -126,9 +132,9 @@ class _AdPrivacyOptionsCardState extends ConsumerState<AdPrivacyOptionsCard> {
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 else
-                  const Icon(
+                  Icon(
                     Icons.chevron_right,
-                    color: AppColors.textMuted,
+                    color: context.colors.textMuted,
                     size: 20,
                   ),
               ],

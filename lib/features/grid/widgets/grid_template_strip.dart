@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_tokens.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../l10n/app_localizations.dart';
+import '../../../l10n/localized_labels.dart';
 import '../grid_templates.dart';
 import 'grid_template_preview.dart';
 
@@ -77,7 +79,9 @@ class _TemplateTile extends StatelessWidget {
     return Semantics(
       button: true,
       selected: selected,
-      label: 'Layout ${template.label}',
+      label: AppLocalizations.of(
+        context,
+      ).gridLayoutNamed(template.labelOf(AppLocalizations.of(context))),
       child: GestureDetector(
         key: ValueKey('grid-template-${template.label}'),
         onTap: onTap,
@@ -91,25 +95,27 @@ class _TemplateTile extends StatelessWidget {
               padding: const EdgeInsets.all(7),
               decoration: BoxDecoration(
                 color: selected
-                    ? AppColors.cyan.withValues(alpha: 0.14)
-                    : AppColors.card,
+                    ? context.colors.cyan.withValues(alpha: 0.14)
+                    : context.colors.card,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: selected ? AppColors.cyan : AppColors.borderFaint,
+                  color: selected
+                      ? context.colors.cyan
+                      : context.colors.borderFaint,
                 ),
               ),
               child: GridTemplatePreview(
                 root: template.root,
                 color: selected
-                    ? AppColors.cyan
-                    : Colors.white.withValues(alpha: 0.22),
+                    ? context.colors.cyan
+                    : context.colors.textFaint,
               ),
             ),
             const SizedBox(height: 5),
             SizedBox(
               width: width + 12,
               child: Text(
-                template.label,
+                template.labelOf(AppLocalizations.of(context)),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.center,
@@ -117,7 +123,9 @@ class _TemplateTile extends StatelessWidget {
                   fontFamily: AppFonts.ui,
                   fontSize: 9.5,
                   fontWeight: FontWeight.w700,
-                  color: selected ? AppColors.textPrimary : AppColors.textMuted,
+                  color: selected
+                      ? context.colors.textPrimary
+                      : context.colors.textMuted,
                 ),
               ),
             ),

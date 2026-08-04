@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:chromis/features/about/about_data.dart';
+import 'package:chromis/l10n/app_localizations_en.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// Complements the license/identity smoke checks in `smoke_test.dart`: this
@@ -87,8 +88,9 @@ void main() {
 
   group('Privacy highlights', () {
     test('every highlight is a non-empty trimmed line', () {
-      expect(AboutInfo.privacyHighlights, isNotEmpty);
-      for (final h in AboutInfo.privacyHighlights) {
+      final highlights = privacyHighlights(AppLocalizationsEn());
+      expect(highlights, isNotEmpty);
+      for (final h in highlights) {
         expect(h.trim(), isNotEmpty);
         expect(h.trim().length, greaterThan(10)); // real sentences, not stubs
       }
@@ -96,9 +98,9 @@ void main() {
 
     test('the set covers on-device, ads and Pro themes (per line)', () {
       // Element-level coverage (smoke_test only checks the joined string).
-      bool anyHas(String needle) => AboutInfo.privacyHighlights.any(
-        (h) => h.toLowerCase().contains(needle),
-      );
+      final highlights = privacyHighlights(AppLocalizationsEn());
+      bool anyHas(String needle) =>
+          highlights.any((h) => h.toLowerCase().contains(needle));
       expect(anyHas('device'), isTrue); // processed on-device
       expect(anyHas('upload'), isTrue); // nothing is uploaded
       expect(anyHas('admob'), isTrue); // ads named concretely

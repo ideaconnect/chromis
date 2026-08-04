@@ -35,11 +35,16 @@ void main() {
     ProjectRepository().sweepOrphanAssets().then((_) => 0, onError: (_) => 0),
   );
   SystemChrome.setPreferredOrientations(supportedOrientations);
+  // Only the pre-first-frame value: it has to match the native splash, which
+  // is dark whatever theme the user has chosen. From the first frame on, the
+  // `AnnotatedRegion` in `ChromisApp` owns this and follows the live theme -
+  // see `systemOverlayStyleFor`. Do not put a palette colour here; `main` runs
+  // before the saved appearance has been read.
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
       statusBarIconBrightness: Brightness.light,
-      systemNavigationBarColor: Color(0xFF141019),
+      systemNavigationBarColor: Color(0xFF0A1526),
       systemNavigationBarIconBrightness: Brightness.light,
     ),
   );

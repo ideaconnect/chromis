@@ -8,6 +8,7 @@ import 'package:chromis/features/editor/state/editor_controller.dart';
 import 'package:chromis/features/editor/state/editor_tool.dart';
 import 'package:chromis/features/editor/widgets/project_canvas.dart';
 import 'package:chromis/features/go_pro/iap.dart';
+import 'package:chromis/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -66,7 +67,12 @@ void main() {
     await tester.pumpWidget(
       UncontrolledProviderScope(
         container: container,
-        child: MaterialApp(theme: buildAppTheme(), home: const EditorScreen()),
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          theme: darkAppTheme,
+          home: const EditorScreen(),
+        ),
       ),
     );
     await tester.pump(const Duration(milliseconds: 400));

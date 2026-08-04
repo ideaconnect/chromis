@@ -10,6 +10,8 @@ import 'package:chromis/features/editor/widgets/project_canvas.dart';
 import 'package:chromis/features/go_pro/iap.dart';
 import 'package:chromis/features/home/all_projects_screen.dart';
 import 'package:chromis/features/home/home_screen.dart';
+import 'package:chromis/l10n/app_localizations.dart';
+import 'package:chromis/l10n/app_localizations_pl.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -69,6 +71,7 @@ void main() {
     WidgetTester tester,
     Widget home, {
     Project? project,
+    Locale? locale,
   }) async {
     // A real phone size with real insets: at a zero-inset surface the
     // guidelines skip nodes flush with the screen edge, and the test passes
@@ -78,7 +81,10 @@ void main() {
       ProviderScope(
         overrides: [isProProvider.overrideWithValue(true)],
         child: MaterialApp(
-          theme: buildAppTheme(),
+          locale: locale,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          theme: darkAppTheme,
           home: Builder(
             builder: (context) => MediaQuery(
               data: MediaQuery.of(
@@ -188,12 +194,73 @@ void main() {
       ..setTool(EditorTool.text);
     await tester.pump(const Duration(milliseconds: 400));
 
-    final swatches = find.bySemanticsLabel(RegExp('^Fill '));
+    // "Fill, white" - the comma went in when the colour names were localized,
+    // so that the row label and the colour name stay two independent facts
+    // and neither has to agree grammatically with the other.
+    final swatches = find.bySemanticsLabel(RegExp('^Fill, '));
     expect(swatches, findsWidgets);
     for (final element in swatches.evaluate()) {
       final size = element.size!;
       expect(size.width, greaterThanOrEqualTo(40));
       expect(size.height, greaterThanOrEqualTo(40));
+    }
+  });
+  testWidgets('swatch names are spoken in the app language', (tester) async {
+    // These nine names live ONLY inside a Semantics label, under
+    // excludeSemantics, so nothing on screen shows them and an ARB-to-ARB
+    // parity test cannot see a key that never existed. They were English
+    // literals in a const list for eleven rounds of review, and a Polish
+    // user's screen reader said "Wypelnienie, white". Pinned here because the
+    // next person to add a tenth swatch will add the colour, not the name.
+    await pump(
+      tester,
+      const EditorScreen(),
+      project: populated(),
+      locale: const Locale('pl'),
+    );
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(EditorScreen)),
+      listen: false,
+    );
+    container.read(editorControllerProvider.notifier)
+      ..selectLayer('l2')
+      ..setTool(EditorTool.text);
+    await tester.pump(const Duration(milliseconds: 400));
+
+    final polish = AppLocalizationsPl();
+    final spoken = find
+        .byWidgetPredicate(
+          (w) =>
+              w is Semantics &&
+              (w.properties.label ?? '').startsWith('${polish.fill}, '),
+        )
+        .evaluate()
+        .map((e) => (e.widget as Semantics).properties.label!)
+        .toList();
+
+    expect(spoken, isNotEmpty, reason: 'the row label must be localized');
+    expect(
+      spoken,
+      contains('${polish.fill}, ${polish.swatchWhite}'),
+      reason: 'the colour name must be localized too, not left in English',
+    );
+    const english = [
+      'white',
+      'black',
+      'pink',
+      'amber',
+      'green',
+      'cyan',
+      'violet',
+      'rose',
+      'orange',
+    ];
+    for (final word in english) {
+      expect(
+        spoken.any((s) => s.endsWith(', $word')),
+        isFalse,
+        reason: 'an English colour name reached a Polish screen reader',
+      );
     }
   });
 }

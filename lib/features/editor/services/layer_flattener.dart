@@ -79,8 +79,15 @@ abstract final class LayerFlattener {
       );
 
   /// A name for the merged result: the bottom layer's, marked as merged.
-  static String mergedName(List<Layer> layers) =>
-      layers.isEmpty ? 'Merged' : '${layers.first.name} (merged)';
+  ///
+  /// The two words are parameters because the result is a layer NAME the user
+  /// sees in the Layers panel; UI callers pass the localized pair. English
+  /// defaults keep this callable from a test with no localizations to hand.
+  static String mergedName(
+    List<Layer> layers, {
+    String mergedLabel = 'Merged',
+    String mergedSuffix = 'merged',
+  }) => layers.isEmpty ? mergedLabel : '${layers.first.name} ($mergedSuffix)';
 
   /// Whether flattening [project]'s current frame would do anything.
   static bool canFlatten(Project project) =>

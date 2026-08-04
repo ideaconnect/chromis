@@ -10,7 +10,7 @@ is its `rounded_mask`. `framed` below deliberately does not call its `phone`,
 and says why.
 
 Do NOT rebuild the phones by cropping the finished screenshots in
-assets/store/screenshots. A rectangular crop of an already-composited phone
+assets/store/en-US/screenshots. A rectangular crop of an already-composited phone
 keeps a sliver of the listing backdrop outside the device's rounded corner and
 cuts it off square, which shows up as a hard notch at every corner.
 
@@ -59,18 +59,21 @@ from gen_store_screens import (  # noqa: E402
 )
 
 OUT = ROOT / "assets/store/social/linkedin-promo.png"
-CAPTURES = ROOT / "build/shots"
+# The English raw captures, same directory tool/gen_store_screens.py builds
+# the en-US listing from (tool/capture_store_shots.py writes it).
+CAPTURES = ROOT / "build/shots-i18n/en/phone"
 
 W, H = 1200, 1200
 SS = 3  # supersample factor for the whole canvas; see the module docstring
 
-# AppColors (lib/core/theme/app_colors.dart)
-PAGE_BG = (0x06, 0x0D, 0x16)
-BG = (0x0A, 0x18, 0x26)
-TEXT_PRIMARY = (0xEA, 0xF1, 0xF8)
-TEXT_SECONDARY = (0x9F, 0xBC, 0xD6)
+# AppPalette.dark (lib/core/theme/app_palette.dart). The dark theme, because
+# that is what the captures inside these frames are in.
+PAGE_BG = (0x00, 0x00, 0x00)
+BG = (0x10, 0x10, 0x13)
+TEXT_PRIMARY = (0xF1, 0xF2, 0xF4)
+TEXT_SECONDARY = (0xB6, 0xBA, 0xC2)
 CYAN = (0x17, 0xB6, 0xD6)
-INK = (0x04, 0x12, 0x1A)
+INK = (0x08, 0x09, 0x0C)
 
 # (capture, 1x frame height, tilt, 1x centre). Sized and placed so every frame
 # sits whole inside the canvas - the back pair smaller and lower, the front one
@@ -166,8 +169,11 @@ def over(canvas: np.ndarray, src: Image.Image, x0: int, y0: int) -> None:
     )
 
 
-def framed(capture: str, height: int) -> Image.Image:
+def framed(capture: str, height: int, src: Path | None = None) -> Image.Image:
     """A device frame at SS size, built so the bezel survives the downsample.
+
+    `src` defaults to the English captures; tool/gen_update_promo.py passes a
+    different language's directory.
 
     This mirrors `gen_store_screens.phone` instead of calling it, for one
     reason. phone() draws its bezel a flat 2px wide, which is right at
@@ -185,7 +191,7 @@ def framed(capture: str, height: int) -> Image.Image:
     silhouette from rounded_mask. Only the stroke weight is local, and it is
     local on purpose.
     """
-    shot = Image.open(CAPTURES / f"{capture}.png").convert("RGB")
+    shot = Image.open((src or CAPTURES) / f"{capture}.png").convert("RGB")
     h = s(height)
     w = round(shot.width * h / shot.height)
     radius = max(12, round(h * PHONE_RADIUS_PER_PX))

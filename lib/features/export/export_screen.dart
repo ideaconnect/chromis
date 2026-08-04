@@ -11,10 +11,11 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../core/models/project.dart';
 import '../../core/platform/platform_services.dart';
-import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_tokens.dart';
 import '../../core/theme/app_typography.dart';
 import '../../core/widgets/checkerboard.dart';
 import '../../core/widgets/responsive_center.dart';
+import '../../l10n/app_localizations.dart';
 import '../ads/ad_gate.dart';
 import '../ads/ads_service.dart';
 import '../editor/state/editor_controller.dart';
@@ -111,7 +112,7 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
     } catch (_) {
       if (mounted) {
         setState(() => _busy = false);
-        _snack('Export failed - try again');
+        _snack(_l10n.exportFailed);
       }
       return;
     }
@@ -126,13 +127,12 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
           .saveToGallery(name, f.mime, bytes);
       if (!mounted) return;
       _snack(switch (result) {
-        GallerySaveSuccess(:final location) => 'Saved · $location',
-        GallerySaveFailure(permissionDenied: true) =>
-          'Allow storage access to save to your gallery',
-        GallerySaveFailure() => "Couldn't save the image",
+        GallerySaveSuccess(:final location) => _l10n.savedTo(location),
+        GallerySaveFailure(permissionDenied: true) => _l10n.storageDenied,
+        GallerySaveFailure() => _l10n.saveFailed,
       });
     } catch (_) {
-      if (mounted) _snack('Export failed - try again');
+      if (mounted) _snack(_l10n.exportFailed);
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -149,7 +149,7 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
     } catch (_) {
       if (mounted) {
         setState(() => _busy = false);
-        _snack('Share failed - try again');
+        _snack(_l10n.shareFailed);
       }
       return;
     }
@@ -172,7 +172,7 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
         ),
       );
     } catch (_) {
-      if (mounted) _snack('Share failed - try again');
+      if (mounted) _snack(_l10n.shareFailed);
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -181,6 +181,8 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
   void _snack(String m) =>
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(m)));
 
+  AppLocalizations get _l10n => AppLocalizations.of(context);
+
   /// Gates an export behind a short rewarded ad for free users; Pro users pass
   /// straight through. Returns true when the export may proceed. Fail-open: if
   /// no ad is available [AdsService.showRewarded] returns true, so a missing ad
@@ -188,11 +190,9 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
   Future<bool> _adGate() async => (await AdGate.run(
     context,
     ref,
-    title: 'Watch a short ad to export',
-    message:
-        'Free exports are supported by a short ad. Go Pro to export '
-        'without ads, forever.',
-    watchLabel: 'Watch & export',
+    title: _l10n.exportGateTitle,
+    message: _l10n.exportGateMessage,
+    watchLabel: _l10n.exportGateWatch,
   )).allows;
 
   @override
@@ -201,7 +201,7 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
     final outW = (project.canvasWidth * _scale).round();
     final outH = (project.canvasHeight * _scale).round();
     return Scaffold(
-      appBar: AppBar(title: const Text('Export & share')),
+      appBar: AppBar(title: Text(_l10n.exportTitle)),
       body: LayoutBuilder(
         builder: (context, constraints) {
           // Side by side when the screen is wider than it is tall. Stacked,
@@ -252,11 +252,7 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            const Checkerboard(
-              cell: 14,
-              base: Color(0xFF0E1B2A),
-              tile: Color(0xFF15263A),
-            ),
+            const Checkerboard(cell: 14),
             FutureBuilder<ui.Image>(
               future: _previewFuture,
               builder: (context, snap) {
@@ -274,34 +270,34 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
   /// Format, resolution, the output summary and the two actions.
   List<Widget> _controls(Project project, int outW, int outH) {
     return [
-      const _Label('FORMAT'),
+      _Label(_l10n.formatLabel),
       const SizedBox(height: 8),
       Row(
         children: [
           _chip(
             'PNG',
-            'transparent',
+            _l10n.formatPngSub,
             _fmt == _Fmt.png,
             () => setState(() => _fmt = _Fmt.png),
           ),
           const SizedBox(width: 8),
           _chip(
             'JPG',
-            'flattened',
+            _l10n.formatJpgSub,
             _fmt == _Fmt.jpg,
             () => setState(() => _fmt = _Fmt.jpg),
           ),
           const SizedBox(width: 8),
           _chip(
             'WebP',
-            'smaller',
+            _l10n.formatWebpSub,
             _fmt == _Fmt.webp,
             () => setState(() => _fmt = _Fmt.webp),
           ),
         ],
       ),
       const SizedBox(height: 18),
-      const _Label('RESOLUTION'),
+      _Label(_l10n.resolutionLabel),
       const SizedBox(height: 8),
       Row(
         children: [
@@ -318,12 +314,16 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
       ),
       const SizedBox(height: 16),
       Text(
-        'Output · $outW × $outH px · ${_fmtInfo.ext.toUpperCase()}'
-        '${_fmtInfo.alpha ? ' (transparent)' : ''}',
-        style: const TextStyle(
+        _l10n.exportOutput(
+          outW,
+          outH,
+          _fmtInfo.ext.toUpperCase(),
+          _fmtInfo.alpha ? ' ${_l10n.transparentParenthetical}' : '',
+        ),
+        style: TextStyle(
           fontFamily: AppFonts.ui,
           fontSize: 11.5,
-          color: AppColors.textMuted,
+          color: context.colors.textMuted,
         ),
       ),
       const SizedBox(height: 20),
@@ -336,10 +336,10 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
                 child: CircularProgressIndicator(strokeWidth: 2),
               )
             : const Icon(Icons.download),
-        label: const Text('Save to device'),
+        label: Text(_l10n.saveToDevice),
         style: FilledButton.styleFrom(
-          backgroundColor: AppColors.cyan,
-          foregroundColor: AppColors.cutoutInk,
+          backgroundColor: context.colors.cyan,
+          foregroundColor: context.colors.onAccent,
           minimumSize: const Size.fromHeight(50),
           textStyle: const TextStyle(
             fontFamily: AppFonts.display,
@@ -352,11 +352,11 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
       OutlinedButton.icon(
         onPressed: _busy ? null : _share,
         icon: const Icon(Icons.ios_share, size: 18),
-        label: const Text('Share'),
+        label: Text(_l10n.share),
         style: OutlinedButton.styleFrom(
-          foregroundColor: AppColors.textPrimary,
+          foregroundColor: context.colors.textPrimary,
           minimumSize: const Size.fromHeight(50),
-          side: const BorderSide(color: AppColors.border),
+          side: BorderSide(color: context.colors.border),
           textStyle: const TextStyle(
             fontFamily: AppFonts.ui,
             fontWeight: FontWeight.w700,
@@ -377,11 +377,13 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
             padding: const EdgeInsets.symmetric(vertical: 11),
             decoration: BoxDecoration(
               color: active
-                  ? AppColors.cyan.withValues(alpha: 0.14)
-                  : AppColors.card,
+                  ? context.colors.cyan.withValues(alpha: 0.14)
+                  : context.colors.card,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: active ? AppColors.cyan : AppColors.borderFaint,
+                color: active
+                    ? context.colors.cyan
+                    : context.colors.borderFaint,
               ),
             ),
             child: Column(
@@ -393,17 +395,25 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
                     fontWeight: FontWeight.w800,
                     fontSize: 13,
                     color: active
-                        ? AppColors.textPrimary
-                        : AppColors.textSecondary,
+                        ? context.colors.textPrimary
+                        : context.colors.textSecondary,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   sub,
-                  style: const TextStyle(
+                  // Three Expanded chips split the row, so each sub-label has
+                  // a third of the width and no say in it. English "flattened"
+                  // fits; "ohne Transparenz" and "bez průhlednosti" are twice
+                  // that, and without a cap they would paint an overflow
+                  // stripe rather than ellipsize.
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
                     fontFamily: AppFonts.ui,
                     fontSize: 9.5,
-                    color: AppColors.textMuted,
+                    color: context.colors.textMuted,
                   ),
                 ),
               ],
@@ -423,12 +433,12 @@ class _Label extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       text,
-      style: const TextStyle(
+      style: TextStyle(
         fontFamily: AppFonts.ui,
         fontSize: 10.5,
         fontWeight: FontWeight.w800,
         letterSpacing: 0.4,
-        color: AppColors.textMuted,
+        color: context.colors.textMuted,
       ),
     );
   }

@@ -8,6 +8,7 @@ import '../features/go_pro/go_pro_screen.dart';
 import '../features/home/all_projects_screen.dart';
 import '../features/home/home_screen.dart';
 import '../features/onboarding/onboarding_screen.dart';
+import '../features/settings/settings_screen.dart';
 
 /// App route names, referenced by widgets via `context.goNamed(...)` /
 /// `context.pushNamed(...)`.
@@ -18,6 +19,7 @@ abstract final class Routes {
   static const allProjects = 'allProjects';
   static const editor = 'editor';
   static const export = 'export';
+  static const settings = 'settings';
   static const privacy = 'privacy';
   static const licenses = 'licenses';
   static const goPro = 'goPro';
@@ -54,6 +56,11 @@ GoRouter createAppRouter({String initialLocation = '/'}) => GoRouter(
       path: '/export',
       name: Routes.export,
       builder: (context, state) => const ExportScreen(),
+    ),
+    GoRoute(
+      path: '/settings',
+      name: Routes.settings,
+      builder: (context, state) => const SettingsScreen(),
     ),
     GoRoute(
       path: '/privacy',

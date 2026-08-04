@@ -1,4 +1,5 @@
 import 'package:chromis/features/about/about_data.dart';
+import 'package:chromis/l10n/app_localizations_en.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// M0 smoke tests - pure-data assertions that guard the reskin from the
@@ -13,7 +14,11 @@ void main() {
     });
 
     test('privacy highlights disclose on-device processing and ads', () {
-      final joined = AboutInfo.privacyHighlights.join(' ').toLowerCase();
+      // The English readings are the canonical ones these assertions are
+      // written against; the Polish set is checked for coverage, not wording.
+      final joined = privacyHighlights(
+        AppLocalizationsEn(),
+      ).join(' ').toLowerCase();
       expect(joined, contains('device'));
       expect(joined, contains('ads'));
       expect(joined, contains('pro')); // one-time Pro removes ads

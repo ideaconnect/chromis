@@ -7,6 +7,7 @@ import 'package:chromis/features/editor/widgets/project_canvas.dart';
 import 'package:chromis/features/go_pro/iap.dart';
 import 'package:chromis/features/home/home_screen.dart';
 import 'package:chromis/features/home/project_repository.dart';
+import 'package:chromis/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -69,7 +70,12 @@ void main() {
         // Stubbing the destination keeps the test about persistence while
         // letting the push succeed - an unrouted push throws asynchronously,
         // outside any pump, where takeException cannot reach it.
-        child: MaterialApp.router(theme: buildAppTheme(), routerConfig: router),
+        child: MaterialApp.router(
+          theme: darkAppTheme,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          routerConfig: router,
+        ),
       ),
     );
     await tester.pump(const Duration(milliseconds: 300));

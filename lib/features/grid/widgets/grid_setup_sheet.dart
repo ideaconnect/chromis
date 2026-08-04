@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/models/grid.dart';
-import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_tokens.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/sheet_body.dart';
+import '../../../l10n/app_localizations.dart';
+import '../../../l10n/localized_labels.dart';
 import '../../editor/widgets/canvas_size_sheet.dart';
 import '../grid_templates.dart';
 import 'grid_template_strip.dart';
@@ -26,7 +28,7 @@ Future<GridSetupResult?> showGridSetupSheet(BuildContext context) {
   return showModalBottomSheet<GridSetupResult>(
     context: context,
     isScrollControlled: true,
-    backgroundColor: AppColors.panel,
+    backgroundColor: context.colors.panel,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
     ),
@@ -58,19 +60,20 @@ class _GridSetupSheetState extends State<_GridSetupSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return SheetBody(
       children: [
-        const Text(
-          'Photo grid',
+        Text(
+          l10n.photoGrid,
           style: TextStyle(
             fontFamily: AppFonts.display,
             fontWeight: FontWeight.w700,
             fontSize: 17,
-            color: AppColors.textPrimary,
+            color: context.colors.textPrimary,
           ),
         ),
         const SizedBox(height: 16),
-        const _SectionLabel('HOW MANY PHOTOS?'),
+        _SectionLabel(l10n.gridHowManyPhotos),
         const SizedBox(height: 8),
         Row(
           children: [
@@ -87,7 +90,7 @@ class _GridSetupSheetState extends State<_GridSetupSheet> {
           ],
         ),
         const SizedBox(height: 18),
-        const _SectionLabel('LAYOUT'),
+        _SectionLabel(l10n.gridLayoutLabel),
         const SizedBox(height: 8),
         GridTemplateStrip(
           templates: _templates,
@@ -96,7 +99,7 @@ class _GridSetupSheetState extends State<_GridSetupSheet> {
           onSelected: (i) => setState(() => _template = i),
         ),
         const SizedBox(height: 16),
-        const _SectionLabel('SIZE'),
+        _SectionLabel(l10n.gridSizeLabel),
         const SizedBox(height: 8),
         Wrap(
           spacing: 8,
@@ -119,13 +122,13 @@ class _GridSetupSheetState extends State<_GridSetupSheet> {
             grid: GridSpec(root: _templates[_template].root),
           )),
           style: FilledButton.styleFrom(
-            backgroundColor: AppColors.cyan,
-            foregroundColor: AppColors.cutoutInk,
+            backgroundColor: context.colors.cyan,
+            foregroundColor: context.colors.onAccent,
             minimumSize: const Size.fromHeight(50),
           ),
-          child: const Text(
-            'Create',
-            style: TextStyle(
+          child: Text(
+            l10n.create,
+            style: const TextStyle(
               fontFamily: AppFonts.display,
               fontWeight: FontWeight.w700,
               fontSize: 15,
@@ -133,14 +136,13 @@ class _GridSetupSheetState extends State<_GridSetupSheet> {
           ),
         ),
         const SizedBox(height: 8),
-        const Text(
-          'Pick your photos next - you can change the layout, count and '
-          'border any time.',
+        Text(
+          l10n.gridSetupHint,
           textAlign: TextAlign.center,
           style: TextStyle(
             fontFamily: AppFonts.ui,
             fontSize: 11,
-            color: AppColors.textMuted,
+            color: context.colors.textMuted,
           ),
         ),
       ],
@@ -157,12 +159,12 @@ class _SectionLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       text,
-      style: const TextStyle(
+      style: TextStyle(
         fontFamily: AppFonts.ui,
         fontSize: 10.5,
         fontWeight: FontWeight.w800,
         letterSpacing: 0.4,
-        color: AppColors.textMuted,
+        color: context.colors.textMuted,
       ),
     );
   }
@@ -184,7 +186,7 @@ class _CountChip extends StatelessWidget {
     return Semantics(
       button: true,
       selected: selected,
-      label: '$count photos',
+      label: AppLocalizations.of(context).photoCount(count),
       child: GestureDetector(
         key: ValueKey('grid-count-$count'),
         onTap: onTap,
@@ -194,11 +196,13 @@ class _CountChip extends StatelessWidget {
           alignment: Alignment.center,
           decoration: BoxDecoration(
             color: selected
-                ? AppColors.cyan.withValues(alpha: 0.16)
-                : AppColors.card,
+                ? context.colors.cyan.withValues(alpha: 0.16)
+                : context.colors.card,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: selected ? AppColors.cyan : AppColors.borderFaint,
+              color: selected
+                  ? context.colors.cyan
+                  : context.colors.borderFaint,
             ),
           ),
           child: Text(
@@ -207,7 +211,9 @@ class _CountChip extends StatelessWidget {
               fontFamily: AppFonts.display,
               fontSize: 15,
               fontWeight: FontWeight.w700,
-              color: selected ? AppColors.textPrimary : AppColors.textSecondary,
+              color: selected
+                  ? context.colors.textPrimary
+                  : context.colors.textSecondary,
             ),
           ),
         ),
@@ -237,34 +243,34 @@ class _AspectChip extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 9),
         decoration: BoxDecoration(
           color: selected
-              ? AppColors.cyan.withValues(alpha: 0.16)
-              : AppColors.card,
+              ? context.colors.cyan.withValues(alpha: 0.16)
+              : context.colors.card,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: selected ? AppColors.cyan : AppColors.borderFaint,
+            color: selected ? context.colors.cyan : context.colors.borderFaint,
           ),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              preset.label,
+              preset.labelOf(AppLocalizations.of(context)),
               style: TextStyle(
                 fontFamily: AppFonts.ui,
                 fontSize: 12.5,
                 fontWeight: FontWeight.w700,
                 color: selected
-                    ? AppColors.textPrimary
-                    : AppColors.textSecondary,
+                    ? context.colors.textPrimary
+                    : context.colors.textSecondary,
               ),
             ),
             const SizedBox(height: 1),
             Text(
               preset.sub,
-              style: const TextStyle(
+              style: TextStyle(
                 fontFamily: AppFonts.ui,
                 fontSize: 10,
-                color: AppColors.textMuted,
+                color: context.colors.textMuted,
               ),
             ),
           ],

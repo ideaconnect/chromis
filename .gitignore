@@ -71,3 +71,10 @@ website/assets/img/effects/dog-chip.png
 # Golden-test failure artifacts (diff/master/test PNGs), written by
 # `flutter test` when a golden mismatches. Debugging output, never source.
 **/test/**/failures/
+
+# Rendered ad videos (~65 MB for five clips). Unlike the store screenshots -
+# which are the Play upload itself and are versioned with the release - these
+# are ad creatives rebuilt by tool/gen_ads_video.py from the stills beside
+# them, which ARE committed. A re-encode shares no bytes with the previous
+# one, so every regeneration would add another full copy to history forever.
+assets/store/ads/**/video/

@@ -2,6 +2,7 @@ import 'package:chromis/core/theme/app_theme.dart';
 import 'package:chromis/features/editor/editor_screen.dart';
 import 'package:chromis/features/editor/widgets/project_canvas.dart';
 import 'package:chromis/features/go_pro/iap.dart';
+import 'package:chromis/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -26,7 +27,12 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [isProProvider.overrideWithValue(pro)],
-        child: MaterialApp(theme: buildAppTheme(), home: const EditorScreen()),
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          theme: darkAppTheme,
+          home: const EditorScreen(),
+        ),
       ),
     );
     await tester.pump(const Duration(milliseconds: 400));

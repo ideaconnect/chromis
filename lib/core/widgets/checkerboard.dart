@@ -1,19 +1,20 @@
 import 'package:flutter/material.dart';
 
-/// The transparency checkerboard used behind canvases and thumbnails,
-/// matching the design's `background-image` checker pattern.
+import '../theme/app_tokens.dart';
+
+/// The transparency checkerboard used behind canvases and thumbnails.
+///
+/// The two colours default to the theme's, which is the whole point of them
+/// being nullable: a dark checker on a light canvas reads as a pattern the
+/// user painted rather than as absence, so "no colour given" has to mean "the
+/// one for the current theme" rather than a fixed pair.
 class Checkerboard extends StatelessWidget {
-  const Checkerboard({
-    super.key,
-    this.cell = 13,
-    this.base = const Color(0xFF221D2E),
-    this.tile = const Color(0xFF2B2638),
-  });
+  const Checkerboard({super.key, this.cell = 13, this.base, this.tile});
 
   /// Side length of one checker square, in logical pixels.
   final double cell;
-  final Color base;
-  final Color tile;
+  final Color? base;
+  final Color? tile;
 
   @override
   Widget build(BuildContext context) {
@@ -30,7 +31,11 @@ class Checkerboard extends StatelessWidget {
     // A retained layer is the same win with no way to change how it looks.
     return RepaintBoundary(
       child: CustomPaint(
-        painter: _CheckerPainter(cell: cell, base: base, tile: tile),
+        painter: _CheckerPainter(
+          cell: cell,
+          base: base ?? context.colors.checkerBase,
+          tile: tile ?? context.colors.checkerTile,
+        ),
         size: Size.infinite,
       ),
     );

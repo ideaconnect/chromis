@@ -1,17 +1,23 @@
 """Compose the eight Google Play screenshots from device captures.
 
-Four sets, one caption list. Play has a separate listing slot per form factor, so
-all four are built from the same `SHOTS` table - the wording and the verified
-counts cannot drift apart:
+Four sets per language, one caption list. Play has a separate listing slot per
+form factor AND per locale, so all of them are built from the same table in
+`tool/store_copy.py` - the wording and the verified counts cannot drift apart:
 
-  set          output     captures in   from
-  portrait     1080x1920  `<src>/`      phone,   1280x2856
-  landscape    1920x1080  `<src>/`      phone,   1280x2856
-  tablet-7in   1920x1080  `<src>/tablet7/`  sw600dp tablet, 1920x1200
-  tablet-10in  2560x1440  `<src>/tablet/`   sw800dp tablet, 2560x1600
+  set          output     captures in            from
+  portrait     1080x1920  `<src>/<loc>/phone/`   phone,   1280x2856
+  landscape    1920x1080  `<src>/<loc>/phone/`   phone,   1280x2856
+  tablet-7in   1920x1080  `<src>/<loc>/tab7/`    sw600dp tablet, 1920x1200
+  tablet-10in  2560x1440  `<src>/<loc>/tab10/`   sw800dp tablet, 2560x1600
 
 A set is skipped with a notice if its captures are absent, so the phone sets can
 be rebuilt without a tablet attached.
+
+**The captures must be of the app in that language**, not English ones with a
+translated caption pasted over: the whole screen inside the device frame is UI
+text. `tool/capture_store_shots.py` drives all three emulators through the same
+eight states with the app's per-app locale set, which is where `<src>` comes
+from.
 
 No canvas matches its device, and **nothing is ever cropped to close the gap**:
 
@@ -26,16 +32,20 @@ The padding that remains is the layout, not an apology for it - at the size Play
 actually renders these the UI inside the device is illegible and the caption is
 the only thing a browsing user reads.
 
-Every number in the captions is verified against the source, not the website:
-14 filter looks (`PhotoFilter` lists 15 including "Original"), 16 blend modes
-(`LayerBlend`), 18 grid layouts (`gridTemplates`, 4+4+5+5), 5 bundled caption
-fonts (`AppFonts.bundledFonts`).
+Every number in the captions is verified against the source, not the website,
+by `tool/check_store_listings.py`: 14 filter looks (`PhotoFilter` lists 15
+including "Original"), 16 blend modes (`LayerBlend`), 18 grid layouts
+(`gridTemplatesFor`, 4+4+5+5), 5 bundled caption fonts
+(`AppFonts.bundledFonts`). `python tool/store_copy.py` separately measures every
+caption line against the width it is drawn into - a caption is a picture, so a
+line that does not fit runs off the edge rather than wrapping.
 
 The captures come from `adb exec-out screencap -p` with the Pro entitlement set,
 so no ad is showing - an ad slot is not a product feature and Play crops these
 into places an ad would only confuse. See the README.
 
-Run: python tool/gen_store_screens.py [src-dir]   (default build/shots)
+Run: python tool/gen_store_screens.py [src-dir] [locale ...]
+     (default build/shots-i18n, every locale)
 """
 
 from __future__ import annotations
@@ -46,78 +56,30 @@ from pathlib import Path
 import numpy as np
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
-OUT = Path("assets/store/screenshots")
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import store_copy  # noqa: E402  - sibling module, not a package
+
+OUT = Path("assets/store")
 ICON = Path("assets/branding/appicon.png")
 DISPLAY = Path("assets/fonts/SpaceGrotesk-Variable.ttf")
 BODY = Path("assets/fonts/Manrope-Variable.ttf")
 
 PHONE_RADIUS_PER_PX = 46 / 936  # the device corner, as a fraction of screen height
 
-# The app's own surfaces (AppColors.pageBackground / background).
-BG_TOP = (12, 30, 46)
-BG_BOTTOM = (6, 13, 22)
-TEXT = (236, 243, 249)
-MUTED = (150, 180, 205)
+# The app's own dark surfaces (AppPalette.dark). The app is light/dark now,
+# and the store art follows the DARK one: it is what the screenshots inside
+# these frames are captured in, and a dark backdrop is what makes a photo
+# read as the brightest thing on a Play listing.
+BG_TOP = (22, 22, 27)
+BG_BOTTOM = (0, 0, 0)
+TEXT = (241, 242, 244)
+MUTED = (182, 186, 194)
 CYAN = (23, 182, 214)
 
-# (source capture, headline, supporting line, accent)
-#
-# Ordered as a pitch, not as a menu: the two AI shots lead because they are the
-# reason to pick this app over the one already on the phone, breadth follows, and
-# "free, no account" closes. Play renders the first three largest.
-SHOTS = [
-    (
-        "cutout_result",
-        "Cut the background\nout with AI",
-        "Two on-device models, no upload and no account.\nEdge feather included.",
-        CYAN,
-    ),
-    (
-        "sticker",
-        "Turn any photo\ninto a sticker",
-        "Contour outline and drop shadow, both adjustable,\nexported as transparent PNG.",
-        (120, 210, 160),
-    ),
-    (
-        "effects",
-        "14 one-tap looks,\nHDR and vignette",
-        "Every look has a strength slider, and they stack\nwith the colour adjustments.",
-        (240, 196, 90),
-    ),
-    (
-        "layers",
-        "Real layers, with\n16 blend modes",
-        "Reorder by dragging, hide, duplicate, merge down\nor flatten the whole stack.",
-        (150, 160, 255),
-    ),
-    (
-        "grid",
-        "Photo grids in\n18 layouts",
-        "Drag the dividers to reweigh the cells. Every tool\nstill works inside one.",
-        (120, 210, 160),
-    ),
-    (
-        "objremove_panel",
-        "Tap an object\nto remove it",
-        "The segmentation model finds its outline for you.\nUndo brings it back.",
-        CYAN,
-    ),
-    (
-        "bubble",
-        "Captions and\ncomic bubbles",
-        "Speech, thought, shout and caption shapes,\nfive display fonts, outlines and colour.",
-        (240, 140, 170),
-    ),
-    (
-        "home",
-        "Free, and it stays\non your phone",
-        # NOT "no export limit": the free tier gates an export behind a rewarded
-        # ad, and next to "free" that line reads as "no ads", which is a claim
-        # this app cannot make.
-        "No account and no watermark. Every edit is\nprocessed on the device, never uploaded.",
-        (240, 196, 90),
-    ),
-]
+# The caption table lives in tool/store_copy.py, one entry per language, so a
+# claim cannot be changed in English and left stale in five other listings.
+# store_copy.shots(locale) yields (capture name, headline, supporting, accent)
+# in pitch order.
 
 
 def font(path: Path, size: int, weight: str) -> ImageFont.FreeTypeFont:
@@ -219,7 +181,7 @@ def render_landscape(src: Path, i: int, spec, fonts) -> Image.Image:
     # Alternate sides so the strip has a rhythm rather than eight identical
     # slides; Play shows them in one scrolling row.
     phone_right = i % 2 == 0
-    art = phone(src / f"{name}.png", PHONE_H)
+    art = phone(src / "phone" / f"{name}.png", PHONE_H)
     px = W - MARGIN - art.width if phone_right else MARGIN
     py = (H - art.height) // 2
 
@@ -284,12 +246,12 @@ def render_portrait(src: Path, i: int, spec, fonts) -> Image.Image:
     phone_top = TOP + caption_h + gap_phone
     ph = H - phone_top - BOTTOM
 
-    shot = Image.open(src / f"{name}.png")
+    shot = Image.open(src / "phone" / f"{name}.png")
     pw = round(shot.width * ph / shot.height)
     if pw > W - 2 * SIDE_MIN:  # a squarer capture would be width-bound instead
         pw = W - 2 * SIDE_MIN
         ph = round(shot.height * pw / shot.width)
-    art = phone(src / f"{name}.png", ph)
+    art = phone(src / "phone" / f"{name}.png", ph)
     px, py = (W - art.width) // 2, phone_top
 
     img = backdrop((W, H), (W // 2, py + art.height // 2), (540.0, 600.0, 900.0, 705.0))
@@ -400,12 +362,7 @@ def render_tablet(src: Path, i: int, spec, fonts, kind="tablet-10in") -> Image.I
     return img
 
 
-def main() -> None:
-    src = Path(sys.argv[1] if len(sys.argv) > 1 else "build/shots")
-    missing = [n for n, *_ in SHOTS if not (src / f"{n}.png").exists()]
-    if missing:
-        sys.exit(f"missing captures in {src}: {', '.join(missing)}")
-
+def build_fonts() -> dict:
     fonts = {
         "landscape": (
             Image.open(ICON).convert("RGBA").resize((58, 58), Image.LANCZOS),
@@ -422,8 +379,8 @@ def main() -> None:
     }
     # The two tablet slots are the same layout at two scales; 7-inch is 0.75x.
     for kind, sz, k, d in (
-        ("tablet-10in", (2560, 1440), 1.0, "tablet"),
-        ("tablet-7in", (1920, 1080), 0.75, "tablet7"),
+        ("tablet-10in", (2560, 1440), 1.0, "tab10"),
+        ("tablet-7in", (1920, 1080), 0.75, "tab7"),
     ):
         r = lambda v: round(v * k)  # noqa: E731 - local scale helper
         fonts[kind] = {
@@ -439,6 +396,15 @@ def main() -> None:
                 font(DISPLAY, r(32), "Bold"),
             ),
         }
+    return fonts
+
+
+def build_locale(base: Path, locale: str, fonts: dict) -> None:
+    src = base / locale
+    shots = store_copy.shots(locale)
+    missing = [n for n, *_ in shots if not (src / "phone" / f"{n}.png").exists()]
+    if missing:
+        sys.exit(f"missing phone captures in {src}: {', '.join(missing)}")
 
     jobs = [
         ("portrait", render_portrait, (1080, 1920)),
@@ -446,21 +412,38 @@ def main() -> None:
     ]
     for kind in ("tablet-10in", "tablet-7in"):
         d = src / fonts[kind]["dir"]
-        if all((d / f"{n}.png").exists() for n, *_ in SHOTS):
+        if all((d / f"{n}.png").exists() for n, *_ in shots):
             jobs.append((kind, lambda s, i, sp, f, _k=kind: render_tablet(s, i, sp, f, _k),
                          fonts[kind]["size"]))
         else:
             print(f"  (skipping {kind} - no captures in {d})")
 
+    play = store_copy.PLAY[locale]
     for kind, render, size in jobs:
-        out = OUT / kind
+        out = OUT / play / "screenshots" / kind
         out.mkdir(parents=True, exist_ok=True)
-        for i, spec in enumerate(SHOTS):
+        for i, spec in enumerate(shots):
             img = render(src, i, spec, fonts)
             assert (img.width, img.height) == size and img.mode == "RGB", (kind, img.size)
             dest = out / f"{i + 1:02d}-{spec[0].replace('_', '-')}.png"
             img.save(dest)
-        print(f"  {kind:9s} {len(SHOTS)} x {size[0]}x{size[1]} -> {out}")
+        print(f"  {play}  {kind:11s} {len(shots)} x {size[0]}x{size[1]} -> {out}")
+
+
+def main() -> None:
+    args = list(sys.argv[1:])
+    base = Path("build/shots-i18n")
+    if "--src" in args:
+        i = args.index("--src")
+        base = Path(args[i + 1])
+        del args[i:i + 2]
+    locales = args or store_copy.LOCALES
+    unknown = [loc for loc in locales if loc not in store_copy.LOCALES]
+    if unknown:
+        sys.exit("unknown locale(s): %s" % ", ".join(unknown))
+    fonts = build_fonts()
+    for locale in locales:
+        build_locale(base, locale, fonts)
 
 
 if __name__ == "__main__":

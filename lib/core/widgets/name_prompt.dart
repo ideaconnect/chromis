@@ -1,25 +1,30 @@
 import 'package:flutter/material.dart';
 
-import '../theme/app_colors.dart';
+import '../../l10n/app_localizations.dart';
+import '../theme/app_tokens.dart';
 import '../theme/app_typography.dart';
 
 /// Prompts for a name (e.g. renaming a project). Returns the trimmed
 /// name, or null if cancelled / left blank - blank input never renames, so
 /// callers keep the old name (mirrors the pack rename guard).
+///
+/// [hint] and [confirmLabel] fall back to the localized "Name" / "Save", so a
+/// caller with nothing special to say does not have to reach for l10n itself.
 Future<String?> promptName(
   BuildContext context, {
   required String title,
   String initial = '',
-  String hint = 'Name',
-  String confirmLabel = 'Save',
+  String? hint,
+  String? confirmLabel,
 }) {
+  final l10n = AppLocalizations.of(context);
   return showDialog<String>(
     context: context,
     builder: (ctx) => _NamePromptDialog(
       title: title,
       initial: initial,
-      hint: hint,
-      confirmLabel: confirmLabel,
+      hint: hint ?? l10n.nameHint,
+      confirmLabel: confirmLabel ?? l10n.save,
     ),
   ).then((v) {
     final name = v?.trim() ?? '';
@@ -63,12 +68,12 @@ class _NamePromptDialogState extends State<_NamePromptDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      backgroundColor: AppColors.panel,
+      backgroundColor: context.colors.panel,
       title: Text(
         widget.title,
-        style: const TextStyle(
+        style: TextStyle(
           fontFamily: AppFonts.display,
-          color: AppColors.textPrimary,
+          color: context.colors.textPrimary,
           fontSize: 17,
         ),
       ),
@@ -76,10 +81,10 @@ class _NamePromptDialogState extends State<_NamePromptDialog> {
         controller: _controller,
         autofocus: true,
         textCapitalization: TextCapitalization.words,
-        style: const TextStyle(color: AppColors.textPrimary),
+        style: TextStyle(color: context.colors.textPrimary),
         decoration: InputDecoration(
           filled: true,
-          fillColor: AppColors.inputField,
+          fillColor: context.colors.inputField,
           hintText: widget.hint,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
@@ -91,7 +96,7 @@ class _NamePromptDialogState extends State<_NamePromptDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
+          child: Text(AppLocalizations.of(context).cancel),
         ),
         TextButton(onPressed: _submit, child: Text(widget.confirmLabel)),
       ],

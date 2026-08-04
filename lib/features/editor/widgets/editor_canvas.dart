@@ -11,9 +11,10 @@ import '../../../core/models/frame.dart';
 import '../../../core/models/grid.dart';
 import '../../../core/models/layer.dart';
 import '../../../core/models/layer_transform.dart';
-import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_tokens.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/checkerboard.dart';
+import '../../../l10n/app_localizations.dart';
 import '../state/editor_controller.dart';
 import '../state/editor_state.dart';
 import '../state/editor_tool.dart';
@@ -213,11 +214,7 @@ class _EditorCanvasState extends ConsumerState<EditorCanvas> {
             child: Stack(
               fit: StackFit.expand,
               children: [
-                const Checkerboard(
-                  cell: 12,
-                  base: Color(0xFF0E1B2A),
-                  tile: Color(0xFF15263A),
-                ),
+                const Checkerboard(cell: 12),
                 if (widget.onionFrame != null)
                   Opacity(
                     opacity: 0.25,
@@ -293,9 +290,9 @@ class _EditorCanvasState extends ConsumerState<EditorCanvas> {
       child: IgnorePointer(
         child: DecoratedBox(
           decoration: BoxDecoration(
-            color: AppColors.cyan,
+            color: context.colors.cyan,
             borderRadius: BorderRadius.circular(3),
-            border: Border.all(color: const Color(0x66041018)),
+            border: Border.all(color: AppScrim.outline.withValues(alpha: 0.4)),
           ),
         ),
       ),
@@ -346,8 +343,8 @@ class _EditorCanvasState extends ConsumerState<EditorCanvas> {
             height: 11,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: AppColors.cyan,
-              border: Border.all(color: const Color(0xFF131019), width: 2),
+              color: context.colors.cyan,
+              border: Border.all(color: AppScrim.outline, width: 2),
             ),
           ),
         ),
@@ -384,7 +381,7 @@ class _EditorCanvasState extends ConsumerState<EditorCanvas> {
         // This is the app's most destructive control and it is not an
         // IconButton, so `tooltip:` cannot reach it - TalkBack announced it as
         // a bare "button" sitting on the corner of the selected layer.
-        label: 'Delete layer ${layer.name}',
+        label: AppLocalizations.of(context).deleteLayerNamed(layer.name),
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: () => _controller.removeLayer(layer.id),
@@ -394,10 +391,14 @@ class _EditorCanvasState extends ConsumerState<EditorCanvas> {
               height: 22,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: AppColors.rose,
-                border: Border.all(color: const Color(0xFF131019), width: 2),
+                color: context.colors.rose,
+                border: Border.all(color: AppScrim.outline, width: 2),
               ),
-              child: const Icon(Icons.close, size: 13, color: Colors.white),
+              child: Icon(
+                Icons.close,
+                size: 13,
+                color: context.colors.onAccent,
+              ),
             ),
           ),
         ),
@@ -707,7 +708,7 @@ class _EditorCanvasState extends ConsumerState<EditorCanvas> {
       child: IgnorePointer(
         child: Transform.rotate(
           angle: layer.transform.rotation,
-          child: CustomPaint(painter: _SelectionPainter()),
+          child: CustomPaint(painter: _SelectionPainter(context.colors.cyan)),
         ),
       ),
     );
@@ -728,7 +729,11 @@ class _ImmediatePanRecognizer extends PanGestureRecognizer {
 /// layer. Scale/rotate is a two-finger pinch, so no drag-handles are drawn -
 /// they would imply an interaction the canvas doesn't offer.
 class _SelectionPainter extends CustomPainter {
-  static const Color _c = AppColors.cyan;
+  _SelectionPainter(this.accent);
+
+  /// Passed in rather than read from a constant: a painter has no context, and
+  /// the accent is a different colour in the light theme.
+  final Color accent;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -738,12 +743,13 @@ class _SelectionPainter extends CustomPainter {
       Paint()
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2
-        ..color = _c,
+        ..color = accent,
     );
   }
 
   @override
-  bool shouldRepaint(_SelectionPainter oldDelegate) => false;
+  bool shouldRepaint(_SelectionPainter oldDelegate) =>
+      oldDelegate.accent != accent;
 }
 
 /// The dashed "drop a photo here" placeholder shown on an empty canvas.
@@ -758,31 +764,28 @@ class DropPlaceholder extends StatelessWidget {
       child: DecoratedBox(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(
-            color: Colors.white.withValues(alpha: 0.18),
-            width: 2,
-          ),
+          border: Border.all(color: context.colors.borderStrong, width: 2),
         ),
-        child: const Center(
+        child: Center(
           child: FittedBox(
             fit: BoxFit.scaleDown,
             child: Padding(
-              padding: EdgeInsets.all(8),
+              padding: const EdgeInsets.all(8),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
                     Icons.add_photo_alternate_outlined,
                     size: 34,
-                    color: AppColors.textMuted,
+                    color: context.colors.textMuted,
                   ),
-                  SizedBox(height: 8),
+                  const SizedBox(height: 8),
                   Text(
-                    'Tap to add a photo',
+                    AppLocalizations.of(context).tapToAddPhoto,
                     style: TextStyle(
                       fontFamily: AppFonts.ui,
                       fontSize: 12,
-                      color: AppColors.textMuted,
+                      color: context.colors.textMuted,
                     ),
                   ),
                 ],

@@ -1,6 +1,7 @@
 import 'package:chromis/core/models/grid.dart';
 import 'package:chromis/features/grid/grid_templates.dart';
 import 'package:chromis/features/grid/widgets/grid_template_strip.dart';
+import 'package:chromis/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -150,6 +151,8 @@ void main() {
       int selected,
       void Function(int) onTap,
     ) => MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       home: Scaffold(
         body: SizedBox(
           width: 400,

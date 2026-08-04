@@ -3,5 +3,764 @@
   "appTitle": "Chromis",
   "@appTitle": {
     "description": "The application name, shown as the OS task title."
+  },
+  "back": "Back",
+  "@back": {
+    "description": "Tooltip on a screen's back button."
+  },
+  "cancel": "Cancel",
+  "save": "Save",
+  "done": "Done",
+  "delete": "Delete",
+  "rename": "Rename",
+  "duplicate": "Duplicate",
+  "open": "Open",
+  "close": "Close",
+  "reset": "Reset",
+  "apply": "Apply",
+  "add": "Add",
+  "remove": "Remove",
+  "menu": "Menu",
+  "@menu": {
+    "description": "Accessibility label for the Home menu button."
+  },
+  "settings": "Settings",
+  "about": "About",
+  "licenses": "Licenses",
+  "nameHint": "Name",
+  "@nameHint": {
+    "description": "Default hint in the name prompt dialog."
+  },
+  "cannotBeUndone": "This can't be undone.",
+  "tryAgainInAMoment": "Try again in a moment.",
+  "appLogo": "Chromis logo",
+  "@appLogo": {
+    "description": "Screen-reader label for the app's brand mark."
+  },
+  "pleaseTryAgain": "please try again",
+  "@pleaseTryAgain": {
+    "description": "A reason fragment, lower case on purpose - it is substituted INTO a sentence, e.g. \"Couldn't open ad settings: please try again\"."
+  },
+  "homeTitle": "Your projects",
+  "homeTagline": "Chromis · Photo editor with AI cutout",
+  "homeRecent": "RECENT",
+  "@homeRecent": {
+    "description": "Section header above the recent-projects grid; upper case by design."
+  },
+  "homeJoinDiscord": "Join our Discord",
+  "homeEmptyHint": "Tap New project to import a photo.",
+  "noProjectsYet": "No projects yet",
+  "newProject": "New project",
+  "homeNewProjectSubtitle": "Blank canvas or a photo grid",
+  "homeOpenPhoto": "Open a photo",
+  "homeOpenPhotoSubtitle": "Canvas takes the photo's size",
+  "projectCount": "{count, plural, =1{1 project} other{{count} projects}}",
+  "@projectCount": {
+    "description": "Tap target next to RECENT that opens All projects.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "layerCount": "{count, plural, =1{1 layer} other{{count} layers}}",
+  "@layerCount": {
+    "description": "Layer count on a saved-project tile.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "renameProject": "Rename project",
+  "projectNameHint": "Project name",
+  "copySuffix": "copy",
+  "@copySuffix": {
+    "description": "Appended to a duplicated project's name, as in \"Sunset copy\"."
+  },
+  "deleteProjectTitle": "Delete \"{name}\"?",
+  "@deleteProjectTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "allProjects": "All projects",
+  "searchProjects": "Search your projects",
+  "projectsLoadFailed": "Couldn't load your projects",
+  "allProjectsEmptyHint": "Create one from Home and it will show up here.",
+  "noMatches": "No matches",
+  "noMatchesFor": "Nothing matches \"{query}\".",
+  "@noMatchesFor": {
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
+  "newProjectQuestion": "What are you making?",
+  "blankCanvas": "Blank canvas",
+  "blankCanvasSubtitle": "One canvas, add photos and layers freely",
+  "photoGrid": "Photo grid",
+  "photoGridSubtitle": "A collage of 2 to 5 photos in a layout",
+  "drawerHome": "Home & projects",
+  "drawerSubtitle": "Photo editor · v{version}",
+  "@drawerSubtitle": {
+    "description": "Drawer header subtitle. The version is interpolated from AboutInfo, never written out.",
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "appearance": "Appearance",
+  "@appearance": {
+    "description": "Settings section header for the light/dark theme choice."
+  },
+  "appearanceSystem": "System default",
+  "@appearanceSystem": {
+    "description": "Appearance option: follow the device."
+  },
+  "appearanceSystemSub": "Follow your phone’s light or dark setting",
+  "@appearanceSystemSub": {
+    "description": "Sub-label under the \"System default\" appearance option."
+  },
+  "appearanceLight": "Light",
+  "@appearanceLight": {
+    "description": "Appearance option: the light theme."
+  },
+  "appearanceLightSub": "Easier to read outdoors and on LCD screens",
+  "@appearanceLightSub": {
+    "description": "Sub-label under the \"Light\" appearance option."
+  },
+  "appearanceDark": "Dark",
+  "@appearanceDark": {
+    "description": "Appearance option: the dark theme."
+  },
+  "appearanceDarkSub": "True black, which OLED screens draw as no light at all",
+  "@appearanceDarkSub": {
+    "description": "Sub-label under the \"Dark\" appearance option."
+  },
+  "appearanceNote": "Chromis follows your phone unless you pick one here. Your choice is remembered.",
+  "@appearanceNote": {
+    "description": "Explanatory note under the appearance picker."
+  },
+  "language": "Language",
+  "languageSystem": "System default",
+  "languageSystemSub": "Follow the language your phone is set to",
+  "languageNote": "Chromis is in English unless your phone is set to a language it has been translated into. Your choice here is remembered.",
+  "skip": "Skip",
+  "next": "Next",
+  "getStarted": "Get started",
+  "onboardStartTitle": "Start from a photo",
+  "onboardStartBody": "Open any photo, or a blank canvas at the size you need. Add layers, text, and comic bubbles.",
+  "onboardCutoutTitle": "Cut out the background",
+  "onboardCutoutBody": "Lift your subject off its background with one tap, or erase objects - all on your device, so your photos never leave your phone.",
+  "onboardExportTitle": "Export & share",
+  "onboardExportBody": "Save a transparent PNG, JPG, or WebP at any resolution, then share it anywhere.",
+  "privacyTitle": "Privacy & Cookies",
+  "privacyRowSub": "On-device editing · how ads work",
+  "privacyBanner": "Your photos stay on your device. Ads are the one exception - explained below.",
+  "privacyOnDevice": "Your photos are edited entirely on your device - nothing is uploaded.",
+  "privacyAiLocal": "AI background & object removal run locally; photos never leave your phone.",
+  "privacyNoAccounts": "No accounts, no sign-in, no photo uploads.",
+  "privacyAds": "The free app shows ads (Google AdMob), which use an advertising ID.",
+  "privacyConsent": "Where required, a consent prompt (UMP) lets you choose personalised or non-personalised ads.",
+  "privacyWithdraw": "You can change or withdraw that consent any time - \"Ad privacy choices\" below reopens the form.",
+  "privacyPro": "The one-time Pro upgrade removes all ads - and the advertising ID with them.",
+  "fullPrivacyPolicy": "Full privacy policy",
+  "questions": "Questions?",
+  "openSourceLicenses": "Open-source licenses",
+  "licensesRowSub": "The great work we build on",
+  "licensesIntro": "Chromis is built on wonderful open-source work. Thank you to everyone who made it.",
+  "viewFullLicenseTexts": "View full license texts",
+  "licenseCategoryFonts": "Fonts",
+  "licenseCategoryAi": "On-device AI",
+  "licenseCategoryEncoding": "Media encoding",
+  "licenseCategoryMonetization": "Monetization",
+  "licenseCategoryFramework": "Framework & packages",
+  "licenseUseDisplayFont": "Display / heading typeface",
+  "licenseUseBodyFont": "UI / body typeface",
+  "licenseUseComicFont": "Comic caption font",
+  "licenseUseCaptionFont": "Caption font",
+  "licenseUseScriptFont": "Script caption font",
+  "licenseUseBgRemoval": "Background removal (Android)",
+  "licenseUseRuntime": "Runs the bundled fallback model",
+  "licenseUseOnDeviceAi": "On-device object & background removal",
+  "licenseUseEncoding": "PNG / JPG / WebP encoding",
+  "licenseUseAds": "Banner / rewarded ads + consent",
+  "licenseUsePurchase": "One-time Go Pro (remove ads) purchase",
+  "licenseUseFramework": "App framework",
+  "licenseUsePlugins": "Routing, storage, sharing, image picking",
+  "licenseUseState": "State management",
+  "licenseUseClipboard": "Paste image from clipboard",
+  "goPro": "Go Pro",
+  "goProRemoveAds": "Go Pro · remove ads",
+  "goProRemoveAdsPlain": "Go Pro - remove ads",
+  "goProRowSub": "One-time upgrade - no ads, ever",
+  "goProHeroTitle": "Remove ads forever",
+  "goProHeroBody": "One-time purchase. Every AI feature stays free - no ads, no watch-to-run.",
+  "goProBenefitNoAds": "No banner or full-screen ads",
+  "goProBenefitNoRewarded": "Run AI Cut & object removal without a rewarded ad",
+  "goProBenefitOneTime": "One-time payment - no subscription",
+  "goProBenefitSupports": "Supports private, on-device photo editing",
+  "goProOwned": "You're Pro - ads are off. Thank you!",
+  "upgradeFor": "Upgrade - {price}",
+  "@upgradeFor": {
+    "description": "Buy button; the price comes localized from the store.",
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "restorePurchase": "Restore purchase",
+  "oneTimeUnavailable": "One-time purchase · temporarily unavailable",
+  "oneTimeRestores": "One-time purchase · restores on any device",
+  "oneTimeNoSubscription": "One-time purchase. No subscription.",
+  "purchasesUnavailable": "Purchases are temporarily unavailable - please try again later.",
+  "purchaseStartFailed": "Couldn't start the purchase - please try again.",
+  "purchaseStartFailedOwned": "Couldn't start the purchase - if you already bought Pro, tap Restore purchase.",
+  "checkingPreviousPurchase": "Checking for a previous purchase…",
+  "playUnreachable": "Couldn't reach Google Play - check your connection and try again.",
+  "purchaseFailedGeneric": "The purchase could not be completed",
+  "removeAdsArrow": "Remove ads →",
+  "adsDeclinedExplainer": "You've chosen not to allow ads, so there is no ad to watch - and ads are what keep Chromis free.\n\nAllow ads to carry on for free, or go Pro to use everything with no ads at all.",
+  "reviewAdConsent": "Review ad consent",
+  "adPrivacyChoices": "Ad privacy choices",
+  "adPrivacyChoicesSub": "Change the consent you gave for personalised ads",
+  "adSettingsFailed": "Couldn't open ad settings: {error}",
+  "@adSettingsFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "untitledProject": "Untitled",
+  "@untitledProject": {
+    "description": "Default name of a new project."
+  },
+  "photoLayerDefault": "Photo",
+  "@photoLayerDefault": {
+    "description": "Default name of an imported photo layer; numbered from the second on (\"Photo 2\")."
+  },
+  "textLayerDefault": "Text",
+  "@textLayerDefault": {
+    "description": "Default content and name of a new text layer."
+  },
+  "mergedLayerName": "Merged",
+  "@mergedLayerName": {
+    "description": "Name of a merged layer when there was nothing to take a name from."
+  },
+  "mergedLayerSuffix": "merged",
+  "@mergedLayerSuffix": {
+    "description": "Parenthesised suffix on a merged layer's name, as in \"Photo (merged)\"."
+  },
+  "saveRetrying": "Couldn't save - your edits are safe, still trying",
+  "speed": "Speed",
+  "fillingBackground": "Filling in the background…",
+  "findingObject": "Finding the object…",
+  "mergingLayers": "Merging layers…",
+  "removingBackground": "Removing background…",
+  "hideToolPanel": "Hide tool panel",
+  "showToolPanel": "Show tool panel",
+  "cropOpenFailed": "Couldn't open the photo to crop",
+  "photoCropped": "Photo cropped",
+  "editCrop": "Edit crop",
+  "cropPhoto": "Crop photo",
+  "resetCrop": "Reset crop",
+  "crop": "Crop",
+  "cancelCrop": "Cancel crop",
+  "previewUnavailable": "Preview unavailable",
+  "cropToRatio": "Crop to ratio",
+  "cropSheetHint": "Drag a freeform box, or center-crop to a ratio",
+  "freeformCrop": "Freeform crop",
+  "ratiosSection": "RATIOS",
+  "@ratiosSection": {
+    "description": "Section label; upper case by design."
+  },
+  "croppedTo": "Cropped to {width}×{height}",
+  "@croppedTo": {
+    "placeholders": {
+      "width": {
+        "type": "int"
+      },
+      "height": {
+        "type": "int"
+      }
+    }
+  },
+  "brightness": "Brightness",
+  "contrast": "Contrast",
+  "saturation": "Saturation",
+  "hue": "Hue",
+  "opacity": "Opacity",
+  "size": "Size",
+  "color": "Color",
+  "off": "Off",
+  "adjustEmptyHint": "Adjustments apply to a photo layer.\nSelect a photo, or tap Add to import one.",
+  "effectsLink": "Filters, HDR, vignette, shadow…",
+  "textEmptyHint": "Select a text layer, or add one.",
+  "addText": "Add text",
+  "tapFontToPreview": "Tap a font to preview",
+  "typeYourCaption": "Type your caption…",
+  "outlineSection": "OUTLINE",
+  "@outlineSection": {
+    "description": "Section label; upper case by design."
+  },
+  "cutoutOutlineSection": "CUTOUT OUTLINE",
+  "@cutoutOutlineSection": {
+    "description": "Section label; upper case by design."
+  },
+  "autoColor": "Auto color",
+  "thickness": "Thickness",
+  "outlineOpacity": "Outline opacity",
+  "font": "Font",
+  "fontAdded": "Added font · {family}",
+  "@fontAdded": {
+    "placeholders": {
+      "family": {
+        "type": "String"
+      }
+    }
+  },
+  "comicBubble": "Comic bubble",
+  "bubble": "Bubble",
+  "bubbleTextHint": "Bubble text…",
+  "fill": "Fill",
+  "outline": "Outline",
+  "bubbleTailHint": "Drag the dot at the tail tip to aim it - any direction.",
+  "addABubble": "Add a bubble",
+  "addABubbleHint": "Pick a format. The text, colours and tail are all editable afterwards - and so is this.",
+  "addBubble": "Add bubble",
+  "bubbleAdded": "{format} bubble added - edit it in the panel",
+  "@bubbleAdded": {
+    "placeholders": {
+      "format": {
+        "type": "String"
+      }
+    }
+  },
+  "bubbleTileSemantics": "{format} bubble - {description}",
+  "@bubbleTileSemantics": {
+    "description": "Screen-reader label for a bubble-format tile.",
+    "placeholders": {
+      "format": {
+        "type": "String"
+      },
+      "description": {
+        "type": "String"
+      }
+    }
+  },
+  "bubbleSpeech": "Speech",
+  "bubbleThought": "Thought",
+  "bubbleShout": "Shout",
+  "bubbleCaption": "Caption",
+  "bubbleWhisper": "Whisper",
+  "bubbleSpeechBlurb": "Rounded, with a tail",
+  "bubbleThoughtBlurb": "Cloud with a dot trail",
+  "bubbleShoutBlurb": "Spiky star burst",
+  "bubbleCaptionBlurb": "Square narration box",
+  "bubbleWhisperBlurb": "Dashed line outline",
+  "notAPhotoGrid": "This project is not a photo grid.",
+  "shuffle": "Shuffle",
+  "photosSection": "PHOTOS",
+  "@photosSection": {
+    "description": "Section label; upper case by design."
+  },
+  "layoutSection": "LAYOUT",
+  "@layoutSection": {
+    "description": "Section label; upper case by design."
+  },
+  "border": "Border",
+  "corners": "Corners",
+  "effectsEmptyHint": "Select a layer to give it a look.\nFilters, HDR and vignette for photos; shadow, outline and blending for anything.",
+  "filterSection": "FILTER",
+  "@filterSection": {
+    "description": "Section label; upper case by design."
+  },
+  "strength": "Strength",
+  "hdrSection": "HDR",
+  "@hdrSection": {
+    "description": "Section label; upper case by design."
+  },
+  "toneAndDetail": "Tone + detail",
+  "vignetteSection": "VIGNETTE",
+  "@vignetteSection": {
+    "description": "Section label; upper case by design."
+  },
+  "amount": "Amount",
+  "softness": "Softness",
+  "shadowSection": "SHADOW",
+  "@shadowSection": {
+    "description": "Section label; upper case by design."
+  },
+  "direction": "Direction",
+  "distance": "Distance",
+  "blur": "Blur",
+  "density": "Density",
+  "blendSection": "BLEND",
+  "@blendSection": {
+    "description": "Section label; upper case by design."
+  },
+  "pixels": "{count} px",
+  "@pixels": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "working": "Working…",
+  "undoRemoval": "Undo removal",
+  "removeBackground": "Remove background",
+  "removeAnObject": "Remove an object",
+  "removeObject": "Remove object",
+  "background": "Background",
+  "object": "Object",
+  "erase": "Erase",
+  "restore": "Restore",
+  "fillAi": "Fill (AI)",
+  "fillExplainer": "Fill replaces the object with matching background.",
+  "eraseExplainer": "Erase cuts the object out to transparency.",
+  "objectRemoveHint": "Tap an unwanted object on the photo to remove it - a stray item, a second subject, clutter. Tapping the main subject is safely ignored; undo brings anything back.",
+  "cutoutSelectPhoto": "Select a photo layer to cut out.",
+  "cutoutHint": "One tap to isolate your subject. We'll auto-detect the edges - refine anything by hand in the Erase tool.",
+  "backgroundRestored": "Background restored",
+  "aiModelSection": "AI MODEL",
+  "@aiModelSection": {
+    "description": "Section label; upper case by design."
+  },
+  "whichAiModel": "Which AI model?",
+  "segBuiltinLabel": "Built-in AI",
+  "segBuiltinTagline": "On-device · fast & private",
+  "segBuiltinBlurb": "Runs on-device for fast, private cut-outs. Great for pets and people with clear edges - nothing leaves your phone.",
+  "segU2netTagline": "Open-source · sharper detail",
+  "segU2netBlurb": "An open-source salient-object model bundled with the app. Works fully offline and is often sharper on fine detail like fur, hair and whiskers - a little slower to run.",
+  "aiGateTitle": "Unlock AI tools",
+  "aiGateMessage": "Watch a short ad to use the AI tools for the rest of this editing session. Go Pro to use them without ads, forever.",
+  "aiGateWatch": "Watch & unlock",
+  "aiGateNotRewarded": "Watch the full ad to use AI, or Go Pro to remove ads",
+  "objectAiUnavailable": "Object removal AI isn't available on this device - use the Erase brush instead",
+  "bgRemovalUnavailable": "Background removal isn't available on this device yet",
+  "layerGoneCutoutDiscarded": "That layer is gone - the cut-out was discarded",
+  "backgroundRemoved": "Background removed",
+  "backgroundRemovedWith": "Background removed · {engine}",
+  "@backgroundRemovedWith": {
+    "placeholders": {
+      "engine": {
+        "type": "String"
+      }
+    }
+  },
+  "bgRemovalFailed": "Couldn't remove the background - try again",
+  "selectPhotoToCutOut": "Select a photo layer to cut out",
+  "detectingSubject": "Detecting the subject & refining edges · on device",
+  "edgeFeather": "Edge feather",
+  "applyToLayer": "Apply to layer",
+  "tapObjectsToErase": "Tap objects on the photo to erase them",
+  "tapObjectsToRemove": "Tap objects to remove",
+  "tapAnObjectToRemove": "Tap an object on the photo to remove it",
+  "chooseAiEngine": "Choose an AI engine · runs on your device",
+  "autoRefineEdges": "Auto-refine edges",
+  "brushFailed": "Couldn't apply the brush",
+  "nothingToRemoveThere": "Nothing to remove there",
+  "objectRemoved": "Object removed - undo brings it back",
+  "objectRemoveFailed": "Couldn't remove that - try again",
+  "noObjectThere": "Couldn't find an object there",
+  "thatLooksLikeSubject": "That looks like your subject - use Erase for fine edits",
+  "fillUnavailable": "Fill unavailable - erased instead",
+  "objectFilled": "Object filled in - undo reverts",
+  "eraseEmptyHint": "Select a photo layer to erase, or add a photo.",
+  "brushOverCanvas": "Brush over the canvas",
+  "brushSize": "Brush size",
+  "softEdges": "Soft edges",
+  "play": "Play",
+  "pause": "Pause",
+  "newLayersToAllFrames": "New layers to all frames",
+  "onionSkin": "Onion skin (ghost previous)",
+  "duplicateFrame": "Duplicate frame",
+  "moveLeft": "Move left",
+  "moveRight": "Move right",
+  "deleteFrame": "Delete frame",
+  "frameOf": "Frame {current} / {total}",
+  "@frameOf": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "mergeDown": "Merge down",
+  "flatten": "Flatten",
+  "layersEmptyHint": "No layers yet. Tap Add to import a photo or add text.",
+  "mergedTwoLayers": "Merged 2 layers",
+  "flattenedLayers": "{count, plural, =1{Flattened 1 layer} other{Flattened {count} layers}}",
+  "@flattenedLayers": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "mergeFailed": "Couldn't merge those layers",
+  "importPhotoFailed": "Could not import photo",
+  "noImageInClipboard": "No image in clipboard",
+  "pasteFailed": "Could not paste image",
+  "takePhoto": "Take photo",
+  "choosePhoto": "Choose photo",
+  "pasteImage": "Paste image",
+  "renameLayer": "Rename layer",
+  "canvasSize": "Canvas size",
+  "addLayer": "Add layer",
+  "aiCut": "AI Cut",
+  "seeThePrice": "See the price",
+  "notNow": "Not now",
+  "oneTimeNoSubscriptionShort": "One-time purchase, no subscription",
+  "proBenefitNoAdsTitle": "No ads, anywhere",
+  "proBenefitNoAdsBody": "The banner on Home and the full-screen ads both go away for good.",
+  "proBenefitAiTitle": "AI without the wait",
+  "proBenefitAiBody": "Background removal and object erase run straight away - no rewarded ad first.",
+  "proBenefitExportTitle": "Export and share freely",
+  "proBenefitExportBody": "Save or share at any size without watching anything.",
+  "proBenefitLocalTitle": "Still on your device",
+  "proBenefitLocalBody": "Pro changes nothing about your photos: every edit stays local, as it always was.",
+  "textLayer": "Text layer",
+  "bubbleLayer": "Bubble layer",
+  "imageLayer": "Image layer",
+  "imageLayerCutOut": "Image layer · cut out",
+  "dragToReorder": "Drag to reorder {name}",
+  "@dragToReorder": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "hideLayer": "Hide layer",
+  "showLayer": "Show layer",
+  "duplicateLayer": "Duplicate layer",
+  "deleteLayer": "Delete layer",
+  "deleteLayerNamed": "Delete layer {name}",
+  "@deleteLayerNamed": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "cutOut": "Cut out",
+  "tapToAddPhoto": "Tap to add a photo",
+  "undo": "Undo",
+  "redo": "Redo",
+  "export": "Export",
+  "customPixels": "CUSTOM (PIXELS)",
+  "@customPixels": {
+    "description": "Section label; upper case by design."
+  },
+  "width": "Width",
+  "height": "Height",
+  "create": "Create",
+  "scaleLayersToFit": "Scale layers to fit",
+  "scaleLayersToFitSub": "Resample the whole composition to the new size",
+  "presetSquare": "Square",
+  "presetPortrait": "Portrait",
+  "presetStory": "Story",
+  "presetLandscape": "Landscape",
+  "presetWide": "Wide",
+  "presetSmall": "Small",
+  "layersAutoSaved": "{layers} · auto-saved",
+  "@layersAutoSaved": {
+    "description": "Editor top-bar subtitle. {layers} is the already-pluralised layerCount string, e.g. \"3 layers\".",
+    "placeholders": {
+      "layers": {
+        "type": "String"
+      }
+    }
+  },
+  "engineWorking": "{engine} is working…",
+  "@engineWorking": {
+    "description": "Progress line on the cut-out sheet; {engine} is the AI model's name.",
+    "placeholders": {
+      "engine": {
+        "type": "String"
+      }
+    }
+  },
+  "toolLayers": "Layers",
+  "toolAdjust": "Adjust",
+  "toolEffects": "Effects",
+  "toolText": "Text",
+  "toolErase": "Erase",
+  "toolErasePanel": "Manual erase",
+  "toolCutout": "Cut out",
+  "toolCutoutPanel": "AI Background Removal",
+  "toolFrames": "Frames",
+  "toolFramesPanel": "Animation frames",
+  "toolGrid": "Grid",
+  "toolGridPanel": "Photo grid",
+  "filterOriginal": "Original",
+  "filterVivid": "Vivid",
+  "filterPunch": "Punch",
+  "filterChrome": "Chrome",
+  "filterWarm": "Warm",
+  "filterCool": "Cool",
+  "filterSunset": "Sunset",
+  "filterDawn": "Dawn",
+  "filterDusk": "Dusk",
+  "filterFade": "Fade",
+  "filterMatte": "Matte",
+  "filterRetro": "Retro",
+  "filterSepia": "Sepia",
+  "filterMono": "Mono",
+  "filterNoir": "Noir",
+  "blendNormal": "Normal",
+  "blendMultiply": "Multiply",
+  "blendScreen": "Screen",
+  "blendOverlay": "Overlay",
+  "blendDarken": "Darken",
+  "blendLighten": "Lighten",
+  "blendDodge": "Dodge",
+  "blendBurn": "Burn",
+  "blendHardLight": "Hard light",
+  "blendSoftLight": "Soft light",
+  "blendDifference": "Difference",
+  "blendExclusion": "Exclusion",
+  "blendHue": "Hue",
+  "blendSaturation": "Saturation",
+  "blendColor": "Color",
+  "blendLuminosity": "Luminosity",
+  "gridHowManyPhotos": "HOW MANY PHOTOS?",
+  "@gridHowManyPhotos": {
+    "description": "Section label; upper case by design."
+  },
+  "gridLayoutLabel": "LAYOUT",
+  "@gridLayoutLabel": {
+    "description": "Section label in the grid setup sheet; upper case by design."
+  },
+  "gridSizeLabel": "SIZE",
+  "@gridSizeLabel": {
+    "description": "Section label; upper case by design."
+  },
+  "gridSetupHint": "Pick your photos next - you can change the layout, count and border any time.",
+  "photoCount": "{count, plural, =1{1 photo} other{{count} photos}}",
+  "@photoCount": {
+    "description": "Screen-reader label for a photo-count chip.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "gridLayoutNamed": "Layout {name}",
+  "@gridLayoutNamed": {
+    "description": "Screen-reader label for a grid-layout tile.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "gridSideBySide": "Side by side",
+  "gridStacked": "Stacked",
+  "gridWideLeft": "Wide left",
+  "gridTallTop": "Tall top",
+  "gridColumns": "Columns",
+  "gridRows": "Rows",
+  "gridBigLeft": "Big left",
+  "gridBigTop": "Big top",
+  "gridTwoByTwo": "2 x 2",
+  "gridTwoOverThree": "2 over 3",
+  "gridThreeOverTwo": "3 over 2",
+  "gridTwoLeftThreeRight": "2 left, 3 right",
+  "exportTitle": "Export & share",
+  "formatLabel": "FORMAT",
+  "@formatLabel": {
+    "description": "Section label; upper case by design."
+  },
+  "formatPngSub": "transparent",
+  "formatJpgSub": "flattened",
+  "formatWebpSub": "smaller",
+  "resolutionLabel": "RESOLUTION",
+  "@resolutionLabel": {
+    "description": "Section label; upper case by design."
+  },
+  "exportOutput": "Output · {width} × {height} px · {format}{transparent}",
+  "@exportOutput": {
+    "description": "Summary under the export controls. {transparent} is either empty or the parenthetical below, with a leading space.",
+    "placeholders": {
+      "width": {
+        "type": "int"
+      },
+      "height": {
+        "type": "int"
+      },
+      "format": {
+        "type": "String"
+      },
+      "transparent": {
+        "type": "String"
+      }
+    }
+  },
+  "transparentParenthetical": "(transparent)",
+  "saveToDevice": "Save to device",
+  "share": "Share",
+  "savedTo": "Saved · {location}",
+  "@savedTo": {
+    "placeholders": {
+      "location": {
+        "type": "String"
+      }
+    }
+  },
+  "storageDenied": "Allow storage access to save to your gallery",
+  "saveFailed": "Couldn't save the image",
+  "exportFailed": "Export failed - try again",
+  "shareFailed": "Share failed - try again",
+  "exportGateTitle": "Watch a short ad to export",
+  "exportGateMessage": "Free exports are supported by a short ad. Go Pro to export without ads, forever.",
+  "exportGateWatch": "Watch & export",
+  "swatchWhite": "white",
+  "@swatchWhite": {
+    "description": "Colour swatch name, spoken by a screen reader after the row label (Color / Fill / Outline). Nine swatches otherwise sound identical."
+  },
+  "swatchBlack": "black",
+  "@swatchBlack": {
+    "description": "Colour swatch name, spoken by a screen reader after the row label (Color / Fill / Outline). Nine swatches otherwise sound identical."
+  },
+  "swatchPink": "pink",
+  "@swatchPink": {
+    "description": "Colour swatch name, spoken by a screen reader after the row label (Color / Fill / Outline). Nine swatches otherwise sound identical."
+  },
+  "swatchAmber": "amber",
+  "@swatchAmber": {
+    "description": "Colour swatch name, spoken by a screen reader after the row label (Color / Fill / Outline). Nine swatches otherwise sound identical."
+  },
+  "swatchGreen": "green",
+  "@swatchGreen": {
+    "description": "Colour swatch name, spoken by a screen reader after the row label (Color / Fill / Outline). Nine swatches otherwise sound identical."
+  },
+  "swatchCyan": "cyan",
+  "@swatchCyan": {
+    "description": "Colour swatch name, spoken by a screen reader after the row label (Color / Fill / Outline). Nine swatches otherwise sound identical."
+  },
+  "swatchViolet": "violet",
+  "@swatchViolet": {
+    "description": "Colour swatch name, spoken by a screen reader after the row label (Color / Fill / Outline). Nine swatches otherwise sound identical."
+  },
+  "swatchRose": "rose",
+  "@swatchRose": {
+    "description": "Colour swatch name, spoken by a screen reader after the row label (Color / Fill / Outline). Nine swatches otherwise sound identical."
+  },
+  "swatchOrange": "orange",
+  "@swatchOrange": {
+    "description": "Colour swatch name, spoken by a screen reader after the row label (Color / Fill / Outline). Nine swatches otherwise sound identical."
   }
 }

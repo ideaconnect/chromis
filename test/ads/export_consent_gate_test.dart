@@ -7,6 +7,7 @@ import 'package:chromis/features/ads/ads_service.dart';
 import 'package:chromis/features/editor/state/editor_controller.dart';
 import 'package:chromis/features/export/export_screen.dart';
 import 'package:chromis/features/go_pro/iap.dart';
+import 'package:chromis/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -49,7 +50,12 @@ void main() {
     await tester.pumpWidget(
       UncontrolledProviderScope(
         container: container,
-        child: MaterialApp(theme: buildAppTheme(), home: const ExportScreen()),
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          theme: darkAppTheme,
+          home: const ExportScreen(),
+        ),
       ),
     );
     await tester.pump(const Duration(milliseconds: 300));
@@ -143,7 +149,10 @@ class _FakeAds extends AdsService {
   bool get canRequestAds => allowed;
 
   @override
-  Future<bool> requestConsent({void Function(String message)? onError}) async {
+  Future<bool> requestConsent({
+    void Function(String message)? onError,
+    String genericReason = 'please try again',
+  }) async {
     asked++;
     if (grantsOnAsk) allowed = true;
     return allowed;

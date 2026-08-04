@@ -20,6 +20,8 @@ class SettingsStore {
   static const _kSegModel = 'segmentationModel';
   static const _kProEntitled = 'proEntitled';
   static const _kRestoreProbed = 'restoreProbed';
+  static const _kLocale = 'locale';
+  static const _kThemeMode = 'themeMode';
 
   Future<File> _file() async {
     final base = _baseOverride ?? await getApplicationDocumentsDirectory();
@@ -87,6 +89,44 @@ class SettingsStore {
   Future<void> setRestoreProbed(bool value) async {
     final data = await _read();
     data[_kRestoreProbed] = value;
+    await _write(data);
+  }
+
+  /// The language tag the user picked in Settings (e.g. `en`, `pl`), or null
+  /// when they never picked one - which means "follow the device", not
+  /// "English". The two differ: a Polish phone must get Polish on first launch,
+  /// and must keep following the phone if the user later changes its language.
+  Future<String?> localeTag() async => (await _read())[_kLocale] as String?;
+
+  /// Pass null to go back to following the device. The key is REMOVED rather
+  /// than written as null, so "never chose" and "chose system" stay the same
+  /// state and there is nothing stale to misread on the next launch.
+  Future<void> setLocaleTag(String? tag) async {
+    final data = await _read();
+    if (tag == null) {
+      data.remove(_kLocale);
+    } else {
+      data[_kLocale] = tag;
+    }
+    await _write(data);
+  }
+
+  /// The appearance the user picked in Settings (`light` / `dark`), or null
+  /// when they never picked one - which means "follow the device", not "dark".
+  /// Same shape as [localeTag] and for the same reason: a phone that switches
+  /// to its night theme at sunset must take the app with it.
+  Future<String?> themeModeName() async =>
+      (await _read())[_kThemeMode] as String?;
+
+  /// Pass null to go back to following the device. The key is REMOVED rather
+  /// than written as null, so "never chose" and "chose System" stay one state.
+  Future<void> setThemeModeName(String? name) async {
+    final data = await _read();
+    if (name == null) {
+      data.remove(_kThemeMode);
+    } else {
+      data[_kThemeMode] = name;
+    }
     await _write(data);
   }
 }

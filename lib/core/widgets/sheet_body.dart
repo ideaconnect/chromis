@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../theme/app_colors.dart';
+import '../theme/app_tokens.dart';
 
 /// Standard body for the app's bottom sheets: the grab handle, the usual
 /// padding, and - the part that matters - a scroll view bounded to the height
@@ -76,7 +76,7 @@ class _GrabHandle extends StatelessWidget {
         width: 40,
         height: 4,
         decoration: BoxDecoration(
-          color: AppColors.elevated,
+          color: context.colors.elevated,
           borderRadius: BorderRadius.circular(2),
         ),
       ),

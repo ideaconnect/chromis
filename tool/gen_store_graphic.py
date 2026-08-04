@@ -17,7 +17,16 @@ sits inside SAFE_X / SAFE_Y and the cards carry the right-hand side, where a cro
 costs the least. The output is opaque RGB: the feature graphic must not have an
 alpha channel.
 
-Run: python tool/gen_store_graphic.py [src-dir]   (default build/shots)
+One per language: the pitch beside the cards is real copy, and it lives with
+the screenshot captions in `tool/store_copy.py` so the two cannot disagree.
+`python tool/store_copy.py` measures every line against the column it is drawn
+into - text painted into a picture does not wrap, it runs into the cards.
+
+The CARDS are the same three captures for every locale, taken with the app in
+that language, so the screens inside the fan match the listing they sit on.
+
+Run: python tool/gen_store_graphic.py [--src DIR] [locale ...]
+     (default build/shots-i18n, every locale)
 """
 
 from __future__ import annotations
@@ -29,8 +38,11 @@ from pathlib import Path
 import numpy as np
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import store_copy  # noqa: E402  - sibling module, not a package
+
 W, H = 1024, 500
-OUT = Path("assets/branding/feature_graphic.png")
+OUT = Path("assets/store")
 ICON = Path("assets/branding/appicon.png")
 DISPLAY = Path("assets/fonts/SpaceGrotesk-Variable.ttf")
 BODY = Path("assets/fonts/Manrope-Variable.ttf")
@@ -39,12 +51,14 @@ BODY = Path("assets/fonts/Manrope-Variable.ttf")
 # aspect ratios and puts its own chrome over parts of it.
 SAFE_X, SAFE_Y = 64, 52
 
-# The app's own surfaces (AppColors.pageBackground / background), so the store
-# tile and the first screen a user sees are the same colour.
-BG_TOP = (12, 30, 46)
-BG_BOTTOM = (6, 13, 22)
-TEXT = (234, 241, 248)
-MUTED = (159, 188, 214)
+# The app's own dark surfaces (AppPalette.dark). The app is light/dark now,
+# and the store art follows the DARK one: it is what the screenshots inside
+# these frames are captured in, and a dark backdrop is what makes a photo
+# read as the brightest thing on a Play listing.
+BG_TOP = (22, 22, 27)
+BG_BOTTOM = (0, 0, 0)
+TEXT = (241, 242, 244)
+MUTED = (182, 186, 194)
 CYAN = (23, 182, 214)
 
 CARD_RADIUS = 26  # in source-capture pixels, before the perspective transform
@@ -181,8 +195,7 @@ def drop_shadow(rgba: Image.Image, blur: int, alpha: int) -> Image.Image:
     return shadow
 
 
-def main() -> None:
-    src_dir = Path(sys.argv[1] if len(sys.argv) > 1 else "build/shots")
+def build(src_dir: Path, locale: str) -> None:
     missing = [c[0] for c in CARDS if not (src_dir / f"{c[0]}.png").exists()]
     if missing:
         sys.exit(f"missing captures in {src_dir}: {', '.join(missing)}")
@@ -206,11 +219,7 @@ def main() -> None:
     # The wordmark is deliberately SMALLER than the headline: an icon plus a name
     # is identification, the headline is the argument, and setting the name
     # larger inverts that - which is exactly how the first draft read.
-    head = ["A real photo editor", "that runs on your phone"]
-    sub = [
-        "Layers, 14 filters, HDR, collages, text",
-        "and AI cut-out. Free, and no account.",
-    ]
+    head, sub = store_copy.GRAPHIC[locale]
     brand_h, gap_head, gap_rule, gap_sub, head_lh, sub_lh = 44, 40, 22, 28, 50, 28
     block = (
         brand_h + gap_head + len(head) * head_lh + gap_rule + 4 + gap_sub + len(sub) * sub_lh
@@ -234,8 +243,25 @@ def main() -> None:
         y += sub_lh
 
     assert img.mode == "RGB", "Play rejects a feature graphic with an alpha channel"
-    img.save(OUT)
-    print(f"wrote {OUT} ({img.width}x{img.height}, {img.mode})")
+    dest = OUT / store_copy.PLAY[locale] / "feature-graphic.png"
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    img.save(dest)
+    print(f"  {store_copy.PLAY[locale]}  {dest} ({img.width}x{img.height}, {img.mode})")
+
+
+def main() -> None:
+    args = list(sys.argv[1:])
+    base = Path("build/shots-i18n")
+    if "--src" in args:
+        i = args.index("--src")
+        base = Path(args[i + 1])
+        del args[i:i + 2]
+    locales = args or store_copy.LOCALES
+    unknown = [loc for loc in locales if loc not in store_copy.LOCALES]
+    if unknown:
+        sys.exit("unknown locale(s): %s" % ", ".join(unknown))
+    for locale in locales:
+        build(base / locale / "phone", locale)
 
 
 if __name__ == "__main__":

@@ -1,6 +1,7 @@
 import 'package:chromis/features/grid/grid_templates.dart';
 import 'package:chromis/features/grid/widgets/grid_setup_sheet.dart';
 import 'package:chromis/features/home/widgets/new_project_sheet.dart';
+import 'package:chromis/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -15,6 +16,8 @@ void main() {
     final results = <T?>[];
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         home: Scaffold(
           body: Builder(
             builder: (context) => TextButton(

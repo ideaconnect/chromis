@@ -5,6 +5,7 @@ import 'package:chromis/features/editor/widgets/project_canvas.dart';
 import 'package:chromis/features/go_pro/iap.dart';
 import 'package:chromis/features/home/home_screen.dart';
 import 'package:chromis/features/home/project_repository.dart';
+import 'package:chromis/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -43,7 +44,12 @@ void main() {
           adsServiceProvider.overrideWithValue(ads),
           isProProvider.overrideWithValue(false),
         ],
-        child: MaterialApp(theme: buildAppTheme(), home: const HomeScreen()),
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          theme: darkAppTheme,
+          home: const HomeScreen(),
+        ),
       ),
     );
     await tester.pump();

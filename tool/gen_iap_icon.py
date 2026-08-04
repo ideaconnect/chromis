@@ -40,10 +40,10 @@ TILE_SPAN = 0.52
 CROWN_BADGE_SPAN = 0.34
 CROWN_GAP = 0.10  # clear space below the crown, as a fraction of its own height
 
-# The app's own surfaces and Go Pro accent (AppColors.pageBackground /
-# background / gold). A palette is not a brand marking - no mark, no wordmark.
-BG_TOP = (12, 30, 46)
-BG_BOTTOM = (6, 13, 22)
+# The app's own dark surfaces and Go Pro accent (AppPalette.dark). A palette is
+# not a brand marking - no mark, no wordmark.
+BG_TOP = (22, 22, 27)
+BG_BOTTOM = (0, 0, 0)
 GOLD = (243, 195, 60)
 
 # Fraction of the canvas the crown's bounding box spans. Play renders this small

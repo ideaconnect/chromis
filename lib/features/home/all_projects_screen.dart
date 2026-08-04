@@ -4,11 +4,11 @@ import 'package:go_router/go_router.dart';
 
 import '../../app/router.dart';
 import '../../core/models/project.dart';
-import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_tokens.dart';
 import '../../core/theme/app_typography.dart';
 import '../../core/widgets/name_prompt.dart';
 import '../../core/widgets/responsive_center.dart';
+import '../../l10n/app_localizations.dart';
 import '../editor/state/editor_controller.dart';
 import 'project_delete.dart';
 import 'project_repository.dart';
@@ -51,11 +51,12 @@ class _AllProjectsScreenState extends ConsumerState<AllProjectsScreen> {
   /// Renames a saved project in place: dialog → load → copyWith(name) → save.
   /// A cancelled or blank dialog keeps the old name.
   Future<void> _renameProject(Project p) async {
+    final l10n = AppLocalizations.of(context);
     final name = await promptName(
       context,
-      title: 'Rename project',
+      title: l10n.renameProject,
       initial: p.name,
-      hint: 'Project name',
+      hint: l10n.projectNameHint,
     );
     if (name == null) return;
     final repo = ref.read(projectRepositoryProvider);
@@ -67,7 +68,9 @@ class _AllProjectsScreenState extends ConsumerState<AllProjectsScreen> {
   /// Saves a deep copy (`<name> copy`, fresh ids, shared asset files) and
   /// refreshes the list.
   Future<void> _duplicateProject(String id) async {
-    await ref.read(projectRepositoryProvider).duplicate(id);
+    await ref
+        .read(projectRepositoryProvider)
+        .duplicate(id, copyLabel: AppLocalizations.of(context).copySuffix);
     ref.invalidate(savedProjectsProvider);
   }
 
@@ -79,6 +82,7 @@ class _AllProjectsScreenState extends ConsumerState<AllProjectsScreen> {
   @override
   Widget build(BuildContext context) {
     final tokens = context.tokens;
+    final l10n = AppLocalizations.of(context);
     final projectsAsync = ref.watch(savedProjectsProvider);
 
     return Scaffold(
@@ -99,17 +103,17 @@ class _AllProjectsScreenState extends ConsumerState<AllProjectsScreen> {
                 child: projectsAsync.when(
                   loading: () =>
                       const Center(child: CircularProgressIndicator()),
-                  error: (_, _) => const _Empty(
+                  error: (_, _) => _Empty(
                     icon: Icons.error_outline,
-                    title: "Couldn't load your projects",
-                    body: 'Try again in a moment.',
+                    title: l10n.projectsLoadFailed,
+                    body: l10n.tryAgainInAMoment,
                   ),
                   data: (all) {
                     if (all.isEmpty) {
-                      return const _Empty(
+                      return _Empty(
                         icon: Icons.auto_awesome,
-                        title: 'No projects yet',
-                        body: 'Create one from Home and it will show up here.',
+                        title: l10n.noProjectsYet,
+                        body: l10n.allProjectsEmptyHint,
                       );
                     }
                     final matches = all
@@ -118,8 +122,8 @@ class _AllProjectsScreenState extends ConsumerState<AllProjectsScreen> {
                     if (matches.isEmpty) {
                       return _Empty(
                         icon: Icons.search_off,
-                        title: 'No matches',
-                        body: 'Nothing matches "$_query".',
+                        title: l10n.noMatches,
+                        body: l10n.noMatchesFor(_query),
                       );
                     }
                     return GridView.count(
@@ -156,22 +160,22 @@ class _AllProjectsScreenState extends ConsumerState<AllProjectsScreen> {
       child: Row(
         children: [
           IconButton(
-            tooltip: 'Back',
+            tooltip: AppLocalizations.of(context).back,
             onPressed: () => context.pop(),
-            icon: const Icon(
+            icon: Icon(
               Icons.chevron_left,
               size: 26,
-              color: AppColors.textSecondary,
+              color: context.colors.textSecondary,
             ),
           ),
-          const Expanded(
+          Expanded(
             child: Text(
-              'All projects',
+              AppLocalizations.of(context).allProjects,
               style: TextStyle(
                 fontFamily: AppFonts.display,
                 fontWeight: FontWeight.w600,
                 fontSize: 17,
-                color: AppColors.textPrimary,
+                color: context.colors.textPrimary,
               ),
             ),
           ),
@@ -186,25 +190,25 @@ class _AllProjectsScreenState extends ConsumerState<AllProjectsScreen> {
       controller: _controller,
       onChanged: (v) => setState(() => _query = v.trim()),
       textInputAction: TextInputAction.search,
-      style: const TextStyle(color: AppColors.textPrimary, fontSize: 14.5),
+      style: TextStyle(color: context.colors.textPrimary, fontSize: 14.5),
       decoration: InputDecoration(
         isDense: true,
         filled: true,
-        fillColor: AppColors.inputField,
-        hintText: 'Search your projects',
-        hintStyle: const TextStyle(color: AppColors.textFaint, fontSize: 14),
-        prefixIcon: const Icon(
+        fillColor: context.colors.inputField,
+        hintText: AppLocalizations.of(context).searchProjects,
+        hintStyle: TextStyle(color: context.colors.textFaint, fontSize: 14),
+        prefixIcon: Icon(
           Icons.search,
           size: 20,
-          color: AppColors.textMuted,
+          color: context.colors.textMuted,
         ),
         suffixIcon: _query.isEmpty
             ? null
             : IconButton(
-                icon: const Icon(
+                icon: Icon(
                   Icons.close,
                   size: 18,
-                  color: AppColors.textMuted,
+                  color: context.colors.textMuted,
                 ),
                 onPressed: () {
                   _controller.clear();
@@ -235,26 +239,26 @@ class _Empty extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 34, color: AppColors.violetLight),
+            Icon(icon, size: 34, color: context.colors.violetLight),
             const SizedBox(height: 12),
             Text(
               title,
               textAlign: TextAlign.center,
-              style: const TextStyle(
+              style: TextStyle(
                 fontFamily: AppFonts.display,
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
+                color: context.colors.textPrimary,
               ),
             ),
             const SizedBox(height: 4),
             Text(
               body,
               textAlign: TextAlign.center,
-              style: const TextStyle(
+              style: TextStyle(
                 fontFamily: AppFonts.ui,
                 fontSize: 12.5,
-                color: AppColors.textMuted,
+                color: context.colors.textMuted,
               ),
             ),
           ],

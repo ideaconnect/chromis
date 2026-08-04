@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_tokens.dart';
 import '../../core/theme/app_typography.dart';
 import '../../core/widgets/responsive_center.dart';
+import '../../l10n/app_localizations.dart';
 import '../ads/consent_options.dart';
 import 'about_data.dart';
 
@@ -14,6 +15,7 @@ class PrivacyScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       body: SafeArea(
         child: Column(
@@ -30,29 +32,28 @@ class PrivacyScreen extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.all(18),
                       decoration: BoxDecoration(
-                        color: AppColors.green.withValues(alpha: 0.10),
+                        color: context.colors.green.withValues(alpha: 0.10),
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
-                          color: AppColors.green.withValues(alpha: 0.3),
+                          color: context.colors.green.withValues(alpha: 0.3),
                         ),
                       ),
-                      child: const Row(
+                      child: Row(
                         children: [
                           Icon(
                             Icons.verified_user_outlined,
                             size: 22,
-                            color: AppColors.green,
+                            color: context.colors.green,
                           ),
-                          SizedBox(width: 12),
+                          const SizedBox(width: 12),
                           Expanded(
                             child: Text(
-                              'Your photos stay on your device. Ads are the one '
-                              'exception - explained below.',
+                              l10n.privacyBanner,
                               style: TextStyle(
                                 fontFamily: AppFonts.ui,
                                 fontSize: 14,
                                 fontWeight: FontWeight.w700,
-                                color: AppColors.textPrimary,
+                                color: context.colors.textPrimary,
                               ),
                             ),
                           ),
@@ -60,26 +61,26 @@ class PrivacyScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 20),
-                    for (final line in AboutInfo.privacyHighlights)
+                    for (final line in privacyHighlights(l10n))
                       Padding(
                         padding: const EdgeInsets.only(bottom: 12),
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Icon(
+                            Icon(
                               Icons.check_circle,
                               size: 18,
-                              color: AppColors.green,
+                              color: context.colors.green,
                             ),
                             const SizedBox(width: 10),
                             Expanded(
                               child: Text(
                                 line,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontFamily: AppFonts.ui,
                                   fontSize: 13.5,
                                   height: 1.4,
-                                  color: AppColors.textSecondary,
+                                  color: context.colors.textSecondary,
                                 ),
                               ),
                             ),
@@ -92,15 +93,15 @@ class PrivacyScreen extends StatelessWidget {
                     // no way to change their mind - which the published policy
                     // says they can.
                     const AdPrivacyOptionsCard(),
-                    const _LinkCard(
+                    _LinkCard(
                       icon: Icons.link,
-                      label: 'Full privacy policy',
+                      label: l10n.fullPrivacyPolicy,
                       value: AboutInfo.privacyUrl,
                     ),
                     const SizedBox(height: 10),
-                    const _LinkCard(
+                    _LinkCard(
                       icon: Icons.mail_outline,
-                      label: 'Questions?',
+                      label: l10n.questions,
                       value: AboutInfo.contactEmail,
                     ),
                   ],
@@ -119,22 +120,22 @@ class PrivacyScreen extends StatelessWidget {
       child: Row(
         children: [
           IconButton(
-            tooltip: 'Back',
+            tooltip: AppLocalizations.of(context).back,
             onPressed: () => context.pop(),
-            icon: const Icon(
+            icon: Icon(
               Icons.chevron_left,
               size: 26,
-              color: AppColors.textSecondary,
+              color: context.colors.textSecondary,
             ),
           ),
-          const Expanded(
+          Expanded(
             child: Text(
-              'Privacy & Cookies',
+              AppLocalizations.of(context).privacyTitle,
               style: TextStyle(
                 fontFamily: AppFonts.display,
                 fontWeight: FontWeight.w600,
                 fontSize: 17,
-                color: AppColors.textPrimary,
+                color: context.colors.textPrimary,
               ),
             ),
           ),
@@ -161,13 +162,13 @@ class _LinkCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
       decoration: BoxDecoration(
-        color: AppColors.card,
+        color: context.colors.card,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.borderFaint),
+        border: Border.all(color: context.colors.borderFaint),
       ),
       child: Row(
         children: [
-          Icon(icon, size: 18, color: AppColors.textMuted),
+          Icon(icon, size: 18, color: context.colors.textMuted),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -175,20 +176,20 @@ class _LinkCard extends StatelessWidget {
               children: [
                 Text(
                   label,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: AppFonts.ui,
                     fontSize: 11.5,
-                    color: AppColors.textMuted,
+                    color: context.colors.textMuted,
                   ),
                 ),
                 const SizedBox(height: 2),
                 SelectableText(
                   value,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: AppFonts.ui,
                     fontSize: 13.5,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.violetLight,
+                    color: context.colors.violetLight,
                   ),
                 ),
               ],

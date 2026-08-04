@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/models/project.dart';
-import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_tokens.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/checkerboard.dart';
 import '../../../core/widgets/sheet_body.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../editor/widgets/project_canvas.dart';
 
 /// A saved-project card: live canvas preview, name + layer count. Tap to open;
@@ -40,7 +41,7 @@ class ProjectTile extends StatelessWidget {
     final layerCount = project.frames.isEmpty
         ? 0
         : project.frames.first.layers.length;
-    final count = '$layerCount ${layerCount == 1 ? 'layer' : 'layers'}';
+    final count = AppLocalizations.of(context).layerCount(layerCount);
 
     return Material(
       type: MaterialType.transparency,
@@ -50,9 +51,9 @@ class ProjectTile extends StatelessWidget {
         onLongPress: () => _showMenu(context),
         child: DecoratedBox(
           decoration: BoxDecoration(
-            color: AppColors.card,
+            color: context.colors.card,
             borderRadius: BorderRadius.circular(radius),
-            border: Border.all(color: AppColors.borderFaint),
+            border: Border.all(color: context.colors.borderFaint),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -86,20 +87,20 @@ class ProjectTile extends StatelessWidget {
                       child: Text(
                         project.name,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontFamily: AppFonts.ui,
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
-                          color: AppColors.textPrimary,
+                          color: context.colors.textPrimary,
                         ),
                       ),
                     ),
                     Text(
                       count,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontFamily: AppFonts.ui,
                         fontSize: 11,
-                        color: AppColors.textMuted,
+                        color: context.colors.textMuted,
                       ),
                     ),
                   ],
@@ -115,11 +116,12 @@ class ProjectTile extends StatelessWidget {
   /// Long-press menu. Open mirrors a plain tap; Delete routes to the owner's
   /// confirm+cascade handler.
   Future<void> _showMenu(BuildContext context) async {
+    final l10n = AppLocalizations.of(context);
     final choice = await showModalBottomSheet<String>(
       context: context,
       // So the sheet may use the height it needs; SheetBody caps and scrolls it.
       isScrollControlled: true,
-      backgroundColor: AppColors.panel,
+      backgroundColor: context.colors.panel,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
       ),
@@ -127,10 +129,15 @@ class ProjectTile extends StatelessWidget {
         // No side padding: these tiles are meant to run edge to edge.
         padding: const EdgeInsets.fromLTRB(0, 14, 0, 8),
         children: [
-          _menuTile(ctx, Icons.open_in_full, 'Open', 'open'),
-          _menuTile(ctx, Icons.drive_file_rename_outline, 'Rename', 'rename'),
-          _menuTile(ctx, Icons.content_copy, 'Duplicate', 'duplicate'),
-          _menuTile(ctx, Icons.delete_outline, 'Delete', 'delete'),
+          _menuTile(ctx, Icons.open_in_full, l10n.open, 'open'),
+          _menuTile(
+            ctx,
+            Icons.drive_file_rename_outline,
+            l10n.rename,
+            'rename',
+          ),
+          _menuTile(ctx, Icons.content_copy, l10n.duplicate, 'duplicate'),
+          _menuTile(ctx, Icons.delete_outline, l10n.delete, 'delete'),
         ],
       ),
     );
@@ -155,12 +162,12 @@ class ProjectTile extends StatelessWidget {
     String value,
   ) {
     return ListTile(
-      leading: Icon(icon, color: AppColors.textSecondary),
+      leading: Icon(icon, color: ctx.colors.textSecondary),
       title: Text(
         label,
-        style: const TextStyle(
+        style: TextStyle(
           fontFamily: AppFonts.ui,
-          color: AppColors.textPrimary,
+          color: ctx.colors.textPrimary,
         ),
       ),
       onTap: () => Navigator.pop(ctx, value),

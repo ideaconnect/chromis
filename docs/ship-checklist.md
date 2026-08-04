@@ -121,18 +121,51 @@ Install the debug build and walk every feature. It's already built:
 6. Store listing, content rating (IARC), target audience, and a hosted
    **privacy policy URL** (required - the app uses ads + an advertising id).
 
-### Listing graphics
+### Listing graphics and copy
 
-Both are generated, not hand-made, so they can be rebuilt when the UI moves:
+**One folder per Play locale**, `assets/store/<locale>/`, and every one of them
+is complete: `details.md` (title, short, long), `feature-graphic.png`, and a
+`screenshots/` tree. The six are `en-US`, `pl-PL`, `de-DE`, `es-ES`, `fr-FR`,
+`cs-CZ` - the same set as `kAppLanguages`. Everything except `details.md` is
+generated, so it can be rebuilt when the UI moves:
 
-| Play slot | File | Generator |
+| Play slot | File (per locale) | Generator |
 |---|---|---|
-| App icon (512x512) | `assets/branding/store_icon.png` | `tool/gen_branding.py` |
-| Feature graphic (1024x500) | `assets/branding/feature_graphic.png` | `tool/gen_store_graphic.py` |
-| **Phone** (8, 1080x1920) | `assets/store/screenshots/portrait/` | `tool/gen_store_screens.py` |
-| **7-inch tablet** (8, 1920x1080) | `assets/store/screenshots/tablet-7in/` | `tool/gen_store_screens.py` |
-| **10-inch tablet** (8, 2560x1440) | `assets/store/screenshots/tablet-10in/` | `tool/gen_store_screens.py` |
-| *(spare)* phone landscape (8, 1920x1080) | `assets/store/screenshots/landscape/` | `tool/gen_store_screens.py` |
+| App icon (512x512) | `assets/branding/store_icon.png` *(shared)* | `tool/gen_branding.py` |
+| Feature graphic (1024x500) | `<loc>/feature-graphic.png` | `tool/gen_store_graphic.py` |
+| **Phone** (8, 1080x1920) | `<loc>/screenshots/portrait/` | `tool/gen_store_screens.py` |
+| **7-inch tablet** (8, 1920x1080) | `<loc>/screenshots/tablet-7in/` | `tool/gen_store_screens.py` |
+| **10-inch tablet** (8, 2560x1440) | `<loc>/screenshots/tablet-10in/` | `tool/gen_store_screens.py` |
+| *(spare)* phone landscape (8, 1920x1080) | `<loc>/screenshots/landscape/` | `tool/gen_store_screens.py` |
+
+Two checks, both offline, both worth running before an upload:
+
+```bash
+python tool/check_store_listings.py   # Play's 30/80/4000 limits; feature counts;
+                                      #   the copy names the localized controls
+python tool/store_copy.py             # every caption line fits the width it is
+                                      #   drawn into, in every language
+```
+
+**Social graphics** are separate from the listing and live in
+`assets/store/social/`, both 1200x1200 and both generated from the same English
+captures the listing uses, so nothing in them is a mock-up:
+
+| File | Generator | What it is for |
+|---|---|---|
+| `linkedin-promo.png` | `tool/gen_social_promo.py` | the app in general; does not change per release |
+| `linkedin-update-1-2-0.png` | `tool/gen_update_promo.py` | what 1.2.0 added |
+
+The update one reads three *different* languages' captures. Copy it to a new
+`gen_update_promo.py`-shaped file per release rather than editing this one, or
+the graphic for the last release stops being reproducible.
+
+`check_store_listings.py` is the one that matters most: Play truncates the title
+at 30 characters and the short description at 80 **silently**, and German,
+Spanish and French all ran past the 4000-character long-description cap on the
+first draft. It also counts the looks, blend modes, grid layouts and bundled
+fonts out of the Dart source, so a listing cannot go on promising 14 filters
+after a fifteenth lands.
 
 **Phone slot: upload the portrait set.** The app is portrait and Play renders a
 portrait phone screenshot larger in the listing than a landscape one. The
@@ -147,14 +180,35 @@ one, so the two really are different screenshots of different layouts.
 
 | Captures in | Device | Screen | Slot |
 |---|---|---|---|
-| `build/shots/` | Pixel 10 Pro | 1280x2856 @ 480dpi | phone |
-| `build/shots/tablet7/` | 7-inch tablet | 1920x1200 @ 320dpi = `sw600dp` | 7-inch |
-| `build/shots/tablet/` | Pixel Tablet | 2560x1600 @ 320dpi = `sw800dp` | 10-inch |
+| `build/shots-i18n/<loc>/phone/` | Pixel 10 Pro | 1280x2856 @ 480dpi | phone |
+| `build/shots-i18n/<loc>/tab7/` | 7-inch tablet | 1920x1200 @ 320dpi = `sw600dp` | 7-inch |
+| `build/shots-i18n/<loc>/tab10/` | Pixel Tablet | 2560x1600 @ 320dpi = `sw800dp` | 10-inch |
 
 Capture in the tablet's natural **landscape** orientation - note `user_rotation 0`
 is landscape on a tablet and portrait on a phone, so the value that gives you a
 portrait phone gives you a landscape tablet. A set whose captures are missing is
 skipped with a notice, so the phone sets rebuild fine with no tablet attached.
+
+**Every language is captured again, not re-captioned.** Everything inside the
+device frame is UI text, so pasting a Polish caption beside an English
+screenshot reads worse than shipping no Polish listing at all.
+`tool/capture_store_shots.py` sets the app's per-app locale and drives all
+eight states again on each device; run the three profiles at once, they do not
+contend:
+
+```bash
+python tool/capture_store_shots.py phone   # + tab10, tab7 in parallel
+python tool/gen_store_screens.py
+python tool/gen_store_graphic.py
+```
+
+That script needs a **debug** build installed (a Play-store emulator image
+refuses `adb root`, so app data goes through `run-as` - which is also how the
+Pro entitlement gets set) and the sample photos already present in the app's
+`projects/assets`. It writes the project manifests itself, and the project
+names, layer names, the sticker's caption and the bubble's line are localized
+in that file: those are *document data*, stored once and never re-translated,
+so a Polish screenshot needs Polish names on disk rather than a Polish build.
 
 The system photo picker keeps its own index: after re-seeding `/sdcard` it reports
 "No photos yet" even while `content query` lists every file. Fix with

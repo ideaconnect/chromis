@@ -143,7 +143,10 @@ final purchaseDeliveryProvider = Provider<void>((ref) {
         // case a user most needs told about ("you already own this, restore").
         ref
             .read(purchaseErrorProvider.notifier)
-            .report(p.error?.message ?? 'The purchase could not be completed');
+            // Empty means "Play reported an error but gave no text": the Go
+            // Pro screen substitutes a localized sentence, since nothing here
+            // has a BuildContext to resolve one.
+            .report(p.error?.message ?? '');
       }
       // `canceled` stays silent - the user closed the sheet on purpose.
       if (p.pendingCompletePurchase) {

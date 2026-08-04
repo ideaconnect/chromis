@@ -140,7 +140,15 @@ class ProjectRepository {
   /// the photos they belong to, so copying them is the cheap half of the fix.
   ///
   /// Returns the copy, or null when the source manifest is missing/corrupt.
-  Future<Project?> duplicate(String id, {DateTime? now}) async {
+  ///
+  /// [copyLabel] is the word appended to the name; UI callers pass the
+  /// localized one. It defaults to English so the repository stays usable (and
+  /// testable) without a BuildContext to resolve strings from.
+  Future<Project?> duplicate(
+    String id, {
+    DateTime? now,
+    String copyLabel = 'copy',
+  }) async {
     final Project? source;
     try {
       source = await load(id);
@@ -179,7 +187,7 @@ class ProjectRepository {
     // 512x512 at 8fps) and would drop `grid` the same way.
     final copy = source.copyWith(
       id: newId,
-      name: '${source.name} copy',
+      name: '${source.name} $copyLabel',
       createdAt: at,
       updatedAt: at,
       frames: frames,

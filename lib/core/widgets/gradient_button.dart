@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../theme/app_colors.dart';
 import '../theme/app_tokens.dart';
 import '../theme/app_typography.dart';
 
@@ -16,7 +15,7 @@ class GradientButton extends StatelessWidget {
     this.icon,
     this.gradient,
     this.solidColor,
-    this.foreground = Colors.white,
+    this.foreground,
     this.padding = const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
     this.fontSize = 15.5,
     this.glowColor,
@@ -35,8 +34,10 @@ class GradientButton extends StatelessWidget {
   /// [gradient].
   final Color? solidColor;
 
-  /// Icon + label color.
-  final Color foreground;
+  /// Icon + label color. Nullable because the default is a theme colour and a
+  /// default argument has to be a constant: it resolves to the palette's ink
+  /// for a filled accent, which is near-black on dark and white on light.
+  final Color? foreground;
 
   final EdgeInsets padding;
   final double fontSize;
@@ -49,8 +50,9 @@ class GradientButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final tokens = context.tokens;
     final solid = solidColor != null;
+    final ink = foreground ?? context.colors.onAccent;
     final grad = solid ? null : (gradient ?? tokens.heroGradient);
-    final glow = glowColor ?? AppColors.violetBright;
+    final glow = glowColor ?? context.colors.violetBright;
     final enabled = onPressed != null && !busy;
 
     return Semantics(
@@ -91,19 +93,29 @@ class GradientButton extends StatelessWidget {
                         height: 18,
                         child: CircularProgressIndicator(
                           strokeWidth: 2.5,
-                          valueColor: AlwaysStoppedAnimation(foreground),
+                          valueColor: AlwaysStoppedAnimation(ink),
                         ),
                       )
                     else if (icon != null)
-                      Icon(icon, size: 19, color: foreground),
+                      Icon(icon, size: 19, color: ink),
                     if (busy || icon != null) const SizedBox(width: 9),
-                    Text(
-                      label,
-                      style: TextStyle(
-                        fontFamily: AppFonts.ui,
-                        color: foreground,
-                        fontSize: fontSize,
-                        fontWeight: FontWeight.w800,
+                    // Flexible, so a caller that caps this button's width (the
+                    // editor top bar does, to keep room for the project title)
+                    // gets an ellipsis instead of an overflow stripe. The Row
+                    // is still mainAxisSize.min, so an uncapped button is
+                    // exactly as wide as its label - nothing changes at the
+                    // sizes this already fitted.
+                    Flexible(
+                      child: Text(
+                        label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontFamily: AppFonts.ui,
+                          color: ink,
+                          fontSize: fontSize,
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
                     ),
                   ],

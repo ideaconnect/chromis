@@ -3,10 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/settings/settings_store.dart';
-import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_tokens.dart';
 import '../../core/theme/app_typography.dart';
 import '../../core/widgets/gradient_button.dart';
 import '../../core/widgets/responsive_center.dart';
+import '../../l10n/app_localizations.dart';
 
 /// First-run intro: start → cut out → export. Three swipeable pages that
 /// explain the flow. Completing or skipping records the flag and routes Home.
@@ -22,38 +23,40 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   int _page = 0;
   bool _finishing = false;
 
-  static const _pages = <_Page>[
-    _Page(
-      icon: Icons.add_photo_alternate_outlined,
-      gradient: AppColors.logoGradient,
-      glow: AppColors.violetBright,
-      title: 'Start from a photo',
-      body:
-          'Open any photo, or a blank canvas at the size you need. '
-          'Add layers, text, and comic bubbles.',
-    ),
-    _Page(
-      // Matches EditorTool.cutout, now that the wand means Effects.
-      icon: Icons.auto_awesome_outlined,
-      gradient: AppColors.cutoutGradient,
-      glow: AppColors.green,
-      title: 'Cut out the background',
-      body:
-          'Lift your subject off its background with one tap, or erase '
-          'objects - all on your device, so your photos never leave your phone.',
-    ),
-    _Page(
-      icon: Icons.ios_share,
-      gradient: AppColors.heroGradient,
-      glow: AppColors.pink,
-      title: 'Export & share',
-      body:
-          'Save a transparent PNG, JPG, or WebP at any resolution, '
-          'then share it anywhere.',
-    ),
-  ];
+  /// The three intro pages. Built per-locale and per-theme rather than held as
+  /// a `static const`, so switching either re-reads them instead of freezing
+  /// whatever the app happened to launch in.
+  static List<_Page> _pagesFor(BuildContext context, AppLocalizations l10n) =>
+      <_Page>[
+        _Page(
+          icon: Icons.add_photo_alternate_outlined,
+          gradient: context.colors.logoGradient,
+          glow: context.colors.violetBright,
+          title: l10n.onboardStartTitle,
+          body: l10n.onboardStartBody,
+        ),
+        _Page(
+          // Matches EditorTool.cutout, now that the wand means Effects.
+          icon: Icons.auto_awesome_outlined,
+          gradient: context.colors.cutoutGradient,
+          glow: context.colors.green,
+          title: l10n.onboardCutoutTitle,
+          body: l10n.onboardCutoutBody,
+        ),
+        _Page(
+          icon: Icons.ios_share,
+          gradient: context.colors.heroGradient,
+          glow: context.colors.pink,
+          title: l10n.onboardExportTitle,
+          body: l10n.onboardExportBody,
+        ),
+      ];
 
-  bool get _isLast => _page == _pages.length - 1;
+  /// The page count is fixed by [_pagesFor] and read before the localizations
+  /// are resolved (in [_next]), so it is a constant rather than a list length.
+  static const _pageCount = 3;
+
+  bool get _isLast => _page == _pageCount - 1;
 
   @override
   void dispose() {
@@ -82,8 +85,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final pages = _pagesFor(context, l10n);
     return Scaffold(
-      backgroundColor: AppColors.pageBackground,
+      backgroundColor: context.colors.pageBackground,
       body: SafeArea(
         child: Column(
           children: [
@@ -94,13 +99,13 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 duration: const Duration(milliseconds: 200),
                 child: TextButton(
                   onPressed: _isLast || _finishing ? null : _finish,
-                  child: const Text(
-                    'Skip',
+                  child: Text(
+                    l10n.skip,
                     style: TextStyle(
                       fontFamily: AppFonts.ui,
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: AppColors.textMuted,
+                      color: context.colors.textMuted,
                     ),
                   ),
                 ),
@@ -109,12 +114,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             Expanded(
               child: PageView.builder(
                 controller: _controller,
-                itemCount: _pages.length,
+                itemCount: pages.length,
                 onPageChanged: (i) => setState(() => _page = i),
-                itemBuilder: (context, i) => _PageView(page: _pages[i]),
+                itemBuilder: (context, i) => _PageView(page: pages[i]),
               ),
             ),
-            _Dots(count: _pages.length, active: _page),
+            _Dots(count: pages.length, active: _page),
             Padding(
               padding: const EdgeInsets.fromLTRB(24, 20, 24, 20),
               // Capped: at full width on a tablet the CTA is a screen-wide
@@ -126,11 +131,11 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 child: SizedBox(
                   width: double.infinity,
                   child: GradientButton(
-                    label: _isLast ? 'Get started' : 'Next',
+                    label: _isLast ? l10n.getStarted : l10n.next,
                     icon: _isLast ? Icons.check_rounded : null,
                     busy: _finishing,
                     onPressed: _next,
-                    glowColor: _pages[_page].glow,
+                    glowColor: pages[_page].glow,
                   ),
                 ),
               ),
@@ -196,28 +201,32 @@ class _PageView extends StatelessWidget {
                     ),
                   ],
                 ),
-                child: Icon(page.icon, size: 58, color: Colors.white),
+                child: Icon(
+                  page.icon,
+                  size: 58,
+                  color: context.colors.onAccent,
+                ),
               ),
               const SizedBox(height: 40),
               Text(
                 page.title,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: AppFonts.display,
                   fontWeight: FontWeight.w700,
                   fontSize: 26,
-                  color: AppColors.textPrimary,
+                  color: context.colors.textPrimary,
                 ),
               ),
               const SizedBox(height: 14),
               Text(
                 page.body,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: AppFonts.ui,
                   fontSize: 14.5,
                   height: 1.5,
-                  color: AppColors.textMuted,
+                  color: context.colors.textMuted,
                 ),
               ),
             ],
@@ -246,7 +255,9 @@ class _Dots extends StatelessWidget {
             width: i == active ? 22 : 8,
             height: 8,
             decoration: BoxDecoration(
-              color: i == active ? AppColors.violetLight : AppColors.elevated,
+              color: i == active
+                  ? context.colors.violetLight
+                  : context.colors.elevated,
               borderRadius: BorderRadius.circular(4),
             ),
           ),

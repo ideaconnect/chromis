@@ -12,7 +12,7 @@ import '../../../core/models/project.dart';
 import '../../../core/rendering/canvas_geometry.dart';
 import '../../../core/rendering/image_decode.dart';
 import '../../../core/rendering/layer_effects_painter.dart';
-import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_tokens.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/layer_effects_box.dart';
 import '../../../core/widgets/text_caption.dart';
@@ -553,17 +553,17 @@ class _CellPlaceholder extends StatelessWidget {
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: AppColors.cardAlt.withValues(alpha: 0.7),
+        color: context.colors.cardAlt.withValues(alpha: 0.7),
       ),
-      child: const Center(
+      child: Center(
         child: FittedBox(
           fit: BoxFit.scaleDown,
           child: Padding(
-            padding: EdgeInsets.all(6),
+            padding: const EdgeInsets.all(6),
             child: Icon(
               Icons.add_photo_alternate_outlined,
               size: 26,
-              color: AppColors.textMuted,
+              color: context.colors.textMuted,
             ),
           ),
         ),
@@ -586,9 +586,9 @@ class _ImagePlaceholder extends StatelessWidget {
       height: side,
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: AppColors.cardAlt.withValues(alpha: 0.6),
+        color: context.colors.cardAlt.withValues(alpha: 0.6),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.14)),
+        border: Border.all(color: context.colors.border),
       ),
       // Scaled down rather than clipped: `side` follows the canvas scale, so in
       // a Home thumbnail this box is a few dozen px while the icon and label
@@ -600,9 +600,9 @@ class _ImagePlaceholder extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(
+              Icon(
                 Icons.image_outlined,
-                color: AppColors.textMuted,
+                color: context.colors.textMuted,
                 size: 28,
               ),
               const SizedBox(height: 6),
@@ -610,10 +610,10 @@ class _ImagePlaceholder extends StatelessWidget {
                 name,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: AppFonts.ui,
                   fontSize: 11,
-                  color: AppColors.textMuted,
+                  color: context.colors.textMuted,
                 ),
               ),
             ],

@@ -91,7 +91,13 @@ class AdsService {
   /// then told nobody: [canRequestAds] kept whatever it read at launch, so a
   /// user who turned ads off there went on being shown the Home banner, and the
   /// export gate went on offering an ad, for the rest of the session.
-  Future<bool> requestConsent({void Function(String message)? onError}) async {
+  /// [genericReason] is the fallback handed to [onError] when the failure has
+  /// no message of its own. English by default so this layer stays free of
+  /// localizations; UI callers pass the translated one.
+  Future<bool> requestConsent({
+    void Function(String message)? onError,
+    String genericReason = 'please try again',
+  }) async {
     void report(FormError? error) {
       if (error == null) return;
       debugPrint('AdsService: consent form failed - ${error.message}');
@@ -108,8 +114,9 @@ class AdsService {
       _canRequestAds.value = await ConsentInformation.instance.canRequestAds();
     } catch (e) {
       debugPrint('AdsService: re-requesting consent failed - $e');
-      // A reason, not a sentence - the caller owns the wording around it.
-      onError?.call('please try again');
+      // A reason, not a sentence - the caller owns the wording around it,
+      // and passes it in localized (this layer has no BuildContext).
+      onError?.call(genericReason);
     }
     // A user can reach this before init's own flow has answered (offline first
     // launch, then straight to Export); nothing should keep waiting on that.

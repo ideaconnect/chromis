@@ -14,11 +14,11 @@ import '../../config/ads_config.dart';
 import '../../core/models/layer_transform.dart';
 import '../../core/models/project.dart';
 import '../../core/rendering/canvas_geometry.dart';
-import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_tokens.dart';
 import '../../core/theme/app_typography.dart';
 import '../../core/widgets/name_prompt.dart';
 import '../../core/widgets/responsive_center.dart';
+import '../../l10n/app_localizations.dart';
 import '../about/about_data.dart';
 import '../ads/ads_service.dart';
 import '../editor/services/image_import.dart';
@@ -44,11 +44,6 @@ class HomeScreen extends ConsumerWidget {
   /// project's thumbnail decodes up front. The full list lives in All projects.
   static const _recentCount = 6;
 
-  /// The Recent header's count. Written out so a single saved project doesn't
-  /// read "1 projects".
-  static String _projectCount(int count) =>
-      count == 1 ? '1 project' : '$count projects';
-
   /// "New project" asks what kind of document first, then branches to the
   /// canvas-size sheet or the Photo Grid setup.
   Future<void> _newProject(BuildContext context, WidgetRef ref) async {
@@ -56,10 +51,14 @@ class HomeScreen extends ConsumerWidget {
     if (mode == null || !context.mounted) return;
     if (mode == NewProjectMode.grid) return _newGridProject(context, ref);
 
-    final size = await showCanvasSizeSheet(context, title: 'New project');
+    final size = await showCanvasSizeSheet(
+      context,
+      title: AppLocalizations.of(context).newProject,
+    );
     if (size == null || !context.mounted) return;
     final project = Project.empty(
       id: 'pe_${DateTime.now().microsecondsSinceEpoch}',
+      name: AppLocalizations.of(context).untitledProject,
       width: size.width,
       height: size.height,
       createdAt: DateTime.now(),
@@ -74,10 +73,13 @@ class HomeScreen extends ConsumerWidget {
   /// from one trip to the gallery. Cancelling the picker still opens the
   /// editor on an empty collage - its cells are the invitation to add photos.
   Future<void> _newGridProject(BuildContext context, WidgetRef ref) async {
+    final photoLabel = AppLocalizations.of(context).photoLayerDefault;
+    final untitled = AppLocalizations.of(context).untitledProject;
     final setup = await showGridSetupSheet(context);
     if (setup == null || !context.mounted) return;
     final project = Project.empty(
       id: 'pe_${DateTime.now().microsecondsSinceEpoch}',
+      name: untitled,
       width: setup.width,
       height: setup.height,
       createdAt: DateTime.now(),
@@ -99,6 +101,7 @@ class HomeScreen extends ConsumerWidget {
         assetPath: picked[i],
         cellId: cellIds[i],
         pixels: await decodeImageSize(picked[i]),
+        photoLabel: photoLabel,
       );
     }
     // Persist as soon as there are photos in it. The editor only auto-saves on
@@ -127,18 +130,23 @@ class HomeScreen extends ConsumerWidget {
       path = null;
     }
     if (path == null || !context.mounted) return;
+    final l10n = AppLocalizations.of(context);
     final pixels = await decodeImageSize(path);
     final w = pixels?.width.round() ?? 1080;
     final h = pixels?.height.round() ?? 1080;
     final project = Project.empty(
       id: 'pe_${DateTime.now().microsecondsSinceEpoch}',
+      name: l10n.untitledProject,
       width: w,
       height: h,
       createdAt: DateTime.now(),
     );
     final controller = ref.read(editorControllerProvider.notifier);
     controller.loadProject(project);
-    final layer = controller.addImageLayer(assetPath: path);
+    final layer = controller.addImageLayer(
+      assetPath: path,
+      photoLabel: l10n.photoLayerDefault,
+    );
     if (pixels != null) {
       controller.updateTransform(
         layer.id,
@@ -171,11 +179,12 @@ class HomeScreen extends ConsumerWidget {
     WidgetRef ref,
     Project p,
   ) async {
+    final l10n = AppLocalizations.of(context);
     final name = await promptName(
       context,
-      title: 'Rename project',
+      title: l10n.renameProject,
       initial: p.name,
-      hint: 'Project name',
+      hint: l10n.projectNameHint,
     );
     if (name == null) return;
     final repo = ref.read(projectRepositoryProvider);
@@ -185,14 +194,21 @@ class HomeScreen extends ConsumerWidget {
   }
 
   /// Saves a deep copy (`<name> copy`, fresh ids, shared asset files).
-  Future<void> _duplicateProject(WidgetRef ref, Project p) async {
-    await ref.read(projectRepositoryProvider).duplicate(p.id);
+  Future<void> _duplicateProject(
+    BuildContext context,
+    WidgetRef ref,
+    Project p,
+  ) async {
+    await ref
+        .read(projectRepositoryProvider)
+        .duplicate(p.id, copyLabel: AppLocalizations.of(context).copySuffix);
     ref.invalidate(savedProjectsProvider);
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final tokens = context.tokens;
+    final l10n = AppLocalizations.of(context);
     final projectsAsync = ref.watch(savedProjectsProvider);
 
     return Scaffold(
@@ -226,8 +242,8 @@ class HomeScreen extends ConsumerWidget {
                     Expanded(
                       child: _StartCard(
                         icon: Icons.add,
-                        title: 'New project',
-                        subtitle: 'Blank canvas or a photo grid',
+                        title: l10n.newProject,
+                        subtitle: l10n.homeNewProjectSubtitle,
                         onTap: () => _newProject(context, ref),
                       ),
                     ),
@@ -235,8 +251,8 @@ class HomeScreen extends ConsumerWidget {
                     Expanded(
                       child: _StartCard(
                         icon: Icons.photo_library_outlined,
-                        title: 'Open a photo',
-                        subtitle: "Canvas takes the photo's size",
+                        title: l10n.homeOpenPhoto,
+                        subtitle: l10n.homeOpenPhotoSubtitle,
                         onTap: () => _openPhoto(context, ref),
                       ),
                     ),
@@ -245,42 +261,55 @@ class HomeScreen extends ConsumerWidget {
               else ...[
                 _StartCard(
                   icon: Icons.add,
-                  title: 'New project',
-                  subtitle: 'Blank canvas or a photo grid',
+                  title: l10n.newProject,
+                  subtitle: l10n.homeNewProjectSubtitle,
                   onTap: () => _newProject(context, ref),
                 ),
                 const SizedBox(height: 12),
                 _StartCard(
                   icon: Icons.photo_library_outlined,
-                  title: 'Open a photo',
-                  subtitle: "Canvas takes the photo's size",
+                  title: l10n.homeOpenPhoto,
+                  subtitle: l10n.homeOpenPhotoSubtitle,
                   onTap: () => _openPhoto(context, ref),
                 ),
               ],
               const SizedBox(height: 22),
+              // The header yields, the count does not - same rule as
+              // LabeledSlider. Both were unconstrained in a spaceBetween Row,
+              // so "RECIENTES" beside "12 proyectos" ran off the edge as soon
+              // as the text scale went up. The count is the information and
+              // the tap target for All projects, so it stays whole.
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
-                    'RECENT',
-                    style: TextStyle(
-                      fontFamily: AppFonts.ui,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 0.5,
-                      color: AppColors.textMuted,
+                  Expanded(
+                    child: Text(
+                      l10n.homeRecent,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontFamily: AppFonts.ui,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.5,
+                        color: context.colors.textMuted,
+                      ),
                     ),
                   ),
+                  const SizedBox(width: 8),
                   GestureDetector(
                     onTap: () => context.pushNamed(Routes.allProjects),
                     behavior: HitTestBehavior.opaque,
                     child: Text(
-                      _projectCount(projectsAsync.asData?.value.length ?? 0),
-                      style: const TextStyle(
+                      // Pluralised in the ARB: "1 project" vs "5 projects",
+                      // and Polish has a third form for 2-4.
+                      l10n.projectCount(
+                        projectsAsync.asData?.value.length ?? 0,
+                      ),
+                      style: TextStyle(
                         fontFamily: AppFonts.ui,
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.textMuted,
+                        color: context.colors.textMuted,
                       ),
                     ),
                   ),
@@ -309,7 +338,8 @@ class HomeScreen extends ConsumerWidget {
                               radius: tokens.radiusCard,
                               onTap: () => _openProject(context, ref, p),
                               onRename: () => _renameProject(context, ref, p),
-                              onDuplicate: () => _duplicateProject(ref, p),
+                              onDuplicate: () =>
+                                  _duplicateProject(context, ref, p),
                               onDelete: () => _deleteProject(context, ref, p),
                             ),
                         ],
@@ -328,6 +358,7 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Row(
       children: [
         Expanded(
@@ -335,7 +366,7 @@ class _Header extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Your projects',
+                l10n.homeTitle,
                 style: TextStyle(
                   fontFamily: AppFonts.display,
                   fontWeight: FontWeight.w700,
@@ -345,13 +376,13 @@ class _Header extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 3),
-              const Text(
-                'Chromis · Photo editor with AI cutout',
+              Text(
+                l10n.homeTagline,
                 style: TextStyle(
                   fontFamily: AppFonts.ui,
                   fontSize: 11.5,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.textMuted,
+                  color: context.colors.textMuted,
                 ),
               ),
             ],
@@ -386,7 +417,7 @@ class _DiscordButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Semantics(
       button: true,
-      label: 'Join our Discord',
+      label: AppLocalizations.of(context).homeJoinDiscord,
       child: InkWell(
         onTap: () => unawaited(_open()),
         customBorder: const CircleBorder(),
@@ -395,19 +426,16 @@ class _DiscordButton extends StatelessWidget {
           height: 40,
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: AppColors.chipSurface,
+            color: context.colors.chipSurface,
             shape: BoxShape.circle,
-            border: Border.all(
-              color: Colors.white.withValues(alpha: 0.08),
-              width: 1.5,
-            ),
+            border: Border.all(color: context.colors.border, width: 1.5),
           ),
           child: SvgPicture.string(
             _discordSvg,
             width: 20,
             height: 20,
-            colorFilter: const ColorFilter.mode(
-              AppColors.textSecondary,
+            colorFilter: ColorFilter.mode(
+              context.colors.textSecondary,
               BlendMode.srcIn,
             ),
           ),
@@ -448,7 +476,7 @@ class _HamburgerButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Semantics(
       button: true,
-      label: 'Menu',
+      label: AppLocalizations.of(context).menu,
       child: InkWell(
         onTap: () => Scaffold.of(context).openDrawer(),
         customBorder: const CircleBorder(),
@@ -457,17 +485,14 @@ class _HamburgerButton extends StatelessWidget {
           height: 40,
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: AppColors.chipSurface,
+            color: context.colors.chipSurface,
             shape: BoxShape.circle,
-            border: Border.all(
-              color: Colors.white.withValues(alpha: 0.08),
-              width: 1.5,
-            ),
+            border: Border.all(color: context.colors.border, width: 1.5),
           ),
-          child: const Icon(
+          child: Icon(
             Icons.menu,
             size: 20,
-            color: AppColors.textSecondary,
+            color: context.colors.textSecondary,
           ),
         ),
       ),
@@ -495,7 +520,7 @@ class _StartCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return CustomPaint(
       foregroundPainter: _DashedBorderPainter(
-        color: AppColors.cyan.withValues(alpha: 0.42),
+        color: context.colors.cyan.withValues(alpha: 0.42),
         radius: 18,
       ),
       child: DecoratedBox(
@@ -505,8 +530,8 @@ class _StartCard extends StatelessWidget {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              AppColors.cyan.withValues(alpha: 0.12),
-              AppColors.cyan.withValues(alpha: 0.03),
+              context.colors.cyan.withValues(alpha: 0.12),
+              context.colors.cyan.withValues(alpha: 0.03),
             ],
           ),
         ),
@@ -523,10 +548,10 @@ class _StartCard extends StatelessWidget {
                     width: 48,
                     height: 48,
                     decoration: BoxDecoration(
-                      color: AppColors.cyan,
+                      color: context.colors.cyan,
                       borderRadius: BorderRadius.circular(14),
                     ),
-                    child: Icon(icon, size: 26, color: AppColors.cutoutInk),
+                    child: Icon(icon, size: 26, color: context.colors.onAccent),
                   ),
                   const SizedBox(width: 14),
                   Expanded(
@@ -545,10 +570,10 @@ class _StartCard extends StatelessWidget {
                         const SizedBox(height: 3),
                         Text(
                           subtitle,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontFamily: AppFonts.ui,
                             fontSize: 12,
-                            color: AppColors.textSecondary,
+                            color: context.colors.textSecondary,
                           ),
                         ),
                       ],
@@ -602,35 +627,36 @@ class _EmptyRecent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Container(
       margin: const EdgeInsets.only(top: 8),
       padding: const EdgeInsets.symmetric(vertical: 44, horizontal: 20),
       decoration: BoxDecoration(
-        color: AppColors.card,
+        color: context.colors.card,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.borderFaint),
+        border: Border.all(color: context.colors.borderFaint),
       ),
-      child: const Column(
+      child: Column(
         children: [
-          Icon(Icons.auto_awesome, size: 34, color: AppColors.cyan),
-          SizedBox(height: 12),
+          Icon(Icons.auto_awesome, size: 34, color: context.colors.cyan),
+          const SizedBox(height: 12),
           Text(
-            'No projects yet',
+            l10n.noProjectsYet,
             style: TextStyle(
               fontFamily: AppFonts.display,
               fontSize: 16,
               fontWeight: FontWeight.w700,
-              color: AppColors.textPrimary,
+              color: context.colors.textPrimary,
             ),
           ),
-          SizedBox(height: 4),
+          const SizedBox(height: 4),
           Text(
-            'Tap New project to import a photo.',
+            l10n.homeEmptyHint,
             textAlign: TextAlign.center,
             style: TextStyle(
               fontFamily: AppFonts.ui,
               fontSize: 12.5,
-              color: AppColors.textMuted,
+              color: context.colors.textMuted,
             ),
           ),
         ],
@@ -841,13 +867,13 @@ class _HomeAdBannerState extends ConsumerState<_HomeAdBanner> {
                         GestureDetector(
                           onTap: () => context.pushNamed(Routes.goPro),
                           behavior: HitTestBehavior.opaque,
-                          child: const Text(
-                            'Remove ads →',
+                          child: Text(
+                            AppLocalizations.of(context).removeAdsArrow,
                             style: TextStyle(
                               fontFamily: AppFonts.ui,
                               fontSize: 10.5,
                               fontWeight: FontWeight.w700,
-                              color: AppColors.textSecondary,
+                              color: context.colors.textSecondary,
                             ),
                           ),
                         ),
@@ -858,9 +884,9 @@ class _HomeAdBannerState extends ConsumerState<_HomeAdBanner> {
                   height: 52,
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    color: AppColors.card,
+                    color: context.colors.card,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.borderFaint),
+                    border: Border.all(color: context.colors.borderFaint),
                   ),
                   child: child,
                 ),
@@ -896,7 +922,7 @@ class _DevAdNotice extends StatelessWidget {
         fontSize: inline ? 9 : 10,
         fontWeight: FontWeight.w700,
         height: 1.25,
-        color: AppColors.amber,
+        color: context.colors.amber,
       ),
     );
   }

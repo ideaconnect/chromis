@@ -4,6 +4,7 @@ import 'package:chromis/features/editor/state/editor_controller.dart';
 import 'package:chromis/features/editor/state/editor_tool.dart';
 import 'package:chromis/features/editor/widgets/editor_canvas.dart';
 import 'package:chromis/features/grid/grid_templates.dart';
+import 'package:chromis/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -39,6 +40,8 @@ void main() {
       UncontrolledProviderScope(
         container: container,
         child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           home: Scaffold(
             body: Center(
               child: SizedBox(

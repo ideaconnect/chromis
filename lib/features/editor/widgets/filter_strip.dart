@@ -4,8 +4,10 @@ import 'package:flutter/material.dart';
 
 import '../../../core/models/photo_filter.dart';
 import '../../../core/rendering/color_matrix.dart';
-import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_tokens.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../l10n/app_localizations.dart';
+import '../../../l10n/localized_labels.dart';
 
 /// The horizontal filter picker: the layer's own photo, thumbnailed once and
 /// re-tinted per tile, so what you tap is what you get.
@@ -100,7 +102,7 @@ class _FilterTile extends StatelessWidget {
     return Semantics(
       button: true,
       selected: selected,
-      label: filter.label,
+      label: filter.labelOf(AppLocalizations.of(context)),
       child: GestureDetector(
         onTap: onTap,
         behavior: HitTestBehavior.opaque,
@@ -113,7 +115,7 @@ class _FilterTile extends StatelessWidget {
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: selected ? AppColors.teal : AppColors.border,
+                  color: selected ? context.colors.teal : context.colors.border,
                   width: selected ? 2 : 1,
                 ),
               ),
@@ -124,12 +126,14 @@ class _FilterTile extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              filter.label,
+              filter.labelOf(AppLocalizations.of(context)),
               style: TextStyle(
                 fontFamily: AppFonts.ui,
                 fontSize: 9.5,
                 fontWeight: FontWeight.w700,
-                color: selected ? AppColors.teal : AppColors.textMuted,
+                color: selected
+                    ? context.colors.teal
+                    : context.colors.textMuted,
               ),
             ),
           ],

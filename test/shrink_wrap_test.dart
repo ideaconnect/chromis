@@ -6,6 +6,7 @@ import 'package:chromis/features/editor/state/editor_controller.dart';
 import 'package:chromis/features/editor/widgets/project_canvas.dart';
 import 'package:chromis/features/home/home_screen.dart';
 import 'package:chromis/features/home/widgets/new_project_sheet.dart';
+import 'package:chromis/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -42,7 +43,9 @@ void main() {
       setSurface(tester, size);
       await tester.pumpWidget(
         MaterialApp(
-          theme: buildAppTheme(),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          theme: darkAppTheme,
           home: Builder(
             builder: (context) => Scaffold(
               body: Center(
@@ -85,7 +88,12 @@ void main() {
     await tester.pumpWidget(
       UncontrolledProviderScope(
         container: container,
-        child: MaterialApp(theme: buildAppTheme(), home: const EditorScreen()),
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          theme: darkAppTheme,
+          home: const EditorScreen(),
+        ),
       ),
     );
     await tester.pumpAndSettle();
@@ -110,7 +118,12 @@ void main() {
     setSurface(tester, tablet);
     await tester.pumpWidget(
       ProviderScope(
-        child: MaterialApp(theme: buildAppTheme(), home: const HomeScreen()),
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          theme: darkAppTheme,
+          home: const HomeScreen(),
+        ),
       ),
     );
     await tester.pump(const Duration(milliseconds: 400));

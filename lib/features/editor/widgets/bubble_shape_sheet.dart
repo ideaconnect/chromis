@@ -1,32 +1,35 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/models/layer.dart';
-import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_tokens.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/sheet_body.dart';
+import '../../../l10n/app_localizations.dart';
 import 'bubble_view.dart';
 
 /// The user-facing name of a bubble format. One source of truth for the
 /// creation sheet and the Bubble panel's format row.
-String bubbleShapeLabel(BubbleShape shape) => switch (shape) {
-  BubbleShape.speech => 'Speech',
-  BubbleShape.thought => 'Thought',
-  BubbleShape.shout => 'Shout',
-  BubbleShape.caption => 'Caption',
-  BubbleShape.whisper => 'Whisper',
-};
+String bubbleShapeLabel(AppLocalizations l10n, BubbleShape shape) =>
+    switch (shape) {
+      BubbleShape.speech => l10n.bubbleSpeech,
+      BubbleShape.thought => l10n.bubbleThought,
+      BubbleShape.shout => l10n.bubbleShout,
+      BubbleShape.caption => l10n.bubbleCaption,
+      BubbleShape.whisper => l10n.bubbleWhisper,
+    };
 
 /// What the format actually looks like, in the words someone would go looking
 /// for it by. The names alone hid four of the five formats: nobody guesses that
 /// "Caption" is the square box, "Shout" the star, or "Whisper" the line
 /// outline - so the picker prints this under the drawing.
-String bubbleShapeBlurb(BubbleShape shape) => switch (shape) {
-  BubbleShape.speech => 'Rounded, with a tail',
-  BubbleShape.thought => 'Cloud with a dot trail',
-  BubbleShape.shout => 'Spiky star burst',
-  BubbleShape.caption => 'Square narration box',
-  BubbleShape.whisper => 'Dashed line outline',
-};
+String bubbleShapeBlurb(AppLocalizations l10n, BubbleShape shape) =>
+    switch (shape) {
+      BubbleShape.speech => l10n.bubbleSpeechBlurb,
+      BubbleShape.thought => l10n.bubbleThoughtBlurb,
+      BubbleShape.shout => l10n.bubbleShoutBlurb,
+      BubbleShape.caption => l10n.bubbleCaptionBlurb,
+      BubbleShape.whisper => l10n.bubbleWhisperBlurb,
+    };
 
 /// Asks which comic-bubble format to add, drawing every one. Returns null when
 /// the sheet is dismissed without a choice - the caller then adds nothing.
@@ -40,30 +43,29 @@ Future<BubbleShape?> showBubbleShapeSheet(BuildContext context) {
     context: context,
     // So the sheet may use the height it needs; SheetBody caps and scrolls it.
     isScrollControlled: true,
-    backgroundColor: AppColors.panel,
+    backgroundColor: context.colors.panel,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
     ),
     builder: (ctx) => SheetBody(
       children: [
-        const Text(
-          'Add a bubble',
+        Text(
+          AppLocalizations.of(ctx).addABubble,
           style: TextStyle(
             fontFamily: AppFonts.display,
             fontWeight: FontWeight.w700,
             fontSize: 17,
-            color: AppColors.textPrimary,
+            color: context.colors.textPrimary,
           ),
         ),
         const SizedBox(height: 4),
-        const Text(
-          'Pick a format. The text, colours and tail are all editable '
-          'afterwards - and so is this.',
+        Text(
+          AppLocalizations.of(ctx).addABubbleHint,
           style: TextStyle(
             fontFamily: AppFonts.ui,
             fontSize: 12,
             height: 1.35,
-            color: AppColors.textMuted,
+            color: context.colors.textMuted,
           ),
         ),
         const SizedBox(height: 16),
@@ -166,11 +168,15 @@ class BubbleShapeTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final scaler = MediaQuery.textScalerOf(context);
     return Semantics(
       button: true,
       selected: selected,
-      label: '${bubbleShapeLabel(shape)} bubble - ${bubbleShapeBlurb(shape)}',
+      label: l10n.bubbleTileSemantics(
+        bubbleShapeLabel(l10n, shape),
+        bubbleShapeBlurb(l10n, shape),
+      ),
       // The label already reads the name and the description; without this the
       // child Text nodes make a screen reader say both of them a second time.
       excludeSemantics: true,
@@ -184,11 +190,13 @@ class BubbleShapeTile extends StatelessWidget {
           ),
           decoration: BoxDecoration(
             color: selected
-                ? AppColors.pink.withValues(alpha: 0.16)
-                : AppColors.cardAlt,
+                ? context.colors.pink.withValues(alpha: 0.16)
+                : context.colors.cardAlt,
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
-              color: selected ? AppColors.pink : AppColors.borderFaint,
+              color: selected
+                  ? context.colors.pink
+                  : context.colors.borderFaint,
             ),
           ),
           child: Column(
@@ -198,7 +206,7 @@ class BubbleShapeTile extends StatelessWidget {
               BubbleShapeThumb(shape: shape, width: thumbWidth),
               const SizedBox(height: _tileGap),
               Text(
-                bubbleShapeLabel(shape),
+                bubbleShapeLabel(l10n, shape),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
@@ -206,7 +214,9 @@ class BubbleShapeTile extends StatelessWidget {
                   fontSize: _tileLabelSize,
                   height: _tileLineHeight,
                   fontWeight: FontWeight.w700,
-                  color: selected ? AppColors.pink : AppColors.textSecondary,
+                  color: selected
+                      ? context.colors.pink
+                      : context.colors.textSecondary,
                 ),
               ),
               if (showBlurb) ...[
@@ -217,15 +227,15 @@ class BubbleShapeTile extends StatelessWidget {
                 SizedBox(
                   height: scaler.scale(_tileBlurbSize) * _tileLineHeight * 2,
                   child: Text(
-                    bubbleShapeBlurb(shape),
+                    bubbleShapeBlurb(l10n, shape),
                     textAlign: TextAlign.center,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontFamily: AppFonts.ui,
                       fontSize: _tileBlurbSize,
                       height: _tileLineHeight,
-                      color: AppColors.textMuted,
+                      color: context.colors.textMuted,
                     ),
                   ),
                 ),

@@ -1,3 +1,5 @@
+import '../../l10n/app_localizations.dart';
+
 /// Static "About" content: the privacy summary and the third-party license
 /// notices shown in-app. Pure data so it can be unit-tested and kept in sync
 /// with `docs/legal/privacy-policy.md`.
@@ -13,7 +15,7 @@ abstract final class AboutInfo {
   /// the About sheet and the Licenses page were all showing to users.
   /// `about_data_test.dart` now parses pubspec.yaml and fails if the two
   /// disagree, so a version bump cannot forget this again.
-  static const appVersion = '1.1.2';
+  static const appVersion = '1.2.0';
   static const publisher = 'IDCT · Bartosz Pachołek';
   static const contactEmail = 'bartosz@idct.tech';
 
@@ -23,20 +25,23 @@ abstract final class AboutInfo {
 
   /// Community Discord invite - opened from the Home header button.
   static const discordUrl = 'https://discord.gg/uYsuaa8HNm';
-
-  /// The plain-language privacy promises shown on the in-app privacy screen.
-  static const privacyHighlights = <String>[
-    'Your photos are edited entirely on your device - nothing is uploaded.',
-    'AI background & object removal run locally; photos never leave your phone.',
-    'No accounts, no sign-in, no photo uploads.',
-    'The free app shows ads (Google AdMob), which use an advertising ID.',
-    'Where required, a consent prompt (UMP) lets you choose personalised or '
-        'non-personalised ads.',
-    'You can change or withdraw that consent any time - "Ad privacy choices" '
-        'below reopens the form.',
-    'The one-time Pro upgrade removes all ads - and the advertising ID with them.',
-  ];
 }
+
+/// The plain-language privacy promises shown on the in-app privacy screen.
+///
+/// A function of the localizations rather than a `static const` list: these are
+/// prose shown to the user, so they live in the ARB with everything else. The
+/// English readings are still the ones `about_data_test` asserts on - it passes
+/// `AppLocalizationsEn()`.
+List<String> privacyHighlights(AppLocalizations l10n) => <String>[
+  l10n.privacyOnDevice,
+  l10n.privacyAiLocal,
+  l10n.privacyNoAccounts,
+  l10n.privacyAds,
+  l10n.privacyConsent,
+  l10n.privacyWithdraw,
+  l10n.privacyPro,
+];
 
 /// One third-party component we ship, with attribution and its SPDX license.
 class LicenseNotice {
@@ -184,6 +189,44 @@ const licenseNotices = <LicenseNotice>[
     use: 'Paste image from clipboard',
   ),
 ];
+
+/// The two DESCRIPTIVE fields of a [LicenseNotice] in the user's language.
+///
+/// The notices themselves stay English data: `name`, `by` and `license` are
+/// attribution - proper nouns and SPDX ids - and the About tests assert on the
+/// English category keywords. Only `category` and `use` are prose, so only
+/// those are mapped here. An unmapped value falls through to the English
+/// original, so a notice added without a translation renders in English rather
+/// than blank.
+String localizedLicenseCategory(AppLocalizations l10n, String category) =>
+    switch (category) {
+      'Fonts' => l10n.licenseCategoryFonts,
+      'On-device AI' => l10n.licenseCategoryAi,
+      'Media encoding' => l10n.licenseCategoryEncoding,
+      'Monetization' => l10n.licenseCategoryMonetization,
+      'Framework & packages' => l10n.licenseCategoryFramework,
+      _ => category,
+    };
+
+/// See [localizedLicenseCategory].
+String localizedLicenseUse(AppLocalizations l10n, String use) => switch (use) {
+  'Display / heading typeface' => l10n.licenseUseDisplayFont,
+  'UI / body typeface' => l10n.licenseUseBodyFont,
+  'Comic caption font' => l10n.licenseUseComicFont,
+  'Caption font' => l10n.licenseUseCaptionFont,
+  'Script caption font' => l10n.licenseUseScriptFont,
+  'Background removal (Android)' => l10n.licenseUseBgRemoval,
+  'Runs the bundled fallback model' => l10n.licenseUseRuntime,
+  'On-device object & background removal' => l10n.licenseUseOnDeviceAi,
+  'PNG / JPG / WebP encoding' => l10n.licenseUseEncoding,
+  'Banner / rewarded ads + consent' => l10n.licenseUseAds,
+  'One-time Go Pro (remove ads) purchase' => l10n.licenseUsePurchase,
+  'App framework' => l10n.licenseUseFramework,
+  'Routing, storage, sharing, image picking' => l10n.licenseUsePlugins,
+  'State management' => l10n.licenseUseState,
+  'Paste image from clipboard' => l10n.licenseUseClipboard,
+  _ => use,
+};
 
 /// Distinct categories in [licenseNotices], in first-seen order.
 List<String> licenseCategories() {

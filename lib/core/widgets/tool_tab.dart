@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../theme/app_colors.dart';
+import '../theme/app_tokens.dart';
 import '../theme/app_typography.dart';
 
 /// A single item in the editor's bottom tool bar: an icon over a label that
@@ -23,7 +23,7 @@ class ToolTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = active ? accent : AppColors.textFaint;
+    final color = active ? accent : context.colors.textFaint;
     return Expanded(
       child: Semantics(
         button: true,

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../theme/app_colors.dart';
+import '../theme/app_tokens.dart';
 import '../theme/app_typography.dart';
 
 /// A labeled slider row used across the Adjust, Text, Erase and Frames tools:
@@ -47,18 +47,28 @@ class LabeledSlider extends StatelessWidget {
       children: [
         Padding(
           padding: const EdgeInsets.only(bottom: 3),
+          // The label yields, the value does not. Both used to be unconstrained
+          // in a spaceBetween Row, so a long translation or a large text scale
+          // simply pushed them into each other - and this widget backs every
+          // slider in Adjust, Text, Erase and Frames, so it did it everywhere
+          // at once. The value is the information ("118%", "12 px") and stays
+          // whole; the label reads fine truncated.
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                label,
-                style: const TextStyle(
-                  fontFamily: AppFonts.ui,
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textSecondary,
+              Expanded(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontFamily: AppFonts.ui,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                    color: context.colors.textSecondary,
+                  ),
                 ),
               ),
+              const SizedBox(width: 8),
               Text(
                 valueLabel ?? value.round().toString(),
                 style: TextStyle(
@@ -74,8 +84,11 @@ class LabeledSlider extends StatelessWidget {
         SliderTheme(
           data: SliderTheme.of(context).copyWith(
             activeTrackColor: accent,
-            thumbColor: Colors.white,
-            inactiveTrackColor: Colors.white.withValues(alpha: 0.12),
+            // The thumb is the one part that sits ON the track, so it
+            // cannot be a fixed white: on the light theme that is the panel
+            // colour. The accent reads against both halves of the track.
+            thumbColor: context.colors.isLight ? accent : Colors.white,
+            inactiveTrackColor: context.colors.border,
             overlayColor: accent.withValues(alpha: 0.18),
           ),
           child: Slider(

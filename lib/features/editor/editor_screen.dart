@@ -34,6 +34,8 @@ import '../../core/widgets/responsive_center.dart';
 import '../../core/widgets/sheet_body.dart';
 import '../../core/widgets/sm_toast.dart';
 import '../../core/widgets/text_caption.dart';
+import '../../l10n/app_localizations.dart';
+import '../../l10n/localized_labels.dart';
 import '../ads/ad_gate.dart';
 import '../fonts/custom_fonts.dart';
 import '../go_pro/iap.dart';
@@ -67,7 +69,16 @@ import 'widgets/project_canvas.dart';
 /// Layout of the Bubble panel's format row. Fixed widths on purpose: they are
 /// what lets [_EditorScreenState._revealBubbleFormat] compute a scroll offset
 /// arithmetically instead of measuring a lazily-built list.
-const double _kBubbleRowTile = 92;
+///
+/// The tile width is set by the longest TRANSLATED format name, not by English.
+/// At 92 the label box was 92 - 16 of tile padding - 2 of border (a Container
+/// folds `decoration.padding` in) = 74dp, which fits every English name with
+/// 22dp to spare - "Thought" is 51.9 - and cut four others: German rendered
+/// "Sprechbla…" for the very format that was selected, and fr "Chuchotement"
+/// wants 92.5. 116 leaves 98dp, clear of that worst case by more than the ~2dp
+/// of rounding the grid strip taught us to keep. `tool/measure_labels.py`
+/// guards it.
+const double _kBubbleRowTile = 116;
 const double _kBubbleRowGap = 8;
 const double _kBubbleRowThumb = 68;
 
@@ -117,9 +128,11 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
   /// tapped-the-subject message, which used to double for this case and sent
   /// users tapping other objects expecting different results (2026-07-19
   /// review, low/ai-usage).
-  static const String samUnavailableMessage =
-      "Object removal AI isn't available on this device - "
-      'use the Erase brush instead';
+  String get samUnavailableMessage => _l10n.objectAiUnavailable;
+
+  /// The screen's localizations. Every panel, sheet and toast in this file
+  /// reads its text from here.
+  AppLocalizations get _l10n => AppLocalizations.of(context);
 
   // Working mask cached across strokes of the Erase tool, so we don't reload
   // and decode the mask file on every dab. Keyed by (layerId, maskPath) so an
@@ -228,7 +241,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       // Once per session: repeating it every 5s would bury the canvas.
       if (mounted && !_saveErrorToasted) {
         _saveErrorToasted = true;
-        _toast("Couldn't save - your edits are safe, still trying", ok: false);
+        _toast(_l10n.saveRetrying, ok: false);
       }
     } finally {
       _saving = false;
@@ -306,21 +319,21 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text(
-              'Speed',
+            Text(
+              _l10n.speed,
               style: TextStyle(
                 fontFamily: AppFonts.ui,
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
-                color: AppColors.textSecondary,
+                color: context.colors.textSecondary,
               ),
             ),
             Text(
               '${_fpsLabel(fps)} fps',
-              style: const TextStyle(
+              style: TextStyle(
                 fontFamily: AppFonts.ui,
                 fontSize: 12,
-                color: AppColors.textMuted,
+                color: context.colors.textMuted,
               ),
             ),
           ],
@@ -333,7 +346,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
             for (final preset in _fpsPresets)
               PillChip(
                 label: _fpsLabel(preset),
-                accent: AppColors.orange,
+                accent: context.colors.orange,
                 selected: (preset - fps).abs() < 0.001,
                 onTap: () {
                   _controller.setFps(preset);
@@ -401,12 +414,29 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                 ],
               );
             }
-            final panelMax = math.min(300.0, constraints.maxHeight * 0.5);
             return Column(
               children: [
                 topBar,
-                Expanded(child: _canvas(editor)),
-                _panel(editor, panelMax),
+                // The panel's cap is half of what is LEFT, not half of the
+                // screen. Taken from the whole viewport it ignored the top bar
+                // and the dock, so when those grew - a large text scale, a
+                // longer language - the three of them together no longer fit
+                // and the body overflowed. Measuring here instead means the
+                // column cannot overflow whatever the chrome does, without
+                // anything having to assume how tall the chrome is.
+                Expanded(
+                  child: LayoutBuilder(
+                    builder: (context, body) {
+                      final panelMax = math.min(300.0, body.maxHeight * 0.5);
+                      return Column(
+                        children: [
+                          Expanded(child: _canvas(editor)),
+                          _panel(editor, panelMax),
+                        ],
+                      );
+                    },
+                  ),
+                ),
                 _toolBar(editor),
               ],
             );
@@ -459,12 +489,12 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
             // The clip itself stays: layers are positioned in canvas space and
             // may extend past it, and they must not spill into the editor chrome.
             child: DecoratedBox(
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 boxShadow: [
                   BoxShadow(
-                    color: Color(0x80000000),
+                    color: context.colors.shadow,
                     blurRadius: 50,
-                    offset: Offset(0, 20),
+                    offset: const Offset(0, 20),
                   ),
                 ],
               ),
@@ -489,11 +519,10 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                     if (_samBusy || _inpainting)
                       _RemovingOverlay(
                         label: _inpainting
-                            ? 'Filling in the background…'
-                            : 'Finding the object…',
+                            ? _l10n.fillingBackground
+                            : _l10n.findingObject,
                       ),
-                    if (_merging)
-                      const _RemovingOverlay(label: 'Merging layers…'),
+                    if (_merging) _RemovingOverlay(label: _l10n.mergingLayers),
                     // Which frame you're editing - shown in every tool while the
                     // project is animated (per-frame editing indicator, #36).
                     if (editor.project.frameCount > 1)
@@ -545,8 +574,8 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       width: double.infinity,
       constraints: BoxConstraints(maxHeight: maxHeight),
       decoration: BoxDecoration(
-        color: AppColors.panel,
-        border: Border(top: BorderSide(color: tokens.border)),
+        color: context.colors.panel,
+        border: Border(top: BorderSide(color: context.colors.border)),
         borderRadius: BorderRadius.vertical(
           top: Radius.circular(tokens.radiusPanel),
         ),
@@ -574,11 +603,10 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
   /// the canvas, with its own collapse control so the canvas can take the whole
   /// width when you just want to look at the photo.
   Widget _sidePanel(EditorState editor) {
-    final tokens = context.tokens;
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: AppColors.panel,
-        border: Border(right: BorderSide(color: tokens.border)),
+        color: context.colors.panel,
+        border: Border(right: BorderSide(color: context.colors.border)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -587,13 +615,13 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
             alignment: Alignment.centerRight,
             child: IconButton(
               key: const ValueKey('collapse-panel'),
-              tooltip: 'Hide tool panel',
+              tooltip: _l10n.hideToolPanel,
               iconSize: 18,
               visualDensity: VisualDensity.compact,
               onPressed: () => setState(() => _sidePanelOpen = false),
-              icon: const Icon(
+              icon: Icon(
                 Icons.keyboard_double_arrow_left,
-                color: AppColors.textMuted,
+                color: context.colors.textMuted,
               ),
             ),
           ),
@@ -630,23 +658,33 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
   Widget _panelHeader(EditorTool tool, {Widget? trailing, String? title}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      // A Wrap, not a Row of two Flexibles. Two flex children split the row
+      // 50/50 whatever they need, so the Adjust header gave its chips half -
+      // ~77dp each - while "Anpassen" used a fifth of its own half and the
+      // space between them went to waste. Every non-English locale paid for
+      // it: German rendered "+ Hinzu…" and "Zurücks…" side by side.
+      //
+      // A fixed ratio cannot fix that either, because the panels disagree
+      // about who needs the room: Adjust is a short title with two chips,
+      // Erase is "Manuelles Radieren" with a hint. Wrap asks each for its
+      // intrinsic width and moves the trailing to a second line only when the
+      // two genuinely do not fit - so nothing loses words, and a header that
+      // already fitted does not move.
+      child: Wrap(
+        alignment: WrapAlignment.spaceBetween,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        spacing: 8,
+        runSpacing: 8,
         children: [
-          // Flexible: the panel is a narrow column in landscape, and a title
-          // long enough to crowd its trailing chips must ellipsize rather than
-          // overflow the row.
-          Flexible(
-            child: Text(
-              title ?? tool.panelTitle,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontFamily: AppFonts.display,
-                fontWeight: FontWeight.w600,
-                fontSize: 15,
-                color: context.tokens.accent(tool.accent),
-              ),
+          Text(
+            title ?? tool.panelTitleOf(_l10n),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontFamily: AppFonts.display,
+              fontWeight: FontWeight.w600,
+              fontSize: 15,
+              color: context.tokens.accent(tool.accent),
             ),
           ),
           ?trailing,
@@ -661,10 +699,10 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       child: Text(
         message,
         textAlign: TextAlign.center,
-        style: const TextStyle(
+        style: TextStyle(
           fontFamily: AppFonts.ui,
           fontSize: 12.5,
-          color: AppColors.textMuted,
+          color: context.colors.textMuted,
           height: 1.5,
         ),
       ),
@@ -685,7 +723,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       maxHeight: 1080,
     );
     if (decoded == null) {
-      if (mounted) _toast("Couldn't open the photo to crop", ok: false);
+      if (mounted) _toast(_l10n.cropOpenFailed, ok: false);
       return;
     }
     if (!mounted) {
@@ -702,7 +740,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     );
     if (rect == null || !mounted) return;
     _controller.setImageCrop(layer.id, rect);
-    _toast('Photo cropped');
+    _toast(_l10n.photoCropped);
   }
 
   Widget _adjustPanel(EditorState editor) {
@@ -710,7 +748,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     // Adding a photo/text/bubble is reachable right from the default tool -
     // not only via the Layers tab (#77).
     final addChip = PillChip(
-      label: 'Add',
+      label: _l10n.add,
       icon: Icons.add,
       onTap: _showAddMenu,
     );
@@ -718,10 +756,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       return Column(
         children: [
           _panelHeader(EditorTool.adjust, trailing: addChip),
-          _emptyHint(
-            'Adjustments apply to a photo layer.\nSelect a photo, or tap Add '
-            'to import one.',
-          ),
+          _emptyHint(_l10n.adjustEmptyHint),
         ],
       );
     }
@@ -733,118 +768,118 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       children: [
         _panelHeader(
           EditorTool.adjust,
+          // Flexible children, not bare chips: the header bounds this Row, and
+          // a Row lays a non-flex child out at its intrinsic width however
+          // little room it was given - so the overflow would simply move in
+          // here. PillChip ellipsizes once it is actually bounded.
           trailing: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              addChip,
+              Flexible(child: addChip),
               const SizedBox(width: 8),
-              PillChip(
-                label: 'Reset',
-                onTap: () {
-                  // Only this panel's own sliders - the chosen filter / HDR
-                  // survive, and Effects has its own Reset for those.
-                  _controller.updateImageAdjustments(id, adj.resetSliders());
-                  _controller.setOpacity(id, 1);
-                },
+              Flexible(
+                child: PillChip(
+                  label: _l10n.reset,
+                  onTap: () {
+                    // Only this panel's own sliders - the chosen filter / HDR
+                    // survive, and Effects has its own Reset for those.
+                    _controller.updateImageAdjustments(id, adj.resetSliders());
+                    _controller.setOpacity(id, 1);
+                  },
+                ),
               ),
             ],
           ),
         ),
         const SizedBox(height: 2),
-        // Both buttons take a FIXED SHARE of the row and ellipsize. Reset crop
-        // used to be sized to its own content, and at a large system font in
-        // the landscape rail it alone outgrew the row - 27px of overflow that
-        // no amount of shrinking the Expanded beside it could absorb.
-        Row(
-          children: [
-            Expanded(
-              flex: 2,
-              child: OutlinedButton.icon(
-                onPressed: () => _cropSelectedImage(selected),
-                icon: const Icon(Icons.crop, size: 17),
-                label: Text(
-                  selected.isCropped ? 'Edit crop' : 'Crop photo',
-                  overflow: TextOverflow.ellipsis,
-                ),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColors.textSecondary,
-                  side: const BorderSide(color: AppColors.border),
-                  minimumSize: const Size.fromHeight(38),
-                ),
-              ),
-            ),
-            if (selected.isCropped) ...[
-              const SizedBox(width: 8),
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () => _controller.setImageCrop(
-                    id,
-                    const Rect.fromLTRB(0, 0, 1, 1),
-                  ),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.textMuted,
-                    side: const BorderSide(color: AppColors.border),
-                    // Min WIDTH stays 0: Size.fromHeight would set it to
-                    // infinity, and a button that demands infinite width
-                    // inside a Row is a layout error (#crop).
-                    minimumSize: const Size(0, 38),
-                  ),
-                  child: const Text(
-                    'Reset crop',
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ),
-            ],
-          ],
+        // STACKED, not a 2:1 Row. Sharing a row gave Reset crop a third of the
+        // panel minus an M3 OutlinedButton's 24dp of padding a side, which is
+        // about 72dp of text on a 360dp phone - enough for English "Reset crop"
+        // (68dp) and for nothing else. German rendered "Zuschnitt …" next to a
+        // full "Zuschnitt bearbeiten", i.e. two buttons whose visible labels
+        // were the same word and one of them cut; fr, es and cs were as bad.
+        // No wording fixes it - "Zuschnitt zurücksetzen" is simply the term -
+        // and no flex ratio does either, since the two labels want 200dp each
+        // in German against 324dp of panel. Full width gives every language
+        // room, and the panel scrolls, so the second line costs nothing.
+        //
+        // Size.fromHeight is safe HERE because the parent is a Column, which
+        // hands down a bounded width. It is NOT safe inside a Row - that sets
+        // the minimum width to infinity, which is the layout error (#crop)
+        // this row previously worked around by sharing the space instead.
+        OutlinedButton.icon(
+          onPressed: () => _cropSelectedImage(selected),
+          icon: const Icon(Icons.crop, size: 17),
+          label: Text(
+            selected.isCropped ? _l10n.editCrop : _l10n.cropPhoto,
+            overflow: TextOverflow.ellipsis,
+          ),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: context.colors.textSecondary,
+            side: BorderSide(color: context.colors.border),
+            minimumSize: const Size.fromHeight(38),
+          ),
         ),
+        if (selected.isCropped) ...[
+          const SizedBox(height: 8),
+          OutlinedButton(
+            onPressed: () =>
+                _controller.setImageCrop(id, const Rect.fromLTRB(0, 0, 1, 1)),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: context.colors.textMuted,
+              side: BorderSide(color: context.colors.border),
+              minimumSize: const Size.fromHeight(38),
+            ),
+            child: Text(_l10n.resetCrop, overflow: TextOverflow.ellipsis),
+          ),
+        ],
         const SizedBox(height: 6),
         LabeledSlider(
-          label: 'Brightness',
+          label: _l10n.brightness,
           value: adj.brightness * 100,
           min: 0,
           max: 200,
-          accent: AppColors.amber,
+          accent: context.colors.amber,
           valueLabel: '${(adj.brightness * 100).round()}%',
           onChanged: (v) => update(adj.copyWith(brightness: v / 100)),
           onChangeEnd: _endSliderEdit,
         ),
         LabeledSlider(
-          label: 'Contrast',
+          label: _l10n.contrast,
           value: adj.contrast * 100,
           min: 0,
           max: 200,
-          accent: AppColors.cyan,
+          accent: context.colors.cyan,
           valueLabel: '${(adj.contrast * 100).round()}%',
           onChanged: (v) => update(adj.copyWith(contrast: v / 100)),
           onChangeEnd: _endSliderEdit,
         ),
         LabeledSlider(
-          label: 'Saturation',
+          label: _l10n.saturation,
           value: adj.saturation * 100,
           min: 0,
           max: 200,
-          accent: AppColors.pink,
+          accent: context.colors.pink,
           valueLabel: '${(adj.saturation * 100).round()}%',
           onChanged: (v) => update(adj.copyWith(saturation: v / 100)),
           onChangeEnd: _endSliderEdit,
         ),
         LabeledSlider(
-          label: 'Hue',
+          label: _l10n.hue,
           value: adj.hue,
           min: -180,
           max: 180,
-          accent: AppColors.violet,
+          accent: context.colors.violet,
           valueLabel: '${adj.hue.round()}°',
           onChanged: (v) => update(adj.copyWith(hue: v)),
           onChangeEnd: _endSliderEdit,
         ),
         LabeledSlider(
-          label: 'Opacity',
+          label: _l10n.opacity,
           value: selected.opacity * 100,
           min: 0,
           max: 100,
-          accent: AppColors.green,
+          accent: context.colors.green,
           valueLabel: '${(selected.opacity * 100).round()}%',
           onChanged: (v) => _controller.setOpacity(id, v / 100),
           onChangeEnd: _endSliderEdit,
@@ -853,10 +888,10 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         OutlinedButton.icon(
           onPressed: () => _controller.setTool(EditorTool.effects),
           icon: const Icon(Icons.auto_fix_high, size: 17),
-          label: const Text('Filters, HDR, vignette, shadow…'),
+          label: Text(_l10n.effectsLink),
           style: OutlinedButton.styleFrom(
-            foregroundColor: AppColors.teal,
-            side: const BorderSide(color: AppColors.border),
+            foregroundColor: context.colors.teal,
+            side: BorderSide(color: context.colors.border),
             minimumSize: const Size.fromHeight(38),
           ),
         ),
@@ -866,32 +901,28 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
 
   // ------------------------------------------------------------ Text
   Widget _textPanel(EditorState editor) {
-    const colors = [
-      Colors.white,
-      Color(0xFF111111),
-      AppColors.pink,
-      AppColors.amber,
-      AppColors.green,
-      AppColors.cyan,
-      AppColors.violet,
-      AppColors.rose,
-      AppColors.orange,
-    ];
+    // Fixed brand hues, NOT theme colours: this list is written into the
+    // layer and saved, so it has to mean the same thing in both themes.
+    const colors = AppColors.swatches;
 
     final selected = editor.selectedLayer;
     if (selected is! TextLayer) {
       return Column(
         children: [
           _panelHeader(EditorTool.text),
-          _emptyHint('Select a text layer, or add one.'),
+          _emptyHint(_l10n.textEmptyHint),
           GradientButton(
-            label: 'Add text',
+            label: _l10n.addText,
             icon: Icons.add,
             gradient: LinearGradient(
-              colors: [AppColors.pink, AppColors.pink.withValues(alpha: 0.7)],
+              colors: [
+                context.colors.pink,
+                context.colors.pink.withValues(alpha: 0.7),
+              ],
             ),
-            glowColor: AppColors.pink,
-            onPressed: () => _controller.addTextLayer(),
+            glowColor: context.colors.pink,
+            onPressed: () =>
+                _controller.addTextLayer(text: _l10n.textLayerDefault),
           ),
         ],
       );
@@ -916,35 +947,31 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       children: [
         _panelHeader(
           EditorTool.text,
-          trailing: const _PanelHint('Tap a font to preview'),
+          trailing: _PanelHint(_l10n.tapFontToPreview),
         ),
         TextField(
           controller: _textController,
           onChanged: (v) => _controller.updateTextLayer(id, text: v),
-          style: const TextStyle(
+          style: TextStyle(
             fontFamily: AppFonts.ui,
-            color: AppColors.textPrimary,
+            color: context.colors.textPrimary,
           ),
           decoration: InputDecoration(
-            hintText: 'Type your caption…',
-            hintStyle: const TextStyle(color: AppColors.textMuted),
+            hintText: _l10n.typeYourCaption,
+            hintStyle: TextStyle(color: context.colors.textMuted),
             filled: true,
-            fillColor: AppColors.inputField,
+            fillColor: context.colors.inputField,
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 13,
               vertical: 11,
             ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(
-                color: Colors.white.withValues(alpha: 0.1),
-              ),
+              borderSide: BorderSide(color: context.colors.border),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(
-                color: Colors.white.withValues(alpha: 0.1),
-              ),
+              borderSide: BorderSide(color: context.colors.border),
             ),
           ),
         ),
@@ -966,14 +993,16 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
               final active = selected.fontFamily == f;
               return PillChip(
                 label: f,
-                accent: AppColors.pink,
+                accent: context.colors.pink,
                 selected: active,
                 radius: 12,
                 onTap: () => _controller.updateTextLayer(id, fontFamily: f),
                 labelStyle: TextStyle(
                   fontFamily: f,
                   fontSize: 16,
-                  color: active ? Colors.white : AppColors.textSecondary,
+                  color: active
+                      ? context.colors.textPrimary
+                      : context.colors.textSecondary,
                 ),
               );
             },
@@ -981,12 +1010,12 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         ),
         const SizedBox(height: 8),
         LabeledSlider(
-          label: 'Size',
+          label: _l10n.size,
           value: selected.fontSize,
           min: 16,
           max: 72,
-          accent: AppColors.pink,
-          valueColor: AppColors.textMuted,
+          accent: context.colors.pink,
+          valueColor: context.colors.textMuted,
           valueLabel: '${selected.fontSize.round()}px',
           onChanged: (v) => _controller.updateTextLayer(id, fontSize: v),
           onChangeEnd: _endSliderEdit,
@@ -1007,8 +1036,8 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                     shape: BoxShape.circle,
                     border: Border.all(
                       color: selected.color == c
-                          ? Colors.white
-                          : Colors.white.withValues(alpha: 0.15),
+                          ? context.colors.textPrimary
+                          : context.colors.borderStrong,
                       width: selected.color == c ? 3 : 2,
                     ),
                   ),
@@ -1020,36 +1049,36 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const _PanelHint('OUTLINE'),
+            _PanelHint(_l10n.outlineSection),
             if (selected.strokeColor != null)
               PillChip(
                 key: const ValueKey('text-stroke-auto'),
-                label: 'Auto color',
+                label: _l10n.autoColor,
                 onTap: () => _controller.updateTextStroke(id, autoColor: true),
               ),
           ],
         ),
         LabeledSlider(
-          label: 'Thickness',
+          label: _l10n.thickness,
           value: selected.strokeWidth,
           min: 0,
           max: 16,
-          accent: AppColors.pink,
-          valueColor: AppColors.textMuted,
+          accent: context.colors.pink,
+          valueColor: context.colors.textMuted,
           valueLabel: selected.strokeWidth < 0.05
-              ? 'Off'
+              ? _l10n.off
               : selected.strokeWidth.toStringAsFixed(1),
           onChanged: (v) => _controller.updateTextStroke(id, width: v),
           onChangeEnd: _endSliderEdit,
         ),
         if (selected.hasStroke) ...[
           LabeledSlider(
-            label: 'Outline opacity',
+            label: _l10n.outlineOpacity,
             value: selected.strokeOpacity * 100,
             min: 0,
             max: 100,
-            accent: AppColors.pink,
-            valueColor: AppColors.textMuted,
+            accent: context.colors.pink,
+            valueColor: context.colors.textMuted,
             valueLabel: '${(selected.strokeOpacity * 100).round()}%',
             onChanged: (v) =>
                 _controller.updateTextStroke(id, opacity: v / 100),
@@ -1057,7 +1086,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
           ),
           const SizedBox(height: 4),
           _swatchRow(
-            'Color',
+            _l10n.color,
             // Show the automatic pick as the current swatch until the user
             // chooses one, so the row never looks unrelated to the canvas.
             TextCaption.resolveStrokeColor(
@@ -1082,7 +1111,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     } else {
       _controller.updateTextLayer(layerId, fontFamily: family);
     }
-    _toast('Added font · $family');
+    _toast(_l10n.fontAdded(family));
   }
 
   /// The "+ Font" chip at the end of a font row - opens the .ttf/.otf picker.
@@ -1094,20 +1123,20 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         alignment: Alignment.center,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.border),
+          border: Border.all(color: context.colors.border),
         ),
-        child: const Row(
+        child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.add, size: 15, color: AppColors.textSecondary),
-            SizedBox(width: 5),
+            Icon(Icons.add, size: 15, color: context.colors.textSecondary),
+            const SizedBox(width: 5),
             Text(
-              'Font',
+              _l10n.font,
               style: TextStyle(
                 fontFamily: AppFonts.ui,
                 fontSize: 12.5,
                 fontWeight: FontWeight.w700,
-                color: AppColors.textSecondary,
+                color: context.colors.textSecondary,
               ),
             ),
           ],
@@ -1140,7 +1169,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         // No trailing hint naming the format: the row below already shows which
         // one is on, drawn and highlighted, and a second copy is what pushed
         // this header past a narrow landscape column.
-        _panelHeader(EditorTool.text, title: 'Comic bubble'),
+        _panelHeader(EditorTool.text, title: _l10n.comicBubble),
         // Formats are drawn, not just named: as five text pills, four of the
         // five read as jargon and only the default ever got picked. Same tile
         // as the creation sheet, so the row doubles as "you can still change
@@ -1177,30 +1206,26 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
           controller: _bubbleTextController,
           onChanged: (v) => _controller.updateBubbleLayer(id, text: v),
           textAlign: TextAlign.center,
-          style: const TextStyle(
+          style: TextStyle(
             fontFamily: AppFonts.ui,
-            color: AppColors.textPrimary,
+            color: context.colors.textPrimary,
           ),
           decoration: InputDecoration(
-            hintText: 'Bubble text…',
-            hintStyle: const TextStyle(color: AppColors.textMuted),
+            hintText: _l10n.bubbleTextHint,
+            hintStyle: TextStyle(color: context.colors.textMuted),
             filled: true,
-            fillColor: AppColors.inputField,
+            fillColor: context.colors.inputField,
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 13,
               vertical: 11,
             ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(
-                color: Colors.white.withValues(alpha: 0.1),
-              ),
+              borderSide: BorderSide(color: context.colors.border),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(
-                color: Colors.white.withValues(alpha: 0.1),
-              ),
+              borderSide: BorderSide(color: context.colors.border),
             ),
           ),
         ),
@@ -1225,14 +1250,16 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
               final active = bubble.fontFamily == f;
               return PillChip(
                 label: f,
-                accent: AppColors.pink,
+                accent: context.colors.pink,
                 selected: active,
                 radius: 12,
                 onTap: () => _controller.updateBubbleLayer(id, fontFamily: f),
                 labelStyle: TextStyle(
                   fontFamily: f,
                   fontSize: 16,
-                  color: active ? Colors.white : AppColors.textSecondary,
+                  color: active
+                      ? context.colors.textPrimary
+                      : context.colors.textSecondary,
                 ),
               );
             },
@@ -1240,19 +1267,19 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         ),
         const SizedBox(height: 4),
         LabeledSlider(
-          label: 'Size',
+          label: _l10n.size,
           value: bubble.fontSize,
           min: 14,
           max: 44,
-          accent: AppColors.pink,
-          valueColor: AppColors.textMuted,
+          accent: context.colors.pink,
+          valueColor: context.colors.textMuted,
           valueLabel: '${bubble.fontSize.round()}px',
           onChanged: (v) => _controller.updateBubbleLayer(id, fontSize: v),
           onChangeEnd: _endSliderEdit,
         ),
         const SizedBox(height: 4),
         _swatchRow(
-          'Fill',
+          _l10n.fill,
           bubble.fillColor,
           (c) => _controller.updateBubbleLayer(
             id,
@@ -1262,20 +1289,20 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         ),
         const SizedBox(height: 10),
         _swatchRow(
-          'Outline',
+          _l10n.outline,
           bubble.strokeColor,
           (c) => _controller.updateBubbleLayer(id, strokeColor: c),
         ),
         const SizedBox(height: 8),
         // The tail is direct-manipulation now: drag the round knob at its tip
         // on the canvas - any direction, any shape (#78).
-        const Text(
-          'Drag the dot at the tail tip to aim it - any direction.',
+        Text(
+          _l10n.bubbleTailHint,
           textAlign: TextAlign.center,
           style: TextStyle(
             fontFamily: AppFonts.ui,
             fontSize: 11.5,
-            color: AppColors.textMuted,
+            color: context.colors.textMuted,
           ),
         ),
       ],
@@ -1290,12 +1317,12 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
   Future<void> _addBubble() async {
     final shape = await showBubbleShapeSheet(context);
     if (shape == null || !mounted) return;
-    _controller.addBubbleLayer(shape: shape);
+    _controller.addBubbleLayer(shape: shape, bubbleLabel: _l10n.bubble);
     _controller.setTool(EditorTool.text);
     if (!_sidePanelOpen) setState(() => _sidePanelOpen = true);
     // "in the panel", not "below": in landscape the panel is a rail to the
     // left of the canvas, so a direction would be wrong half the time.
-    _toast('${bubbleShapeLabel(shape)} bubble added - edit it in the panel');
+    _toast(_l10n.bubbleAdded(bubbleShapeLabel(_l10n, shape)));
   }
 
   /// Scrolls the Bubble panel's format row so [shape]'s tile is on screen.
@@ -1321,41 +1348,50 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
 
   /// Names for the swatch row, positionally matched to its colours - a screen
   /// reader has nothing else to go on.
-  static const _colorNames = [
-    'white',
-    'black',
-    'pink',
-    'amber',
-    'green',
-    'cyan',
-    'violet',
-    'rose',
-    'orange',
+  ///
+  /// Localized, and easy to miss that it has to be: these never appear as a
+  /// `Text`, only inside a `Semantics` label, so nothing on screen shows them
+  /// and an ARB-to-ARB parity test cannot see a string that was never keyed.
+  /// As English literals they made a Polish user's screen reader say
+  /// "Wypełnienie white".
+  List<String> get _colorNames => [
+    _l10n.swatchWhite,
+    _l10n.swatchBlack,
+    _l10n.swatchPink,
+    _l10n.swatchAmber,
+    _l10n.swatchGreen,
+    _l10n.swatchCyan,
+    _l10n.swatchViolet,
+    _l10n.swatchRose,
+    _l10n.swatchOrange,
   ];
 
   /// A labelled row of 9 color swatches for the bubble fill / outline.
   Widget _swatchRow(String label, Color selected, ValueChanged<Color> onPick) {
-    const colors = [
-      Colors.white,
-      Color(0xFF111111),
-      AppColors.pink,
-      AppColors.amber,
-      AppColors.green,
-      AppColors.cyan,
-      AppColors.violet,
-      AppColors.rose,
-      AppColors.orange,
-    ];
+    // Fixed brand hues, NOT theme colours: this list is written into the
+    // layer and saved, so it has to mean the same thing in both themes.
+    const colors = AppColors.swatches;
     return Row(
       children: [
         SizedBox(
-          width: 52,
+          // 84, not the 52 this was built at for English "Fill" / "Outline".
+          // These labels are single words, so a box narrower than the word has
+          // nowhere to break and Flutter splits it mid-word: Polish rendered
+          // "Wypełni / enie", French would do the same with "Remplissage".
+          // Widening is the right fix rather than shortening the words,
+          // because this slot HAS give - the swatches beside it are a
+          // horizontally scrolling list, so the extra dp comes out of a row
+          // that was already scrolling. 84 was measured, not guessed: at 72
+          // the Polish still ellipsized to "Wypełnien…".
+          width: 84,
           child: Text(
             label,
-            style: const TextStyle(
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
               fontFamily: AppFonts.ui,
               fontSize: 12,
-              color: AppColors.textSecondary,
+              color: context.colors.textSecondary,
             ),
           ),
         ),
@@ -1378,7 +1414,11 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                   // Unlabeled, these were nine identical "button" nodes to a
                   // screen reader, in a row whose whole purpose is which one
                   // is which.
-                  label: '$label ${_colorNames[i]}',
+                  // Comma-separated: the row label and the colour name are two
+                  // facts, not a phrase, so nothing has to agree with
+                  // anything. "Wypelnienie, bialy" is right where
+                  // "Wypelnienie bialy" would not be.
+                  label: '$label, ${_colorNames[i]}',
                   excludeSemantics: true,
                   child: GestureDetector(
                     onTap: () => onPick(c),
@@ -1395,8 +1435,8 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                             shape: BoxShape.circle,
                             border: Border.all(
                               color: selected == c
-                                  ? Colors.white
-                                  : Colors.white.withValues(alpha: 0.15),
+                                  ? context.colors.textPrimary
+                                  : context.colors.borderStrong,
                               width: selected == c ? 3 : 2,
                             ),
                           ),
@@ -1423,7 +1463,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _panelHeader(EditorTool.grid),
-          _emptyHint('This project is not a photo grid.'),
+          _emptyHint(_l10n.notAPhotoGrid),
         ],
       );
     }
@@ -1436,14 +1476,14 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         _panelHeader(
           EditorTool.grid,
           trailing: PillChip(
-            label: 'Shuffle',
+            label: _l10n.shuffle,
             icon: Icons.shuffle,
             accent: accent,
             selected: true,
             onTap: _controller.shuffleGridPhotos,
           ),
         ),
-        const _PanelHint('PHOTOS'),
+        _PanelHint(_l10n.photosSection),
         const SizedBox(height: 8),
         Row(
           children: [
@@ -1462,7 +1502,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
           ],
         ),
         const SizedBox(height: 14),
-        const _PanelHint('LAYOUT'),
+        _PanelHint(_l10n.layoutSection),
         const SizedBox(height: 8),
         GridTemplateStrip(
           templates: templates,
@@ -1474,7 +1514,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         ),
         const SizedBox(height: 10),
         LabeledSlider(
-          label: 'Border',
+          label: _l10n.border,
           value: grid.borderWidth,
           min: 0,
           max: GridSpec.maxBorderWidth,
@@ -1484,7 +1524,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
           onChangeEnd: (_) => _controller.endEdit(),
         ),
         LabeledSlider(
-          label: 'Corners',
+          label: _l10n.corners,
           value: grid.cornerRadius,
           min: 0,
           max: GridSpec.maxCornerRadius,
@@ -1495,7 +1535,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         ),
         const SizedBox(height: 4),
         _swatchRow(
-          'Color',
+          _l10n.color,
           grid.borderColor,
           (c) => _controller.setGridBorder(color: c),
         ),
@@ -1520,15 +1560,12 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
           _panelHeader(
             EditorTool.effects,
             trailing: PillChip(
-              label: 'Add',
+              label: _l10n.add,
               icon: Icons.add,
               onTap: _showAddMenu,
             ),
           ),
-          _emptyHint(
-            'Select a layer to give it a look.\nFilters, HDR and vignette for '
-            'photos; shadow, outline and blending for anything.',
-          ),
+          _emptyHint(_l10n.effectsEmptyHint),
         ],
       );
     }
@@ -1544,12 +1581,12 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
           EditorTool.effects,
           trailing: PillChip(
             key: const ValueKey('effects-reset'),
-            label: 'Reset',
+            label: _l10n.reset,
             onTap: () => _controller.resetLayerEffects(id),
           ),
         ),
         if (image != null) ...[
-          const _PanelHint('FILTER'),
+          _PanelHint(_l10n.filterSection),
           const SizedBox(height: 8),
           FilterStrip(
             assetPath: image.assetPath,
@@ -1558,7 +1595,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
           ),
           if (image.adjustments.hasFilter)
             LabeledSlider(
-              label: 'Strength',
+              label: _l10n.strength,
               value: image.adjustments.filterStrength * 100,
               min: 0,
               max: 100,
@@ -1569,50 +1606,50 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
               onChangeEnd: _endSliderEdit,
             ),
           const SizedBox(height: 10),
-          const _PanelHint('HDR'),
+          _PanelHint(_l10n.hdrSection),
           LabeledSlider(
-            label: 'Tone + detail',
+            label: _l10n.toneAndDetail,
             value: image.adjustments.hdr * 100,
             min: 0,
             max: 100,
-            accent: AppColors.greenLight,
+            accent: context.colors.greenLight,
             valueLabel: image.adjustments.hdr < 0.005
-                ? 'Off'
+                ? _l10n.off
                 : '${(image.adjustments.hdr * 100).round()}%',
             onChanged: (v) => _controller.setHdr(id, v / 100),
             onChangeEnd: _endSliderEdit,
           ),
           const SizedBox(height: 6),
-          const _PanelHint('VIGNETTE'),
+          _PanelHint(_l10n.vignetteSection),
           LabeledSlider(
-            label: 'Amount',
+            label: _l10n.amount,
             value: image.vignette.amount * 100,
             min: 0,
             max: 100,
-            accent: AppColors.violet,
+            accent: context.colors.violet,
             valueLabel: image.vignette.amount < 0.005
-                ? 'Off'
+                ? _l10n.off
                 : '${(image.vignette.amount * 100).round()}%',
             onChanged: (v) => _controller.updateVignette(id, amount: v / 100),
             onChangeEnd: _endSliderEdit,
           ),
           if (image.vignette.isVisible) ...[
             LabeledSlider(
-              label: 'Size',
+              label: _l10n.size,
               value: image.vignette.size * 100,
               min: 5,
               max: 95,
-              accent: AppColors.violet,
+              accent: context.colors.violet,
               valueLabel: '${(image.vignette.size * 100).round()}%',
               onChanged: (v) => _controller.updateVignette(id, size: v / 100),
               onChangeEnd: _endSliderEdit,
             ),
             LabeledSlider(
-              label: 'Softness',
+              label: _l10n.softness,
               value: image.vignette.softness * 100,
               min: 0,
               max: 100,
-              accent: AppColors.violet,
+              accent: context.colors.violet,
               valueLabel: '${(image.vignette.softness * 100).round()}%',
               onChanged: (v) =>
                   _controller.updateVignette(id, softness: v / 100),
@@ -1620,23 +1657,23 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
             ),
             const SizedBox(height: 4),
             _swatchRow(
-              'Color',
+              _l10n.color,
               image.vignette.color,
               (c) => _controller.updateVignette(id, color: c),
             ),
           ],
           const SizedBox(height: 12),
         ],
-        const _PanelHint('SHADOW'),
+        _PanelHint(_l10n.shadowSection),
         LabeledSlider(
-          label: 'Opacity',
+          label: _l10n.opacity,
           value: shadow.enabled ? shadow.opacity * 100 : 0,
           min: 0,
           max: 100,
-          accent: AppColors.cyan,
+          accent: context.colors.cyan,
           valueLabel: shadow.isVisible
               ? '${(shadow.opacity * 100).round()}%'
-              : 'Off',
+              : _l10n.off,
           onChanged: (v) => _controller.updateLayerShadow(
             id,
             enabled: v > 0,
@@ -1646,71 +1683,77 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         ),
         if (shadow.isVisible) ...[
           LabeledSlider(
-            label: 'Direction',
+            label: _l10n.direction,
             value: shadow.angle,
             min: 0,
             max: 360,
-            accent: AppColors.cyan,
+            accent: context.colors.cyan,
             valueLabel: '${shadow.angle.round()}°',
             onChanged: (v) => _controller.updateLayerShadow(id, angle: v),
             onChangeEnd: _endSliderEdit,
           ),
           LabeledSlider(
-            label: 'Distance',
+            label: _l10n.distance,
             value: shadow.distance,
             min: 0,
             max: 120,
-            accent: AppColors.cyan,
+            accent: context.colors.cyan,
             valueLabel: '${shadow.distance.round()} px',
             onChanged: (v) => _controller.updateLayerShadow(id, distance: v),
             onChangeEnd: _endSliderEdit,
           ),
           LabeledSlider(
-            label: 'Blur',
+            label: _l10n.blur,
             value: shadow.blur,
             min: 0,
             max: 80,
-            accent: AppColors.cyan,
+            accent: context.colors.cyan,
             valueLabel: '${shadow.blur.round()} px',
             onChanged: (v) => _controller.updateLayerShadow(id, blur: v),
             onChangeEnd: _endSliderEdit,
           ),
           LabeledSlider(
-            label: 'Density',
+            label: _l10n.density,
             value: shadow.density,
             min: 0,
             max: 30,
-            accent: AppColors.cyan,
+            accent: context.colors.cyan,
             valueLabel: '${shadow.density.round()} px',
             onChanged: (v) => _controller.updateLayerShadow(id, density: v),
             onChangeEnd: _endSliderEdit,
           ),
           const SizedBox(height: 4),
           _swatchRow(
-            'Color',
+            _l10n.color,
             shadow.color,
             (c) => _controller.updateLayerShadow(id, color: c),
           ),
         ],
         const SizedBox(height: 12),
-        _PanelHint(image?.maskPath != null ? 'CUTOUT OUTLINE' : 'OUTLINE'),
+        _PanelHint(
+          image?.maskPath != null
+              ? _l10n.cutoutOutlineSection
+              : _l10n.outlineSection,
+        ),
         LabeledSlider(
-          label: 'Thickness',
+          label: _l10n.thickness,
           value: stroke.width,
           min: 0,
           max: 40,
-          accent: AppColors.violetLight,
-          valueLabel: stroke.width < 0.5 ? 'Off' : '${stroke.width.round()} px',
+          accent: context.colors.violetLight,
+          valueLabel: stroke.width < 0.5
+              ? _l10n.off
+              : _l10n.pixels(stroke.width.round()),
           onChanged: (v) => _controller.updateLayerStroke(id, width: v),
           onChangeEnd: _endSliderEdit,
         ),
         if (stroke.isVisible) ...[
           LabeledSlider(
-            label: 'Opacity',
+            label: _l10n.opacity,
             value: stroke.opacity * 100,
             min: 0,
             max: 100,
-            accent: AppColors.violetLight,
+            accent: context.colors.violetLight,
             valueLabel: '${(stroke.opacity * 100).round()}%',
             onChanged: (v) =>
                 _controller.updateLayerStroke(id, opacity: v / 100),
@@ -1718,13 +1761,13 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
           ),
           const SizedBox(height: 4),
           _swatchRow(
-            'Color',
+            _l10n.color,
             stroke.color,
             (c) => _controller.updateLayerStroke(id, color: c),
           ),
         ],
         const SizedBox(height: 14),
-        const _PanelHint('BLEND'),
+        _PanelHint(_l10n.blendSection),
         const SizedBox(height: 8),
         Wrap(
           spacing: 8,
@@ -1733,7 +1776,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
             for (final blend in LayerBlend.values)
               PillChip(
                 key: ValueKey('blend-${blend.name}'),
-                label: blend.label,
+                label: blend.labelOf(_l10n),
                 accent: accent,
                 selected: effects.blend == blend,
                 onTap: () => _controller.setLayerBlend(id, blend),
@@ -1755,23 +1798,23 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     final image = selected is ImageLayer ? selected : null;
     final removed = image?.maskPath != null;
     final label = _removingBg
-        ? 'Working…'
-        : (removed ? 'Undo removal' : 'Remove background');
+        ? _l10n.working
+        : (removed ? _l10n.undoRemoval : _l10n.removeBackground);
     final model = ref.watch(segModelProvider).asData?.value ?? SegModel.builtin;
     final removeMode = _removeObjectMode;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Padding(
-          padding: EdgeInsets.only(bottom: 4),
+        Padding(
+          padding: const EdgeInsets.only(bottom: 4),
           child: Text(
-            'AI Background Removal',
+            _l10n.toolCutoutPanel,
             textAlign: TextAlign.center,
             style: TextStyle(
               fontFamily: AppFonts.display,
               fontWeight: FontWeight.w600,
               fontSize: 16,
-              color: AppColors.green,
+              color: context.colors.green,
             ),
           ),
         ),
@@ -1782,51 +1825,52 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
             children: [
               Expanded(
                 child: _segTab(
-                  'Background',
+                  _l10n.background,
                   !removeMode,
-                  AppColors.green,
+                  context.colors.green,
                   () => setState(() => _removeObjectMode = false),
                 ),
               ),
               const SizedBox(width: 8),
               Expanded(
-                child: _segTab('Remove object', removeMode, AppColors.rose, () {
-                  setState(() => _removeObjectMode = true);
-                  // Warm the SAM image embedding while the user aims, so
-                  // the first escalated tap only pays the decoder (#85) -
-                  // skipped entirely on capability-denied devices and after
-                  // a hard engine failure.
-                  unawaited(_precomputeSamIfAllowed(image.assetPath));
-                }),
+                child: _segTab(
+                  _l10n.removeObject,
+                  removeMode,
+                  context.colors.rose,
+                  () {
+                    setState(() => _removeObjectMode = true);
+                    // Warm the SAM image embedding while the user aims, so
+                    // the first escalated tap only pays the decoder (#85) -
+                    // skipped entirely on capability-denied devices and after
+                    // a hard engine failure.
+                    unawaited(_precomputeSamIfAllowed(image.assetPath));
+                  },
+                ),
               ),
             ],
           ),
           const SizedBox(height: 4),
         ],
         if (removeMode) ...[
-          _emptyHint(
-            'Tap an unwanted object on the photo to remove it - a stray '
-            'item, a second subject, clutter. Tapping the main subject is '
-            'safely ignored; undo brings anything back.',
-          ),
+          _emptyHint(_l10n.objectRemoveHint),
           if (ref.watch(inpaintAvailableProvider).asData?.value ?? false) ...[
             const SizedBox(height: 8),
             Row(
               children: [
                 Expanded(
                   child: _segTab(
-                    'Erase',
+                    _l10n.erase,
                     !_fillMode,
-                    AppColors.rose,
+                    context.colors.rose,
                     () => setState(() => _fillMode = false),
                   ),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: _segTab(
-                    'Fill (AI)',
+                    _l10n.fillAi,
                     _fillMode,
-                    AppColors.cyan,
+                    context.colors.cyan,
                     () => setState(() => _fillMode = true),
                   ),
                 ),
@@ -1834,23 +1878,18 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
             ),
             const SizedBox(height: 3),
             Text(
-              _fillMode
-                  ? 'Fill replaces the object with matching background.'
-                  : 'Erase cuts the object out to transparency.',
+              _fillMode ? _l10n.fillExplainer : _l10n.eraseExplainer,
               textAlign: TextAlign.center,
-              style: const TextStyle(
+              style: TextStyle(
                 fontFamily: AppFonts.ui,
                 fontSize: 10.5,
-                color: AppColors.textMuted,
+                color: context.colors.textMuted,
               ),
             ),
           ],
         ] else ...[
           _emptyHint(
-            image == null
-                ? 'Select a photo layer to cut out.'
-                : "One tap to isolate your subject. We'll auto-detect the "
-                      'edges - refine anything by hand in the Erase tool.',
+            image == null ? _l10n.cutoutSelectPhoto : _l10n.cutoutHint,
           ),
           _modelPicker(model),
           const SizedBox(height: 16),
@@ -1859,15 +1898,17 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
             icon: Icons.auto_awesome,
             busy: _removingBg,
             gradient: removed ? null : context.tokens.cutoutGradient,
-            solidColor: removed ? AppColors.neutralButton : null,
-            foreground: removed ? AppColors.textSecondary : AppColors.cutoutInk,
-            glowColor: AppColors.green,
+            solidColor: removed ? context.colors.neutralButton : null,
+            foreground: removed
+                ? context.colors.textSecondary
+                : context.colors.onAccent,
+            glowColor: context.colors.green,
             onPressed: image == null
                 ? null
                 : () {
                     if (removed) {
                       _controller.setImageMask(image.id, null);
-                      _toast('Background restored');
+                      _toast(_l10n.backgroundRestored);
                     } else {
                       _removeBackground(image);
                     }
@@ -1889,14 +1930,14 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
           padding: const EdgeInsets.only(bottom: 10),
           child: Row(
             children: [
-              const Text(
-                'AI MODEL',
+              Text(
+                _l10n.aiModelSection,
                 style: TextStyle(
                   fontFamily: AppFonts.ui,
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 0.4,
-                  color: AppColors.textSecondary,
+                  color: context.colors.textSecondary,
                 ),
               ),
               const SizedBox(width: 7),
@@ -1921,20 +1962,20 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         alignment: Alignment.center,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: AppColors.green.withValues(alpha: 0.12),
+          color: context.colors.green.withValues(alpha: 0.12),
           border: Border.all(
-            color: AppColors.green.withValues(alpha: 0.5),
+            color: context.colors.green.withValues(alpha: 0.5),
             width: 1.5,
           ),
         ),
-        child: const Text(
+        child: Text(
           '?',
           style: TextStyle(
             fontFamily: AppFonts.display,
             fontWeight: FontWeight.w700,
             fontSize: 12,
             height: 1,
-            color: AppColors.greenLight,
+            color: context.colors.greenLight,
           ),
         ),
       ),
@@ -1951,13 +1992,13 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 11),
         decoration: BoxDecoration(
           color: selected
-              ? AppColors.green.withValues(alpha: 0.10)
-              : AppColors.card,
+              ? context.colors.green.withValues(alpha: 0.10)
+              : context.colors.card,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
             color: selected
-                ? AppColors.green.withValues(alpha: 0.6)
-                : AppColors.border,
+                ? context.colors.green.withValues(alpha: 0.6)
+                : context.colors.border,
             width: 1.5,
           ),
         ),
@@ -1970,21 +2011,21 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    model.label,
-                    style: const TextStyle(
+                    model.labelOf(_l10n),
+                    style: TextStyle(
                       fontFamily: AppFonts.ui,
                       fontSize: 13.5,
                       fontWeight: FontWeight.w700,
-                      color: AppColors.textPrimary,
+                      color: context.colors.textPrimary,
                     ),
                   ),
                   const SizedBox(height: 1),
                   Text(
-                    model.tagline,
-                    style: const TextStyle(
+                    model.taglineOf(_l10n),
+                    style: TextStyle(
                       fontFamily: AppFonts.ui,
                       fontSize: 11,
-                      color: AppColors.textMuted,
+                      color: context.colors.textMuted,
                     ),
                   ),
                 ],
@@ -2003,18 +2044,18 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       alignment: Alignment.center,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: selected ? AppColors.green : Colors.transparent,
+        color: selected ? context.colors.green : Colors.transparent,
         border: selected
             ? null
-            : Border.all(color: Colors.white.withValues(alpha: 0.22), width: 2),
+            : Border.all(color: context.colors.borderStrong, width: 2),
       ),
       child: selected
-          ? const DecoratedBox(
+          ? DecoratedBox(
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.white,
+                color: context.colors.onAccent,
               ),
-              child: SizedBox(width: 8, height: 8),
+              child: const SizedBox(width: 8, height: 8),
             )
           : null,
     );
@@ -2026,21 +2067,21 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       context: context,
       // So the sheet may use the height it needs; SheetBody caps and scrolls it.
       isScrollControlled: true,
-      backgroundColor: AppColors.card,
+      backgroundColor: context.colors.card,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (ctx) => SheetBody(
         children: [
-          const Padding(
-            padding: EdgeInsets.only(bottom: 14),
+          Padding(
+            padding: const EdgeInsets.only(bottom: 14),
             child: Text(
-              'Which AI model?',
+              _l10n.whichAiModel,
               style: TextStyle(
                 fontFamily: AppFonts.display,
                 fontWeight: FontWeight.w600,
                 fontSize: 18,
-                color: AppColors.green,
+                color: context.colors.green,
               ),
             ),
           ),
@@ -2057,30 +2098,30 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 14),
       decoration: BoxDecoration(
-        color: AppColors.inputField,
+        color: context.colors.inputField,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: context.colors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            model.label,
-            style: const TextStyle(
+            model.labelOf(_l10n),
+            style: TextStyle(
               fontFamily: AppFonts.ui,
               fontSize: 14,
               fontWeight: FontWeight.w700,
-              color: AppColors.greenLight,
+              color: context.colors.greenLight,
             ),
           ),
           const SizedBox(height: 5),
           Text(
-            model.blurb,
-            style: const TextStyle(
+            model.blurbOf(_l10n),
+            style: TextStyle(
               fontFamily: AppFonts.ui,
               fontSize: 12.5,
               height: 1.55,
-              color: AppColors.textSecondary,
+              color: context.colors.textSecondary,
             ),
           ),
         ],
@@ -2105,11 +2146,9 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     final outcome = await AdGate.run(
       context,
       ref,
-      title: 'Unlock AI tools',
-      message:
-          'Watch a short ad to use the AI tools for the rest of this editing '
-          'session. Go Pro to use them without ads, forever.',
-      watchLabel: 'Watch & unlock',
+      title: _l10n.aiGateTitle,
+      message: _l10n.aiGateMessage,
+      watchLabel: _l10n.aiGateWatch,
     );
     if (outcome.allows) {
       _aiUnlockedThisSession = true;
@@ -2120,7 +2159,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     // looking at the purchase screen - telling them there to consider Go Pro is
     // exactly the nag this gate exists to avoid.
     if (outcome == AdGateOutcome.notRewarded && mounted) {
-      _toast('Watch the full ad to use AI, or Go Pro to remove ads', ok: false);
+      _toast(_l10n.aiGateNotRewarded, ok: false);
     }
     return false;
   }
@@ -2141,10 +2180,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       );
       if (result == null) {
         if (mounted) {
-          _toast(
-            "Background removal isn't available on this device yet",
-            ok: false,
-          );
+          _toast(_l10n.bgRemovalUnavailable, ok: false);
         }
         return;
       }
@@ -2163,7 +2199,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       // Applying to a document that no longer has it is a no-op that used to
       // still toast "Background removed" over an unchanged picture.
       if (!_controller.hasLayer(image.id)) {
-        _toast('That layer is gone - the cut-out was discarded', ok: false);
+        _toast(_l10n.layerGoneCutoutDiscarded, ok: false);
         return;
       }
       _maskGc.supersede(image.maskPath, path);
@@ -2174,13 +2210,13 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         final used = SegModel.fromEngineId(result.engineId);
         _toast(
           used == null
-              ? 'Background removed'
-              : 'Background removed · ${used.label}',
+              ? _l10n.backgroundRemoved
+              : _l10n.backgroundRemovedWith(used.labelOf(_l10n)),
         );
       }
     } catch (_) {
       if (mounted) {
-        _toast("Couldn't remove the background - try again", ok: false);
+        _toast(_l10n.bgRemovalFailed, ok: false);
       }
     } finally {
       if (mounted) setState(() => _removingBg = false);
@@ -2224,7 +2260,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     // The layer can be deleted while this runs - nothing blocks the dock or
     // the Layers panel during a cut-out.
     if (!_controller.hasLayer(image.id)) {
-      _toast('That layer is gone - the cut-out was discarded', ok: false);
+      _toast(_l10n.layerGoneCutoutDiscarded, ok: false);
       return;
     }
     _maskGc.supersede(image.maskPath, path);
@@ -2235,7 +2271,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     final selected = ref.read(editorControllerProvider).selectedLayer;
     final image = selected is ImageLayer ? selected : null;
     if (image == null) {
-      _toast('Select a photo layer to cut out', ok: false);
+      _toast(_l10n.selectPhotoToCutOut, ok: false);
       return;
     }
     var objectMode = false;
@@ -2248,7 +2284,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.panel,
+      backgroundColor: context.colors.panel,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -2267,7 +2303,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                 _startObjectRemoval(image);
                 return;
               }
-              engineLabel = model.label;
+              engineLabel = model.labelOf(_l10n);
               setSheet(() => stage = 'processing');
               final result = await _segment(image);
               // Deliberately the SCREEN's `mounted`, not the sheet's. The sheet
@@ -2278,10 +2314,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
               if (!mounted) return;
               if (result == null) {
                 if (sheetCtx.mounted) setSheet(() => stage = 'choose');
-                _toast(
-                  "Background removal isn't available on this device yet",
-                  ok: false,
-                );
+                _toast(_l10n.bgRemovalUnavailable, ok: false);
                 return;
               }
               raw = result.mask;
@@ -2295,7 +2328,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
               if (!sheetCtx.mounted) {
                 // Dismissed mid-run: the work landed anyway, so say so - the
                 // sheet's own "done" stage is not there to report it.
-                _toast('Background removed · $engineLabel');
+                _toast(_l10n.backgroundRemovedWith(engineLabel));
                 return;
               }
               setSheet(() => stage = 'done');
@@ -2305,33 +2338,33 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
             if (stage == 'processing') {
               children = [
                 const SizedBox(height: 12),
-                const SizedBox(
+                SizedBox(
                   width: 64,
                   height: 64,
                   child: CircularProgressIndicator(
                     strokeWidth: 5,
-                    color: AppColors.cyan,
+                    color: context.colors.cyan,
                   ),
                 ),
                 const SizedBox(height: 20),
                 Text(
-                  '$engineLabel is working…',
+                  _l10n.engineWorking(engineLabel),
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: AppFonts.display,
                     fontWeight: FontWeight.w700,
                     fontSize: 16,
-                    color: AppColors.textPrimary,
+                    color: context.colors.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 6),
-                const Text(
-                  'Detecting the subject & refining edges · on device',
+                Text(
+                  _l10n.detectingSubject,
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontFamily: AppFonts.ui,
                     fontSize: 11.5,
-                    color: AppColors.textSecondary,
+                    color: context.colors.textSecondary,
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -2343,24 +2376,24 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                     Container(
                       width: 30,
                       height: 30,
-                      decoration: const BoxDecoration(
-                        color: AppColors.green,
+                      decoration: BoxDecoration(
+                        color: context.colors.green,
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.check,
                         size: 18,
-                        color: AppColors.cutoutInk,
+                        color: context.colors.onAccent,
                       ),
                     ),
                     const SizedBox(width: 10),
-                    const Text(
-                      'Background removed',
+                    Text(
+                      _l10n.backgroundRemoved,
                       style: TextStyle(
                         fontFamily: AppFonts.display,
                         fontWeight: FontWeight.w700,
                         fontSize: 16,
-                        color: AppColors.textPrimary,
+                        color: context.colors.textPrimary,
                       ),
                     ),
                   ],
@@ -2368,12 +2401,12 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                 const SizedBox(height: 14),
                 Row(
                   children: [
-                    const Text(
-                      'Edge feather',
+                    Text(
+                      _l10n.edgeFeather,
                       style: TextStyle(
                         fontFamily: AppFonts.ui,
                         fontSize: 12,
-                        color: AppColors.textSecondary,
+                        color: context.colors.textSecondary,
                       ),
                     ),
                     Expanded(
@@ -2381,7 +2414,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                         value: feather,
                         max: 8,
                         divisions: 8,
-                        activeColor: AppColors.cyan,
+                        activeColor: context.colors.cyan,
                         label: feather.round().toString(),
                         onChanged: (v) => setSheet(() => feather = v),
                         onChangeEnd: (v) => _applyCutout(
@@ -2400,8 +2433,8 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                     OutlinedButton(
                       onPressed: () => setSheet(() => stage = 'choose'),
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.textSecondary,
-                        side: const BorderSide(color: AppColors.border),
+                        foregroundColor: context.colors.textSecondary,
+                        side: BorderSide(color: context.colors.border),
                         minimumSize: const Size(52, 50),
                       ),
                       child: const Icon(Icons.refresh, size: 18),
@@ -2411,13 +2444,13 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                       child: FilledButton(
                         onPressed: () => Navigator.of(sheetCtx).pop(),
                         style: FilledButton.styleFrom(
-                          backgroundColor: AppColors.cyan,
-                          foregroundColor: AppColors.cutoutInk,
+                          backgroundColor: context.colors.cyan,
+                          foregroundColor: context.colors.onAccent,
                           minimumSize: const Size.fromHeight(50),
                         ),
-                        child: const Text(
-                          'Apply to layer',
-                          style: TextStyle(
+                        child: Text(
+                          _l10n.applyToLayer,
+                          style: const TextStyle(
                             fontFamily: AppFonts.display,
                             fontWeight: FontWeight.w700,
                             fontSize: 15,
@@ -2436,23 +2469,21 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  objectMode ? 'Remove an object' : 'Remove background',
-                  style: const TextStyle(
+                  objectMode ? _l10n.removeAnObject : _l10n.removeBackground,
+                  style: TextStyle(
                     fontFamily: AppFonts.display,
                     fontWeight: FontWeight.w700,
                     fontSize: 17,
-                    color: AppColors.textPrimary,
+                    color: context.colors.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  objectMode
-                      ? 'Tap objects on the photo to erase them'
-                      : 'Choose an AI engine · runs on your device',
-                  style: const TextStyle(
+                  objectMode ? _l10n.tapObjectsToErase : _l10n.chooseAiEngine,
+                  style: TextStyle(
                     fontFamily: AppFonts.ui,
                     fontSize: 11.5,
-                    color: AppColors.textSecondary,
+                    color: context.colors.textSecondary,
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -2475,13 +2506,15 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                   onPressed: run,
                   style: FilledButton.styleFrom(
                     backgroundColor: objectMode
-                        ? AppColors.pink
-                        : AppColors.cyan,
-                    foregroundColor: AppColors.cutoutInk,
+                        ? context.colors.pink
+                        : context.colors.cyan,
+                    foregroundColor: context.colors.onAccent,
                     minimumSize: const Size.fromHeight(52),
                   ),
                   child: Text(
-                    objectMode ? 'Tap objects to remove' : 'Remove background',
+                    objectMode
+                        ? _l10n.tapObjectsToRemove
+                        : _l10n.removeBackground,
                     style: const TextStyle(
                       fontFamily: AppFonts.display,
                       fontWeight: FontWeight.w700,
@@ -2506,21 +2539,21 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         children: [
-          const Expanded(
+          Expanded(
             child: Text(
-              'Auto-refine edges',
+              _l10n.autoRefineEdges,
               style: TextStyle(
                 fontFamily: AppFonts.ui,
                 fontSize: 12.5,
                 fontWeight: FontWeight.w600,
-                color: AppColors.textSecondary,
+                color: context.colors.textSecondary,
               ),
             ),
           ),
           Switch(
             value: value,
-            activeThumbColor: AppColors.cutoutInk,
-            activeTrackColor: AppColors.cyan,
+            activeThumbColor: context.colors.onAccent,
+            activeTrackColor: context.colors.cyan,
             onChanged: onChanged,
           ),
         ],
@@ -2537,7 +2570,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
           height: 38,
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: active ? AppColors.cyan : Colors.transparent,
+            color: active ? context.colors.cyan : Colors.transparent,
             borderRadius: BorderRadius.circular(9),
           ),
           child: Text(
@@ -2546,7 +2579,9 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
               fontFamily: AppFonts.ui,
               fontWeight: FontWeight.w800,
               fontSize: 12.5,
-              color: active ? AppColors.cutoutInk : AppColors.textSecondary,
+              color: active
+                  ? context.colors.onAccent
+                  : context.colors.textSecondary,
             ),
           ),
         ),
@@ -2555,14 +2590,14 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: AppColors.cardAlt,
+        color: context.colors.cardAlt,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.borderFaint),
+        border: Border.all(color: context.colors.borderFaint),
       ),
       child: Row(
         children: [
-          tab('Background', !object, () => onChanged(false)),
-          tab('Object', object, () => onChanged(true)),
+          tab(_l10n.background, !object, () => onChanged(false)),
+          tab(_l10n.object, object, () => onChanged(true)),
         ],
       ),
     );
@@ -2574,13 +2609,15 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
   void _startObjectRemoval(ImageLayer image) {
     _controller.setTool(EditorTool.cutout);
     setState(() => _removeObjectMode = true);
-    _toast('Tap an object on the photo to remove it');
+    _toast(_l10n.tapAnObjectToRemove);
     unawaited(_precomputeSamIfAllowed(image.assetPath));
   }
 
   Widget _bgEngineCard(SegModel current, SegModel model, VoidCallback onTap) {
     final active = current == model;
-    final accent = model == SegModel.builtin ? AppColors.cyan : AppColors.pink;
+    final accent = model == SegModel.builtin
+        ? context.colors.cyan
+        : context.colors.pink;
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: GestureDetector(
@@ -2588,10 +2625,10 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         child: Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: active ? accent.withValues(alpha: 0.1) : AppColors.card,
+            color: active ? accent.withValues(alpha: 0.1) : context.colors.card,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: active ? accent : AppColors.borderFaint,
+              color: active ? accent : context.colors.borderFaint,
               width: 1.6,
             ),
           ),
@@ -2608,7 +2645,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                   model == SegModel.builtin
                       ? Icons.auto_awesome
                       : Icons.blur_on,
-                  color: AppColors.cutoutInk,
+                  color: context.colors.onAccent,
                   size: 22,
                 ),
               ),
@@ -2618,21 +2655,21 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      model.label,
-                      style: const TextStyle(
+                      model.labelOf(_l10n),
+                      style: TextStyle(
                         fontFamily: AppFonts.ui,
                         fontWeight: FontWeight.w800,
                         fontSize: 14,
-                        color: AppColors.textPrimary,
+                        color: context.colors.textPrimary,
                       ),
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      model.tagline,
-                      style: const TextStyle(
+                      model.taglineOf(_l10n),
+                      style: TextStyle(
                         fontFamily: AppFonts.ui,
                         fontSize: 11,
-                        color: AppColors.textSecondary,
+                        color: context.colors.textSecondary,
                       ),
                     ),
                   ],
@@ -2644,7 +2681,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: active ? accent : AppColors.textFaint,
+                    color: active ? accent : context.colors.textFaint,
                     width: 2,
                   ),
                 ),
@@ -2740,7 +2777,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       _workingMaskPath = path;
       _controller.setImageMask(layer.id, path);
     } catch (_) {
-      if (mounted) _toast("Couldn't apply the brush", ok: false);
+      if (mounted) _toast(_l10n.brushFailed, ok: false);
     }
   }
 
@@ -2786,7 +2823,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       if (!mounted) return;
       switch (result.outcome) {
         case RemoveTapOutcome.miss:
-          if (mounted) _toast('Nothing to remove there', ok: false);
+          if (mounted) _toast(_l10n.nothingToRemoveThere, ok: false);
         case RemoveTapOutcome.subject:
           // The tapped blob IS (or touches) the biggest one - the free CC
           // tier can't carve an attached object out. Escalate to the
@@ -2802,11 +2839,11 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
             await _inpaintObject(layer, blob, _workingMask!);
           } else {
             await _applyRemovedMask(layer, result.mask!);
-            if (mounted) _toast('Object removed - undo brings it back');
+            if (mounted) _toast(_l10n.objectRemoved);
           }
       }
     } catch (_) {
-      if (mounted) _toast("Couldn't remove that - try again", ok: false);
+      if (mounted) _toast(_l10n.objectRemoveFailed, ok: false);
     }
   }
 
@@ -2869,13 +2906,13 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         // mask-save IO error, say) are retryable and must not disable the
         // tier.
         _samEngineFailed = true;
-        if (mounted) _toast("Couldn't remove that - try again", ok: false);
+        if (mounted) _toast(_l10n.objectRemoveFailed, ok: false);
         return;
       }
       if (!mounted) return;
       final current = _workingMask;
       if (object == null || current == null) {
-        _toast("Couldn't find an object there", ok: false);
+        _toast(_l10n.noObjectThere, ok: false);
         return;
       }
       // Overlap with what the cutout currently keeps - a per-pixel pass over
@@ -2883,14 +2920,11 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       final stats = await _maskOverlap(current, object);
       if (!mounted) return;
       if (stats.overlap == 0) {
-        _toast("Couldn't find an object there", ok: false);
+        _toast(_l10n.noObjectThere, ok: false);
         return;
       }
       if (stats.overlap > stats.kept * 0.8) {
-        _toast(
-          'That looks like your subject - use Erase for fine edits',
-          ok: false,
-        );
+        _toast(_l10n.thatLooksLikeSubject, ok: false);
         return;
       }
       // Fill mode: replace the object with synthesized background instead of
@@ -2903,9 +2937,9 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       final next = await _subtractObject(current, object);
       if (!mounted) return;
       await _applyRemovedMask(layer, next);
-      if (mounted) _toast('Object removed - undo brings it back');
+      if (mounted) _toast(_l10n.objectRemoved);
     } catch (_) {
-      if (mounted) _toast("Couldn't remove that - try again", ok: false);
+      if (mounted) _toast(_l10n.objectRemoveFailed, ok: false);
     } finally {
       if (mounted) setState(() => _samBusy = false);
     }
@@ -2927,7 +2961,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         final next = await _subtractObject(current, object);
         if (!mounted) return;
         await _applyRemovedMask(layer, next);
-        if (mounted) _toast('Fill unavailable - erased instead', ok: false);
+        if (mounted) _toast(_l10n.fillUnavailable, ok: false);
         return;
       }
       final newPath = await ref
@@ -2935,7 +2969,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
           .storeBytes(filled);
       if (!mounted) return;
       _controller.replaceImageAsset(layer.id, newPath);
-      if (mounted) _toast('Object filled in - undo reverts');
+      if (mounted) _toast(_l10n.objectFilled);
     } finally {
       if (mounted) setState(() => _inpainting = false);
     }
@@ -2960,7 +2994,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _panelHeader(EditorTool.erase),
-          _emptyHint('Select a photo layer to erase, or add a photo.'),
+          _emptyHint(_l10n.eraseEmptyHint),
         ],
       );
     }
@@ -2970,24 +3004,24 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       children: [
         _panelHeader(
           EditorTool.erase,
-          trailing: const _PanelHint('Brush over the canvas'),
+          trailing: _PanelHint(_l10n.brushOverCanvas),
         ),
         Row(
           children: [
             Expanded(
               child: _segTab(
-                'Erase',
+                _l10n.erase,
                 _eraseMode,
-                AppColors.amber,
+                context.colors.amber,
                 () => setState(() => _eraseMode = true),
               ),
             ),
             const SizedBox(width: 8),
             Expanded(
               child: _segTab(
-                'Restore',
+                _l10n.restore,
                 !_eraseMode,
-                AppColors.green,
+                context.colors.green,
                 () => setState(() => _eraseMode = false),
               ),
             ),
@@ -2999,12 +3033,12 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
           children: [
             Expanded(
               child: LabeledSlider(
-                label: 'Brush size',
+                label: _l10n.brushSize,
                 value: _brushSize,
                 min: 8,
                 max: 120,
-                accent: AppColors.amber,
-                valueColor: AppColors.textMuted,
+                accent: context.colors.amber,
+                valueColor: context.colors.textMuted,
                 valueLabel: '${_brushSize.round()}px',
                 onChanged: (v) => setState(() => _brushSize = v),
               ),
@@ -3017,8 +3051,8 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                 height: brushPreview,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: AppColors.amber.withValues(alpha: 0.25),
-                  border: Border.all(color: AppColors.amber, width: 2),
+                  color: context.colors.amber.withValues(alpha: 0.25),
+                  border: Border.all(color: context.colors.amber, width: 2),
                 ),
               ),
             ),
@@ -3028,19 +3062,19 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text(
-              'Soft edges',
+            Text(
+              _l10n.softEdges,
               style: TextStyle(
                 fontFamily: AppFonts.ui,
                 fontSize: 12.5,
                 fontWeight: FontWeight.w600,
-                color: AppColors.textSecondary,
+                color: context.colors.textSecondary,
               ),
             ),
             Switch(
               value: _softEdges,
-              activeThumbColor: Colors.white,
-              activeTrackColor: AppColors.amber,
+              activeThumbColor: context.colors.onAccent,
+              activeTrackColor: context.colors.amber,
               onChanged: (v) => setState(() => _softEdges = v),
             ),
           ],
@@ -3059,9 +3093,9 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         _panelHeader(
           EditorTool.frames,
           trailing: PillChip(
-            label: _isPlaying ? 'Pause' : 'Play',
+            label: _isPlaying ? _l10n.pause : _l10n.play,
             icon: _isPlaying ? Icons.pause : Icons.play_arrow,
-            accent: AppColors.orange,
+            accent: context.colors.orange,
             selected: true,
             onTap: () => _togglePlayback(editor),
           ),
@@ -3094,21 +3128,21 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Expanded(
+                Expanded(
                   child: Text(
-                    'New layers to all frames',
+                    _l10n.newLayersToAllFrames,
                     style: TextStyle(
                       fontFamily: AppFonts.ui,
                       fontSize: 12.5,
                       fontWeight: FontWeight.w600,
-                      color: AppColors.textSecondary,
+                      color: context.colors.textSecondary,
                     ),
                   ),
                 ),
                 Switch(
                   value: _controller.addToAllFrames,
-                  activeThumbColor: Colors.white,
-                  activeTrackColor: AppColors.orange,
+                  activeThumbColor: context.colors.onAccent,
+                  activeTrackColor: context.colors.orange,
                   onChanged: (v) =>
                       setState(() => _controller.addToAllFrames = v),
                 ),
@@ -3119,21 +3153,21 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Expanded(
+              Expanded(
                 child: Text(
-                  'Onion skin (ghost previous)',
+                  _l10n.onionSkin,
                   style: TextStyle(
                     fontFamily: AppFonts.ui,
                     fontSize: 12.5,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.textSecondary,
+                    color: context.colors.textSecondary,
                   ),
                 ),
               ),
               Switch(
                 value: _onionSkin,
-                activeThumbColor: Colors.white,
-                activeTrackColor: AppColors.orange,
+                activeThumbColor: context.colors.onAccent,
+                activeTrackColor: context.colors.orange,
                 onChanged: (v) => setState(() => _onionSkin = v),
               ),
             ],
@@ -3151,11 +3185,11 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: AppColors.orange.withValues(alpha: 0.4),
+            color: context.colors.orange.withValues(alpha: 0.4),
             width: 2,
           ),
         ),
-        child: const Icon(Icons.add, color: AppColors.orange),
+        child: Icon(Icons.add, color: context.colors.orange),
       ),
     );
   }
@@ -3167,7 +3201,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       context: context,
       // So the sheet may use the height it needs; SheetBody caps and scrolls it.
       isScrollControlled: true,
-      backgroundColor: AppColors.panel,
+      backgroundColor: context.colors.panel,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
       ),
@@ -3178,15 +3212,15 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
           _sheetTile(
             ctx,
             Icons.copy_all_outlined,
-            'Duplicate frame',
+            _l10n.duplicateFrame,
             'duplicate',
           ),
           if (index > 0)
-            _sheetTile(ctx, Icons.arrow_back, 'Move left', 'move_left'),
+            _sheetTile(ctx, Icons.arrow_back, _l10n.moveLeft, 'move_left'),
           if (index < frameCount - 1)
-            _sheetTile(ctx, Icons.arrow_forward, 'Move right', 'move_right'),
+            _sheetTile(ctx, Icons.arrow_forward, _l10n.moveRight, 'move_right'),
           if (frameCount > 1)
-            _sheetTile(ctx, Icons.delete_outline, 'Delete frame', 'delete'),
+            _sheetTile(ctx, Icons.delete_outline, _l10n.deleteFrame, 'delete'),
         ],
       ),
     );
@@ -3223,7 +3257,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         _panelHeader(
           EditorTool.layers,
           trailing: PillChip(
-            label: 'Add',
+            label: _l10n.add,
             icon: Icons.add,
             onTap: _showAddMenu,
           ),
@@ -3235,7 +3269,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                 Expanded(
                   child: PillChip(
                     key: const ValueKey('merge-down'),
-                    label: 'Merge down',
+                    label: _l10n.mergeDown,
                     icon: Icons.vertical_align_bottom,
                     onTap: () => _mergeDown(selectedId),
                   ),
@@ -3245,7 +3279,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                 Expanded(
                   child: PillChip(
                     key: const ValueKey('flatten-layers'),
-                    label: 'Flatten',
+                    label: _l10n.flatten,
                     icon: Icons.layers_clear,
                     onTap: _flattenLayers,
                   ),
@@ -3255,7 +3289,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
           const SizedBox(height: 10),
         ],
         if (layers.isEmpty)
-          _emptyHint('No layers yet. Tap Add to import a photo or add text.')
+          _emptyHint(_l10n.layersEmptyHint)
         else
           // TOP-MOST FIRST. `Project.layers` is in paint order - index 0 is
           // painted first, so the LAST entry is the one on top of the canvas -
@@ -3311,7 +3345,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     final top = frame.layers.firstWhere((l) => l.id == id);
     await _merge([
       [below, top],
-    ], 'Merged 2 layers');
+    ], _l10n.mergedTwoLayers);
   }
 
   /// Bakes each group of stacked layers into one photo. A collage flattens per
@@ -3322,7 +3356,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     );
     if (groups.isEmpty) return;
     final count = groups.fold<int>(0, (n, g) => n + g.length);
-    await _merge(groups, 'Flattened $count layers');
+    await _merge(groups, _l10n.flattenedLayers(count));
   }
 
   /// Renders each group to a PNG and swaps the originals for it - one undo
@@ -3344,7 +3378,11 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
           MergedLayerSpec(
             ids: [for (final l in group) l.id],
             assetPath: await imports.storeBytes(bytes),
-            name: LayerFlattener.mergedName(group),
+            name: LayerFlattener.mergedName(
+              group,
+              mergedLabel: _l10n.mergedLayerName,
+              mergedSuffix: _l10n.mergedLayerSuffix,
+            ),
           ),
         );
       }
@@ -3352,7 +3390,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       _controller.applyMerges(specs);
       _toast(doneMessage);
     } catch (_) {
-      if (mounted) _toast("Couldn't merge those layers", ok: false);
+      if (mounted) _toast(_l10n.mergeFailed, ok: false);
     } finally {
       if (mounted) setState(() => _merging = false);
     }
@@ -3386,9 +3424,10 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         assetPath: path,
         cellId: cellId,
         pixels: await _decodeImageSize(path),
+        photoLabel: _l10n.photoLayerDefault,
       );
     } catch (_) {
-      if (mounted) _toast('Could not import photo', ok: false);
+      if (mounted) _toast(_l10n.importPhotoFailed, ok: false);
     }
   }
 
@@ -3406,6 +3445,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
           assetPath: path,
           cellId: cell,
           pixels: await _decodeImageSize(path),
+          photoLabel: _l10n.photoLayerDefault,
         );
         return;
       }
@@ -3414,7 +3454,10 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       // "Open a photo" on Home.) The first photo is placed scaled to FIT.
       final wasEmpty = ref.read(editorControllerProvider).layers.isEmpty;
       final pixels = wasEmpty ? await _decodeImageSize(path) : null;
-      final layer = _controller.addImageLayer(assetPath: path);
+      final layer = _controller.addImageLayer(
+        assetPath: path,
+        photoLabel: _l10n.photoLayerDefault,
+      );
       if (pixels != null) {
         final canvas = ref.read(editorControllerProvider).project;
         _controller.updateTransform(
@@ -3431,7 +3474,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       }
       _controller.setTool(EditorTool.adjust);
     } catch (_) {
-      if (mounted) _toast('Could not import photo', ok: false);
+      if (mounted) _toast(_l10n.importPhotoFailed, ok: false);
     }
   }
 
@@ -3457,13 +3500,16 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     try {
       final path = await service.pasteFromClipboard();
       if (path == null) {
-        if (mounted) _toast('No image in clipboard', ok: false);
+        if (mounted) _toast(_l10n.noImageInClipboard, ok: false);
         return;
       }
-      _controller.addImageLayer(assetPath: path);
+      _controller.addImageLayer(
+        assetPath: path,
+        photoLabel: _l10n.photoLayerDefault,
+      );
       _controller.setTool(EditorTool.adjust);
     } catch (_) {
-      if (mounted) _toast('Could not paste image', ok: false);
+      if (mounted) _toast(_l10n.pasteFailed, ok: false);
     }
   }
 
@@ -3473,7 +3519,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       context: context,
       // So the sheet may use the height it needs; SheetBody caps and scrolls it.
       isScrollControlled: true,
-      backgroundColor: AppColors.panel,
+      backgroundColor: context.colors.panel,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
       ),
@@ -3481,16 +3527,21 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         // No side padding: these tiles are meant to run edge to edge.
         padding: const EdgeInsets.fromLTRB(0, 14, 0, 8),
         children: [
-          _sheetTile(ctx, Icons.photo_camera_outlined, 'Take photo', 'camera'),
+          _sheetTile(
+            ctx,
+            Icons.photo_camera_outlined,
+            _l10n.takePhoto,
+            'camera',
+          ),
           _sheetTile(
             ctx,
             Icons.photo_library_outlined,
-            'Choose photo',
+            _l10n.choosePhoto,
             'gallery',
           ),
-          _sheetTile(ctx, Icons.content_paste, 'Paste image', 'paste'),
-          _sheetTile(ctx, Icons.title, 'Add text', 'text'),
-          _sheetTile(ctx, Icons.chat_bubble_outline, 'Add bubble', 'bubble'),
+          _sheetTile(ctx, Icons.content_paste, _l10n.pasteImage, 'paste'),
+          _sheetTile(ctx, Icons.title, _l10n.addText, 'text'),
+          _sheetTile(ctx, Icons.chat_bubble_outline, _l10n.addBubble, 'bubble'),
         ],
       ),
     );
@@ -3505,7 +3556,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       case 'paste':
         await _pastePhoto();
       case 'text':
-        _controller.addTextLayer();
+        _controller.addTextLayer(text: _l10n.textLayerDefault);
       case 'bubble':
         await _addBubble();
     }
@@ -3518,12 +3569,12 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     String value,
   ) {
     return ListTile(
-      leading: Icon(icon, color: AppColors.textSecondary),
+      leading: Icon(icon, color: context.colors.textSecondary),
       title: Text(
         label,
-        style: const TextStyle(
+        style: TextStyle(
           fontFamily: AppFonts.ui,
-          color: AppColors.textPrimary,
+          color: context.colors.textPrimary,
         ),
       ),
       onTap: () => Navigator.pop(ctx, value),
@@ -3535,30 +3586,30 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     final name = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.panel,
-        title: const Text(
-          'Rename layer',
+        backgroundColor: context.colors.panel,
+        title: Text(
+          _l10n.renameLayer,
           style: TextStyle(
             fontFamily: AppFonts.display,
-            color: AppColors.textPrimary,
+            color: context.colors.textPrimary,
           ),
         ),
         // TextFormField owns and disposes its own controller.
         content: TextFormField(
           initialValue: layer.name,
           autofocus: true,
-          style: const TextStyle(color: AppColors.textPrimary),
+          style: TextStyle(color: context.colors.textPrimary),
           onChanged: (v) => value = v,
           onFieldSubmitted: (v) => Navigator.pop(ctx, v.trim()),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+            child: Text(_l10n.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, value.trim()),
-            child: const Text('Rename'),
+            child: Text(_l10n.rename),
           ),
         ],
       ),
@@ -3573,9 +3624,9 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
   Future<void> _renameProject() async {
     final name = await promptName(
       context,
-      title: 'Rename project',
+      title: _l10n.renameProject,
       initial: ref.read(editorControllerProvider).project.name,
-      hint: 'Project name',
+      hint: _l10n.projectNameHint,
     );
     if (name == null) return;
     _controller.rename(name);
@@ -3587,11 +3638,11 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     final project = ref.read(editorControllerProvider).project;
     final result = await showCanvasSizeSheet(
       context,
-      title: 'Canvas size',
+      title: _l10n.canvasSize,
       initialWidth: project.canvasWidth,
       initialHeight: project.canvasHeight,
       allowScaleContent: true,
-      confirmLabel: 'Apply',
+      confirmLabel: _l10n.apply,
     );
     if (result == null) return;
     _controller.setCanvasSize(
@@ -3615,7 +3666,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     );
     if (rect == null) return;
     _controller.cropCanvasRect(rect);
-    _toast('Cropped to ${rect.width.round()}×${rect.height.round()}');
+    _toast(_l10n.croppedTo(rect.width.round(), rect.height.round()));
   }
 
   void _showCropSheet() {
@@ -3631,28 +3682,28 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       context: context,
       // So the sheet may use the height it needs; SheetBody caps and scrolls it.
       isScrollControlled: true,
-      backgroundColor: AppColors.panel,
+      backgroundColor: context.colors.panel,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (sheetCtx) => SheetBody(
         children: [
-          const Text(
-            'Crop to ratio',
+          Text(
+            _l10n.cropToRatio,
             style: TextStyle(
               fontFamily: AppFonts.display,
               fontWeight: FontWeight.w700,
               fontSize: 17,
-              color: AppColors.textPrimary,
+              color: context.colors.textPrimary,
             ),
           ),
           const SizedBox(height: 3),
-          const Text(
-            'Drag a freeform box, or center-crop to a ratio',
+          Text(
+            _l10n.cropSheetHint,
             style: TextStyle(
               fontFamily: AppFonts.ui,
               fontSize: 11.5,
-              color: AppColors.textSecondary,
+              color: context.colors.textSecondary,
             ),
           ),
           const SizedBox(height: 16),
@@ -3665,22 +3716,22 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
               padding: const EdgeInsets.symmetric(vertical: 14),
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                color: AppColors.cyan.withValues(alpha: 0.12),
+                color: context.colors.cyan.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: AppColors.cyan),
+                border: Border.all(color: context.colors.cyan),
               ),
-              child: const Row(
+              child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.crop, size: 18, color: AppColors.cyan),
-                  SizedBox(width: 8),
+                  Icon(Icons.crop, size: 18, color: context.colors.cyan),
+                  const SizedBox(width: 8),
                   Text(
-                    'Freeform crop',
+                    _l10n.freeformCrop,
                     style: TextStyle(
                       fontFamily: AppFonts.ui,
                       fontWeight: FontWeight.w800,
                       fontSize: 13.5,
-                      color: AppColors.cyan,
+                      color: context.colors.cyan,
                     ),
                   ),
                 ],
@@ -3688,14 +3739,14 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
             ),
           ),
           const SizedBox(height: 16),
-          const Text(
-            'RATIOS',
+          Text(
+            _l10n.ratiosSection,
             style: TextStyle(
               fontFamily: AppFonts.ui,
               fontSize: 10.5,
               fontWeight: FontWeight.w800,
               letterSpacing: 0.4,
-              color: AppColors.textMuted,
+              color: context.colors.textMuted,
             ),
           ),
           const SizedBox(height: 10),
@@ -3715,17 +3766,17 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                       vertical: 11,
                     ),
                     decoration: BoxDecoration(
-                      color: AppColors.card,
+                      color: context.colors.card,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppColors.borderFaint),
+                      border: Border.all(color: context.colors.borderFaint),
                     ),
                     child: Text(
                       r.$1,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontFamily: AppFonts.ui,
                         fontWeight: FontWeight.w800,
                         fontSize: 13,
-                        color: AppColors.textSecondary,
+                        color: context.colors.textSecondary,
                       ),
                     ),
                   ),
@@ -3752,7 +3803,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       nw = (p.canvasHeight * aspect).round();
     }
     _controller.cropCanvas(nw, nh);
-    _toast('Cropped to $nw×$nh');
+    _toast(_l10n.croppedTo(nw, nh));
   }
 
   Widget _segTab(String label, bool active, Color accent, VoidCallback onTap) {
@@ -3762,16 +3813,25 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         padding: const EdgeInsets.symmetric(vertical: 11),
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: active ? accent.withValues(alpha: 0.18) : AppColors.inputField,
+          color: active
+              ? accent.withValues(alpha: 0.18)
+              : context.colors.inputField,
           borderRadius: BorderRadius.circular(11),
         ),
         child: Text(
           label,
+          // Bounded by Expanded - two tabs split one row - so it has to
+          // ellipsize. "Supprimer l'objet" and "Wiederherstellen" fit at
+          // normal size, but nothing here caps growth: at a 2x text scale
+          // an uncapped Text paints an overflow stripe instead.
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          textAlign: TextAlign.center,
           style: TextStyle(
             fontFamily: AppFonts.ui,
             fontSize: 13,
             fontWeight: FontWeight.w700,
-            color: active ? accent : AppColors.textMuted,
+            color: active ? accent : context.colors.textMuted,
           ),
         ),
       ),
@@ -3811,9 +3871,9 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       if (!ref.watch(isProProvider))
         _DockItem(
           icon: Icons.workspace_premium,
-          glyph: const CrownIcon(color: AppColors.gold, size: 21),
-          label: 'Go Pro',
-          accent: AppColors.gold,
+          glyph: CrownIcon(color: context.colors.gold, size: 21),
+          label: _l10n.goPro,
+          accent: context.colors.gold,
           onTap: _showGoProSheet,
         ),
       // Collage-only, and first: layout / count / border are what a photo grid
@@ -3821,50 +3881,54 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       if (editor.project.isGrid)
         _DockItem(
           icon: Icons.grid_view,
-          label: 'Grid',
+          label: _l10n.toolGrid,
           active: editor.tool == EditorTool.grid,
           onTap: () => tool(EditorTool.grid),
         ),
       _DockItem(
         icon: Icons.add_photo_alternate_outlined,
-        label: 'Add layer',
+        label: _l10n.addLayer,
         onTap: () => _pickPhoto(ImageSource.gallery),
       ),
       _DockItem(
         icon: Icons.text_fields,
-        label: 'Text',
+        label: _l10n.toolText,
         active: editor.tool == EditorTool.text,
         onTap: () => tool(EditorTool.text),
       ),
       _DockItem(
         icon: Icons.chat_bubble_outline,
-        label: 'Bubble',
-        accent: onBubble ? AppColors.pink : null,
+        label: _l10n.bubble,
+        accent: onBubble ? context.colors.pink : null,
         onTap: _addBubble,
       ),
-      _DockItem(icon: Icons.auto_awesome, label: 'AI Cut', onTap: _showBgSheet),
+      _DockItem(
+        icon: Icons.auto_awesome,
+        label: _l10n.aiCut,
+        onTap: _showBgSheet,
+      ),
       _DockItem(
         icon: Icons.brush_outlined,
-        label: 'Erase',
+        label: _l10n.erase,
         active: editor.tool == EditorTool.erase,
         onTap: () => tool(EditorTool.erase),
       ),
-      _DockItem(icon: Icons.crop, label: 'Crop', onTap: _showCropSheet),
+      _DockItem(icon: Icons.crop, label: _l10n.crop, onTap: _showCropSheet),
       _DockItem(
         icon: Icons.tune,
-        label: 'Adjust',
+        label: _l10n.toolAdjust,
         active: editor.tool == EditorTool.adjust,
         onTap: () => tool(EditorTool.adjust),
       ),
       _DockItem(
         icon: Icons.auto_fix_high,
-        label: 'Effects',
+        label: _l10n.toolEffects,
         active: editor.tool == EditorTool.effects,
         onTap: () => tool(EditorTool.effects),
       ),
       _DockItem(
         icon: Icons.layers_outlined,
-        label: 'Layers',
+        label: _l10n.toolLayers,
         active: editor.tool == EditorTool.layers,
         onTap: () => tool(EditorTool.layers),
       ),
@@ -3875,28 +3939,18 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
   /// than a jump straight to the purchase screen: this button sits in the middle
   /// of the tool row, so tapping it must never feel like it took you somewhere.
   Future<void> _showGoProSheet() async {
-    const benefits = <(IconData, String, String)>[
-      (
-        Icons.block,
-        'No ads, anywhere',
-        'The banner on Home and the full-screen ads both go away for good.',
-      ),
-      (
-        Icons.auto_fix_high,
-        'AI without the wait',
-        'Background removal and object erase run straight away - no rewarded '
-            'ad first.',
-      ),
+    final benefits = <(IconData, String, String)>[
+      (Icons.block, _l10n.proBenefitNoAdsTitle, _l10n.proBenefitNoAdsBody),
+      (Icons.auto_fix_high, _l10n.proBenefitAiTitle, _l10n.proBenefitAiBody),
       (
         Icons.ios_share,
-        'Export and share freely',
-        'Save or share at any size without watching anything.',
+        _l10n.proBenefitExportTitle,
+        _l10n.proBenefitExportBody,
       ),
       (
         Icons.lock_outline,
-        'Still on your device',
-        'Pro changes nothing about your photos: every edit stays local, as it '
-            'always was.',
+        _l10n.proBenefitLocalTitle,
+        _l10n.proBenefitLocalBody,
       ),
     ];
 
@@ -3904,7 +3958,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       context: context,
       // So the sheet may use the height it needs; SheetBody caps and scrolls it.
       isScrollControlled: true,
-      backgroundColor: AppColors.panel,
+      backgroundColor: context.colors.panel,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -3916,36 +3970,36 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                 width: 46,
                 height: 46,
                 decoration: BoxDecoration(
-                  color: AppColors.gold.withValues(alpha: 0.16),
+                  color: context.colors.gold.withValues(alpha: 0.16),
                   borderRadius: BorderRadius.circular(14),
                   border: Border.all(
-                    color: AppColors.gold.withValues(alpha: 0.55),
+                    color: context.colors.gold.withValues(alpha: 0.55),
                   ),
                 ),
-                child: const Center(
-                  child: CrownIcon(color: AppColors.gold, size: 25),
+                child: Center(
+                  child: CrownIcon(color: context.colors.gold, size: 25),
                 ),
               ),
               const SizedBox(width: 13),
-              const Expanded(
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Go Pro',
+                      _l10n.goPro,
                       style: TextStyle(
                         fontFamily: AppFonts.display,
                         fontWeight: FontWeight.w700,
                         fontSize: 20,
-                        color: AppColors.textPrimary,
+                        color: context.colors.textPrimary,
                       ),
                     ),
                     Text(
-                      'One-time purchase, no subscription',
+                      _l10n.oneTimeNoSubscriptionShort,
                       style: TextStyle(
                         fontFamily: AppFonts.ui,
                         fontSize: 12.5,
-                        color: AppColors.textSecondary,
+                        color: context.colors.textSecondary,
                       ),
                     ),
                   ],
@@ -3960,7 +4014,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(icon, size: 18, color: AppColors.gold),
+                  Icon(icon, size: 18, color: context.colors.gold),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
@@ -3968,20 +4022,20 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                       children: [
                         Text(
                           title,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontFamily: AppFonts.ui,
                             fontWeight: FontWeight.w700,
                             fontSize: 13.5,
-                            color: AppColors.textPrimary,
+                            color: context.colors.textPrimary,
                           ),
                         ),
                         Text(
                           body,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontFamily: AppFonts.ui,
                             fontSize: 12.5,
                             height: 1.45,
-                            color: AppColors.textSecondary,
+                            color: context.colors.textSecondary,
                           ),
                         ),
                       ],
@@ -3994,11 +4048,11 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
           FilledButton.icon(
             key: const ValueKey('go-pro-sheet-cta'),
             onPressed: () => Navigator.of(sheetCtx).pop(true),
-            icon: const CrownIcon(color: AppColors.cutoutInk, size: 19),
-            label: const Text('See the price'),
+            icon: CrownIcon(color: context.colors.onAccent, size: 19),
+            label: Text(_l10n.seeThePrice),
             style: FilledButton.styleFrom(
-              backgroundColor: AppColors.gold,
-              foregroundColor: AppColors.cutoutInk,
+              backgroundColor: context.colors.gold,
+              foregroundColor: context.colors.onAccent,
               minimumSize: const Size.fromHeight(50),
               textStyle: const TextStyle(
                 fontFamily: AppFonts.display,
@@ -4010,12 +4064,12 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
           const SizedBox(height: 6),
           TextButton(
             onPressed: () => Navigator.of(sheetCtx).pop(false),
-            child: const Text(
-              'Not now',
+            child: Text(
+              _l10n.notNow,
               style: TextStyle(
                 fontFamily: AppFonts.ui,
                 fontWeight: FontWeight.w700,
-                color: AppColors.textSecondary,
+                color: context.colors.textSecondary,
               ),
             ),
           ),
@@ -4027,7 +4081,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
 
   Widget _toolBar(EditorState editor) {
     return Container(
-      color: AppColors.background,
+      color: context.colors.background,
       padding: EdgeInsets.fromLTRB(
         8,
         12,
@@ -4050,18 +4104,18 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
   Widget _toolRail(EditorState editor) {
     return Container(
       width: 68,
-      color: AppColors.background,
+      color: context.colors.background,
       child: Column(
         children: [
           if (!_sidePanelOpen)
             IconButton(
               key: const ValueKey('expand-panel'),
-              tooltip: 'Show tool panel',
+              tooltip: _l10n.showToolPanel,
               iconSize: 18,
               onPressed: () => setState(() => _sidePanelOpen = true),
-              icon: const Icon(
+              icon: Icon(
                 Icons.keyboard_double_arrow_right,
-                color: AppColors.textMuted,
+                color: context.colors.textMuted,
               ),
             ),
           Expanded(
@@ -4135,9 +4189,9 @@ class _DockButton extends StatelessWidget {
               height: 44,
               decoration: BoxDecoration(
                 color: item.active
-                    ? AppColors.cyan
+                    ? context.colors.cyan
                     : item.accent?.withValues(alpha: 0.16) ??
-                          Colors.white.withValues(alpha: 0.05),
+                          context.colors.borderFaint,
                 borderRadius: BorderRadius.circular(14),
                 border: item.accent == null
                     ? null
@@ -4149,8 +4203,8 @@ class _DockButton extends StatelessWidget {
                     item.icon,
                     size: 20,
                     color: item.active
-                        ? AppColors.cutoutInk
-                        : item.accent ?? AppColors.textSecondary,
+                        ? context.colors.onAccent
+                        : item.accent ?? context.colors.textSecondary,
                   ),
             ),
             const SizedBox(height: 5),
@@ -4163,8 +4217,8 @@ class _DockButton extends StatelessWidget {
                 fontSize: 9.5,
                 fontWeight: FontWeight.w700,
                 color: item.active
-                    ? AppColors.textPrimary
-                    : item.accent ?? AppColors.textMuted,
+                    ? context.colors.textPrimary
+                    : item.accent ?? context.colors.textMuted,
               ),
             ),
           ],
@@ -4203,7 +4257,11 @@ class _LayerRow extends StatelessWidget {
   /// A 38px preview of the photo (decoded small via [cacheWidth], never at
   /// full resolution), falling back to the generic icon when the file is
   /// missing. [cut] overlays a green tick for a cut-out layer.
-  Widget _photoThumb(String assetPath, {required bool cut}) {
+  Widget _photoThumb(
+    BuildContext context,
+    String assetPath, {
+    required bool cut,
+  }) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(9),
       child: Stack(
@@ -4213,8 +4271,11 @@ class _LayerRow extends StatelessWidget {
             File(assetPath),
             fit: BoxFit.cover,
             cacheWidth: 114, // 38 logical px × 3 for high-dpi rows
-            errorBuilder: (_, _, _) =>
-                const Icon(Icons.image_outlined, size: 18, color: Colors.white),
+            errorBuilder: (_, _, _) => Icon(
+              Icons.image_outlined,
+              size: 18,
+              color: context.colors.textFaint,
+            ),
           ),
           if (cut)
             Positioned(
@@ -4223,11 +4284,15 @@ class _LayerRow extends StatelessWidget {
               child: Container(
                 width: 13,
                 height: 13,
-                decoration: const BoxDecoration(
-                  color: AppColors.green,
+                decoration: BoxDecoration(
+                  color: context.colors.green,
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.check, size: 9, color: Colors.white),
+                child: Icon(
+                  Icons.check,
+                  size: 9,
+                  color: context.colors.onAccent,
+                ),
               ),
             ),
         ],
@@ -4237,27 +4302,32 @@ class _LayerRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final (Widget badge, String typeLabel) = switch (layer) {
       TextLayer() => (
-        const Text(
+        Text(
           'T',
           style: TextStyle(
             fontFamily: AppFonts.bangers,
             fontSize: 16,
-            color: Colors.white,
+            color: context.colors.onAccent,
           ),
         ),
-        'Text layer',
+        l10n.textLayer,
       ),
       BubbleLayer() => (
-        const Icon(Icons.chat_bubble_outline, size: 18, color: Colors.white),
-        'Bubble layer',
+        Icon(
+          Icons.chat_bubble_outline,
+          size: 18,
+          color: context.colors.onAccent,
+        ),
+        l10n.bubbleLayer,
       ),
       // A real thumbnail so multiple photos are tellable apart (#73), with a
       // small green tick when this layer has been cut out.
       ImageLayer(:final assetPath, :final maskPath) => (
-        _photoThumb(assetPath, cut: maskPath != null),
-        maskPath == null ? 'Image layer' : 'Image layer · cut out',
+        _photoThumb(context, assetPath, cut: maskPath != null),
+        maskPath == null ? l10n.imageLayer : l10n.imageLayerCutOut,
       ),
     };
     final flatBadge = layer is! ImageLayer;
@@ -4273,11 +4343,11 @@ class _LayerRow extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
             decoration: BoxDecoration(
               color: selected
-                  ? AppColors.violet.withValues(alpha: 0.14)
-                  : AppColors.cardAlt,
+                  ? context.colors.violet.withValues(alpha: 0.14)
+                  : context.colors.cardAlt,
               borderRadius: BorderRadius.circular(14),
               border: Border.all(
-                color: selected ? AppColors.violet : Colors.transparent,
+                color: selected ? context.colors.violet : Colors.transparent,
                 width: 1.5,
               ),
             ),
@@ -4294,7 +4364,7 @@ class _LayerRow extends StatelessWidget {
                 // instead of picking the row up. A control whose entire job is to
                 // be dragged must not spend its gestures on a label.
                 Semantics(
-                  label: 'Drag to reorder ${layer.name}',
+                  label: l10n.dragToReorder(layer.name),
                   child: ReorderableDragStartListener(
                     index: dragIndex,
                     child: Padding(
@@ -4305,7 +4375,7 @@ class _LayerRow extends StatelessWidget {
                       child: Icon(
                         Icons.drag_indicator,
                         size: 20,
-                        color: AppColors.textMuted.withValues(alpha: 0.75),
+                        color: context.colors.textMuted.withValues(alpha: 0.75),
                       ),
                     ),
                   ),
@@ -4316,7 +4386,7 @@ class _LayerRow extends StatelessWidget {
                   height: 38,
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    color: flatBadge ? AppColors.elevated : null,
+                    color: flatBadge ? context.colors.elevated : null,
                     gradient: flatBadge ? null : context.tokens.logoGradient,
                     borderRadius: BorderRadius.circular(9),
                   ),
@@ -4331,26 +4401,26 @@ class _LayerRow extends StatelessWidget {
                         layer.name,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontFamily: AppFonts.ui,
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
-                          color: AppColors.textPrimary,
+                          color: context.colors.textPrimary,
                         ),
                       ),
                       Text(
                         typeLabel,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontFamily: AppFonts.ui,
                           fontSize: 10.5,
-                          color: AppColors.textMuted,
+                          color: context.colors.textMuted,
                         ),
                       ),
                     ],
                   ),
                 ),
                 IconButton(
-                  tooltip: layer.visible ? 'Hide layer' : 'Show layer',
+                  tooltip: layer.visible ? l10n.hideLayer : l10n.showLayer,
                   visualDensity: VisualDensity.compact,
                   onPressed: onToggleVisibility,
                   icon: Icon(
@@ -4359,28 +4429,28 @@ class _LayerRow extends StatelessWidget {
                         : Icons.visibility_off_outlined,
                     size: 18,
                     color: layer.visible
-                        ? AppColors.textSecondary
-                        : AppColors.textFaint,
+                        ? context.colors.textSecondary
+                        : context.colors.textFaint,
                   ),
                 ),
                 IconButton(
                   visualDensity: VisualDensity.compact,
-                  tooltip: 'Duplicate layer',
+                  tooltip: l10n.duplicateLayer,
                   onPressed: onDuplicate,
-                  icon: const Icon(
+                  icon: Icon(
                     Icons.content_copy,
                     size: 16,
-                    color: AppColors.textMuted,
+                    color: context.colors.textMuted,
                   ),
                 ),
                 IconButton(
-                  tooltip: 'Delete layer',
+                  tooltip: l10n.deleteLayer,
                   visualDensity: VisualDensity.compact,
                   onPressed: onDelete,
-                  icon: const Icon(
+                  icon: Icon(
                     Icons.delete_outline,
                     size: 18,
-                    color: AppColors.textMuted,
+                    color: context.colors.textMuted,
                   ),
                 ),
               ],
@@ -4403,22 +4473,24 @@ class _CutBadge extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
         decoration: BoxDecoration(
-          color: AppColors.green.withValues(alpha: 0.2),
+          color: context.colors.green.withValues(alpha: 0.2),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: AppColors.green.withValues(alpha: 0.5)),
+          border: Border.all(
+            color: context.colors.green.withValues(alpha: 0.5),
+          ),
         ),
-        child: const Row(
+        child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.check, size: 13, color: AppColors.greenLight),
-            SizedBox(width: 5),
+            Icon(Icons.check, size: 13, color: context.colors.greenLight),
+            const SizedBox(width: 5),
             Text(
-              'Cut out',
+              AppLocalizations.of(context).cutOut,
               style: TextStyle(
                 fontFamily: AppFonts.ui,
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
-                color: AppColors.greenLight,
+                color: context.colors.greenLight,
               ),
             ),
           ],
@@ -4430,34 +4502,36 @@ class _CutBadge extends StatelessWidget {
 
 /// Full-canvas overlay shown while the AI cut-out runs.
 class _RemovingOverlay extends StatelessWidget {
-  const _RemovingOverlay({this.label = 'Removing background…'});
+  const _RemovingOverlay({this.label});
 
-  final String label;
+  /// Null means the default "Removing background…", which cannot be a default
+  /// argument here: it is localized, so it needs a context to resolve.
+  final String? label;
 
   @override
   Widget build(BuildContext context) {
     return Positioned.fill(
       child: ColoredBox(
-        color: const Color(0xB2131019),
+        color: AppScrim.fill,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const SizedBox(
+            SizedBox(
               width: 34,
               height: 34,
               child: CircularProgressIndicator(
                 strokeWidth: 3,
-                valueColor: AlwaysStoppedAnimation(AppColors.greenLight),
+                valueColor: AlwaysStoppedAnimation(context.colors.greenLight),
               ),
             ),
             const SizedBox(height: 14),
             Text(
-              label,
+              label ?? AppLocalizations.of(context).removingBackground,
               style: const TextStyle(
                 fontFamily: AppFonts.ui,
                 fontSize: 12.5,
                 fontWeight: FontWeight.w600,
-                color: AppColors.textSecondary,
+                color: AppScrim.ink,
               ),
             ),
           ],
@@ -4482,17 +4556,17 @@ class _FrameCounter extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
         decoration: BoxDecoration(
-          color: const Color(0xB8131019),
+          color: AppScrim.fillStrong,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: AppColors.orange.withValues(alpha: 0.4)),
+          border: Border.all(color: AppScrim.accent.withValues(alpha: 0.4)),
         ),
         child: Text(
-          'Frame $current / $total',
+          AppLocalizations.of(context).frameOf(current, total),
           style: const TextStyle(
             fontFamily: AppFonts.ui,
             fontSize: 11,
             fontWeight: FontWeight.w700,
-            color: AppColors.orange,
+            color: AppScrim.accent,
           ),
         ),
       ),
@@ -4536,9 +4610,7 @@ class _FrameThumb extends StatelessWidget {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: active
-                ? AppColors.orange
-                : Colors.white.withValues(alpha: 0.08),
+            color: active ? context.colors.orange : context.colors.border,
             width: 2,
           ),
         ),
@@ -4563,7 +4635,7 @@ class _FrameThumb extends StatelessWidget {
                     vertical: 1,
                   ),
                   decoration: BoxDecoration(
-                    color: const Color(0xB8131019),
+                    color: AppScrim.fillStrong,
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
@@ -4572,7 +4644,7 @@ class _FrameThumb extends StatelessWidget {
                       fontFamily: AppFonts.ui,
                       fontSize: 10,
                       fontWeight: FontWeight.w800,
-                      color: active ? AppColors.orange : AppColors.textMuted,
+                      color: active ? AppScrim.accent : AppScrim.inkMuted,
                     ),
                   ),
                 ),
@@ -4608,28 +4680,84 @@ class _TopBar extends StatelessWidget {
   final VoidCallback onRename;
   final VoidCallback onCanvasSize;
 
+  /// Width the project title is guaranteed, so the bar degrades by shortening
+  /// the Export label rather than by crushing the title.
+  ///
+  /// It also has to stay above the title row's own non-shrinkable content (a
+  /// 5px gap plus the 13px rename pencil): at 360dp the fixed chrome used to
+  /// leave the title 6.5dp, and those 18dp then overflowed by 12. Reserving
+  /// here fixes that at the source, so the title row cannot be squeezed into
+  /// overflowing whatever the width, language or text scale.
+  static const double _minTitleWidth = 56;
+
+  /// Below this the Export button is not worth drawing - it keeps its icon and
+  /// as much of the label as fits.
+  static const double _minExportWidth = 96;
+
+  /// Narrower than this and the rename pencil is dropped: below roughly three
+  /// characters of title it is decorating nothing.
+  static const double _renameHintFrom = 40;
+
+  /// Undo / redo / canvas-size keep a 48dp-tall target but give up width at
+  /// 360dp, where four 48dp buttons are over half the screen. Same trade the
+  /// colour swatches already make (see `a11y_test.dart`), and for the same
+  /// reason: the alternative is a row that cannot hold its own content.
+  ///
+  /// `constraints:` alone does NOT do this - IconButton defaults to
+  /// [MaterialTapTargetSize.padded], which pads the button back out to 48x48
+  /// and silently swallows a narrower constraint. Hence shrinkWrap, and hence
+  /// `top_bar_fit_test` asserting the RENDERED width instead of trusting that
+  /// asking for 40 produced 40.
+  static final ButtonStyle _secondaryIconStyle = IconButton.styleFrom(
+    minimumSize: const Size(40, 48),
+    padding: EdgeInsets.zero,
+    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+  );
+
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(6, 10, 12, 10),
-      child: Row(
-        children: [
-          IconButton(
-            tooltip: 'Menu',
-            onPressed: () => Scaffold.of(context).openDrawer(),
-            icon: const Icon(
-              Icons.menu,
-              size: 22,
-              color: AppColors.textSecondary,
-            ),
-          ),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Tap the title to rename the project (mirrors the pack
-                // detail screen's tap-title-to-rename affordance).
-                GestureDetector(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          // Everything except the title is fixed width, so what the Export
+          // button may take is simply what is left once the title has its
+          // reserve. GradientButton ellipsizes into whatever it is given.
+          const chrome = 48 + 3 * 40.0; // menu + the three secondary buttons
+          final exportMax = math.max(
+            _minExportWidth,
+            constraints.maxWidth - chrome - _minTitleWidth,
+          );
+          return _row(context, exportMax);
+        },
+      ),
+    );
+  }
+
+  Widget _row(BuildContext context, double exportMax) {
+    return Row(
+      children: [
+        IconButton(
+          tooltip: AppLocalizations.of(context).menu,
+          onPressed: () => Scaffold.of(context).openDrawer(),
+          icon: Icon(Icons.menu, size: 22, color: context.colors.textSecondary),
+        ),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Tap the title to rename the project (mirrors the pack
+              // detail screen's tap-title-to-rename affordance).
+              //
+              // The pencil is the only thing in this row that cannot shrink,
+              // so it is also the only thing that can make the row overflow.
+              // It is dropped rather than clipped when the title area gets too
+              // narrow to be worth decorating: the row then consists of one
+              // ellipsizing Text and cannot overflow at any width, language or
+              // text scale. Tap-to-rename still works - the GestureDetector is
+              // on the row, not on the icon.
+              LayoutBuilder(
+                builder: (context, titleConstraints) => GestureDetector(
                   onTap: onRename,
                   behavior: HitTestBehavior.opaque,
                   child: Row(
@@ -4640,67 +4768,88 @@ class _TopBar extends StatelessWidget {
                           title,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontFamily: AppFonts.display,
                             fontWeight: FontWeight.w600,
                             fontSize: 15,
-                            color: AppColors.textPrimary,
+                            color: context.colors.textPrimary,
                           ),
                         ),
                       ),
-                      const SizedBox(width: 5),
-                      const Icon(
-                        Icons.edit_outlined,
-                        size: 13,
-                        color: AppColors.textMuted,
-                      ),
+                      if (titleConstraints.maxWidth >= _renameHintFrom) ...[
+                        const SizedBox(width: 5),
+                        Icon(
+                          Icons.edit_outlined,
+                          size: 13,
+                          color: context.colors.textMuted,
+                        ),
+                      ],
                     ],
                   ),
                 ),
-                Text(
-                  '$layerCount ${layerCount == 1 ? 'layer' : 'layers'} · auto-saved',
-                  style: const TextStyle(
-                    fontFamily: AppFonts.ui,
-                    fontSize: 10.5,
-                    color: AppColors.textMuted,
-                  ),
+              ),
+              Text(
+                // The count keeps its own plural message, so the two places
+                // that say "N layers" cannot disagree; this one only adds
+                // the suffix, and the translator owns the separator.
+                AppLocalizations.of(context).layersAutoSaved(
+                  AppLocalizations.of(context).layerCount(layerCount),
                 ),
-              ],
-            ),
+                // Two lines, not one and not unbounded. Uncapped, at a 2x
+                // text scale this wrapped into eight lines and made the top
+                // bar taller than the screen. Capped at ONE it fitted the
+                // English but truncated every translation at normal size -
+                // "0 Ebenen · auto-gespeic…" - because this column is only as
+                // wide as the title reserve. Two lines holds the longest
+                // translation at 1x and still bounds the growth at 2x.
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontFamily: AppFonts.ui,
+                  fontSize: 10.5,
+                  color: context.colors.textMuted,
+                ),
+              ),
+            ],
           ),
-          IconButton(
-            onPressed: onCanvasSize,
-            tooltip: 'Canvas size',
-            icon: const Icon(
-              Icons.aspect_ratio,
-              size: 20,
-              color: AppColors.textMuted,
-            ),
+        ),
+        IconButton(
+          onPressed: onCanvasSize,
+          tooltip: AppLocalizations.of(context).canvasSize,
+          style: _secondaryIconStyle,
+          icon: Icon(
+            Icons.aspect_ratio,
+            size: 20,
+            color: context.colors.textMuted,
           ),
-          IconButton(
-            tooltip: 'Undo',
-            onPressed: canUndo ? onUndo : null,
-            color: AppColors.textMuted,
-            disabledColor: AppColors.textFaint,
-            icon: const Icon(Icons.undo, size: 20),
-          ),
-          IconButton(
-            tooltip: 'Redo',
-            onPressed: canRedo ? onRedo : null,
-            color: AppColors.textMuted,
-            disabledColor: AppColors.textFaint,
-            icon: const Icon(Icons.redo, size: 20),
-          ),
-          const SizedBox(width: 4),
-          GradientButton(
-            label: 'Export',
+        ),
+        IconButton(
+          tooltip: AppLocalizations.of(context).undo,
+          onPressed: canUndo ? onUndo : null,
+          style: _secondaryIconStyle,
+          color: context.colors.textMuted,
+          disabledColor: context.colors.textFaint,
+          icon: const Icon(Icons.undo, size: 20),
+        ),
+        IconButton(
+          tooltip: AppLocalizations.of(context).redo,
+          onPressed: canRedo ? onRedo : null,
+          style: _secondaryIconStyle,
+          color: context.colors.textMuted,
+          disabledColor: context.colors.textFaint,
+          icon: const Icon(Icons.redo, size: 20),
+        ),
+        ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: exportMax),
+          child: GradientButton(
+            label: AppLocalizations.of(context).export,
             icon: Icons.ios_share,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
             fontSize: 13,
             onPressed: onExport,
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
@@ -4715,10 +4864,14 @@ class _PanelHint extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       text,
-      style: const TextStyle(
+      // Sits in a bounded slot beside the panel title, so it shortens rather
+      // than pushing the header wider than the panel.
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: TextStyle(
         fontFamily: AppFonts.ui,
         fontSize: 11,
-        color: AppColors.textMuted,
+        color: context.colors.textMuted,
       ),
     );
   }

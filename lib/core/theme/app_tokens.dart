@@ -1,122 +1,71 @@
 import 'package:flutter/material.dart';
 
-import 'app_colors.dart';
+import 'app_palette.dart';
+
+export 'app_palette.dart' show AppPalette, AppScrim, ToolAccent;
 
 /// Design tokens exposed as a [ThemeExtension] so widgets read them from the
-/// active [Theme] instead of importing raw palette constants. Mirrors the
-/// tokens in the approved app design.
+/// active [Theme] instead of importing raw palette constants.
+///
+/// This is the carrier; [AppPalette] is the content. There is one instance per
+/// theme ([dark] / [light]) and Flutter picks between them, which is what makes
+/// `context.colors.card` a different colour in the two without a single widget
+/// asking which theme it is in.
+///
+/// The gradients are built here rather than in the palette because a
+/// [LinearGradient] is geometry as well as colour, and the direction is a token
+/// (fixed) while the stops are a palette value (per-theme).
 @immutable
 class AppTokens extends ThemeExtension<AppTokens> {
   const AppTokens({
-    required this.panel,
-    required this.card,
-    required this.cardAlt,
-    required this.inputField,
-    required this.border,
-    required this.textMuted,
-    required this.textSecondary,
-    required this.accents,
-    required this.heroGradient,
-    required this.cutoutGradient,
-    required this.logoGradient,
-    required this.radiusCard,
-    required this.radiusPanel,
-    required this.radiusCanvas,
-    required this.radiusChip,
+    required this.colors,
+    this.radiusCard = 18,
+    this.radiusPanel = 22,
+    this.radiusCanvas = 24,
+    this.radiusChip = 14,
   });
 
-  final Color panel;
-  final Color card;
-  final Color cardAlt;
-  final Color inputField;
-  final Color border;
-  final Color textMuted;
-  final Color textSecondary;
-
-  /// Per-tool accent colors, keyed by [ToolAccent].
-  final Map<ToolAccent, Color> accents;
-
-  final Gradient heroGradient;
-  final Gradient cutoutGradient;
-  final Gradient logoGradient;
+  final AppPalette colors;
 
   final double radiusCard;
   final double radiusPanel;
   final double radiusCanvas;
   final double radiusChip;
 
-  Color accent(ToolAccent a) => accents[a]!;
-
-  static const AppTokens dark = AppTokens(
-    panel: AppColors.panel,
-    card: AppColors.card,
-    cardAlt: AppColors.cardAlt,
-    inputField: AppColors.inputField,
-    border: AppColors.border,
-    textMuted: AppColors.textMuted,
-    textSecondary: AppColors.textSecondary,
-    accents: {
-      ToolAccent.layers: AppColors.violet,
-      ToolAccent.adjust: AppColors.cyan,
-      ToolAccent.text: AppColors.pink,
-      ToolAccent.erase: AppColors.amber,
-      ToolAccent.cutout: AppColors.green,
-      ToolAccent.frames: AppColors.orange,
-      ToolAccent.grid: AppColors.violet,
-      ToolAccent.effects: AppColors.teal,
-    },
-    heroGradient: LinearGradient(
-      begin: Alignment.topLeft,
-      end: Alignment.bottomRight,
-      colors: AppColors.heroGradient,
-      stops: [0.0, 0.45, 1.0],
-    ),
-    cutoutGradient: LinearGradient(
-      begin: Alignment.topLeft,
-      end: Alignment.bottomRight,
-      colors: AppColors.cutoutGradient,
-    ),
-    logoGradient: LinearGradient(
-      begin: Alignment.topLeft,
-      end: Alignment.bottomRight,
-      colors: AppColors.logoGradient,
-    ),
-    radiusCard: 18,
-    radiusPanel: 22,
-    radiusCanvas: 24,
-    radiusChip: 14,
+  Gradient get heroGradient => LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: colors.heroGradient,
+    stops: const [0.0, 0.45, 1.0],
   );
+
+  Gradient get cutoutGradient => LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: colors.cutoutGradient,
+  );
+
+  Gradient get logoGradient => LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: colors.logoGradient,
+  );
+
+  Color accent(ToolAccent a) => colors.accent(a);
+
+  static const AppTokens dark = AppTokens(colors: AppPalette.dark);
+  static const AppTokens light = AppTokens(colors: AppPalette.light);
 
   @override
   AppTokens copyWith({
-    Color? panel,
-    Color? card,
-    Color? cardAlt,
-    Color? inputField,
-    Color? border,
-    Color? textMuted,
-    Color? textSecondary,
-    Map<ToolAccent, Color>? accents,
-    Gradient? heroGradient,
-    Gradient? cutoutGradient,
-    Gradient? logoGradient,
+    AppPalette? colors,
     double? radiusCard,
     double? radiusPanel,
     double? radiusCanvas,
     double? radiusChip,
   }) {
     return AppTokens(
-      panel: panel ?? this.panel,
-      card: card ?? this.card,
-      cardAlt: cardAlt ?? this.cardAlt,
-      inputField: inputField ?? this.inputField,
-      border: border ?? this.border,
-      textMuted: textMuted ?? this.textMuted,
-      textSecondary: textSecondary ?? this.textSecondary,
-      accents: accents ?? this.accents,
-      heroGradient: heroGradient ?? this.heroGradient,
-      cutoutGradient: cutoutGradient ?? this.cutoutGradient,
-      logoGradient: logoGradient ?? this.logoGradient,
+      colors: colors ?? this.colors,
       radiusCard: radiusCard ?? this.radiusCard,
       radiusPanel: radiusPanel ?? this.radiusPanel,
       radiusCanvas: radiusCanvas ?? this.radiusCanvas,
@@ -128,17 +77,7 @@ class AppTokens extends ThemeExtension<AppTokens> {
   AppTokens lerp(covariant AppTokens? other, double t) {
     if (other == null) return this;
     return AppTokens(
-      panel: Color.lerp(panel, other.panel, t)!,
-      card: Color.lerp(card, other.card, t)!,
-      cardAlt: Color.lerp(cardAlt, other.cardAlt, t)!,
-      inputField: Color.lerp(inputField, other.inputField, t)!,
-      border: Color.lerp(border, other.border, t)!,
-      textMuted: Color.lerp(textMuted, other.textMuted, t)!,
-      textSecondary: Color.lerp(textSecondary, other.textSecondary, t)!,
-      accents: t < 0.5 ? accents : other.accents,
-      heroGradient: Gradient.lerp(heroGradient, other.heroGradient, t)!,
-      cutoutGradient: Gradient.lerp(cutoutGradient, other.cutoutGradient, t)!,
-      logoGradient: Gradient.lerp(logoGradient, other.logoGradient, t)!,
+      colors: AppPalette.lerp(colors, other.colors, t),
       radiusCard: lerpDouble(radiusCard, other.radiusCard, t),
       radiusPanel: lerpDouble(radiusPanel, other.radiusPanel, t),
       radiusCanvas: lerpDouble(radiusCanvas, other.radiusCanvas, t),
@@ -149,10 +88,28 @@ class AppTokens extends ThemeExtension<AppTokens> {
   static double lerpDouble(double a, double b, double t) => a + (b - a) * t;
 }
 
-/// The editor tools, each with its own accent color.
-enum ToolAccent { layers, adjust, text, erase, cutout, frames, grid, effects }
-
-/// Ergonomic access: `context.tokens.accent(ToolAccent.text)`.
+/// Ergonomic access: `context.colors.textMuted`, `context.tokens.radiusCard`,
+/// `context.colors.accent(ToolAccent.text)`.
+///
+/// `colors` is the one to reach for - it is where every colour lives, and
+/// reading it from the context is what makes a widget theme-aware. A colour
+/// written as a constant in a widget file is a bug in the light theme by
+/// construction, because a constant cannot vary.
 extension AppTokensContext on BuildContext {
-  AppTokens get tokens => Theme.of(this).extension<AppTokens>()!;
+  /// Falls back to the pair matching the theme's brightness rather than
+  /// throwing when the extension is absent. Any [ThemeData] has a brightness,
+  /// so there is always a right answer, and the alternative is that a widget
+  /// blows up under a bare `MaterialApp` - a dialog with its own theme, a
+  /// package that wraps our subtree, or a widget test that only cares about
+  /// layout. It cannot mask a mistake in the app itself: the fallback picks the
+  /// same palette `buildAppTheme` would have installed.
+  AppTokens get tokens {
+    final theme = Theme.of(this);
+    return theme.extension<AppTokens>() ??
+        (theme.brightness == Brightness.light
+            ? AppTokens.light
+            : AppTokens.dark);
+  }
+
+  AppPalette get colors => tokens.colors;
 }
