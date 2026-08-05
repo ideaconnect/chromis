@@ -3107,12 +3107,22 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
   Future<Uint8List?> _tryInpaint(ImageLayer layer, AlphaMask object) async {
     try {
       final bytes = await File(layer.assetPath).readAsBytes();
-      if (ref.read(inpaintAvailableProvider).asData?.value ?? false) {
-        final generated = await ref
-            .read(inpaintEngineProvider)
-            .inpaint(bytes, object);
-        if (generated != null) return generated;
-      }
+      // No availability gate. There used to be one - an asset-manifest
+      // FutureProvider - and it skipped this tier THREE separate times, each
+      // silently: the chooser was built behind it while no build shipped the
+      // asset; then un-gating the chooser removed its only `ref.watch`, so a
+      // synchronous `ref.read(...).asData` read an uninitialised provider as
+      // AsyncLoading and answered "no model" for the first fill of every
+      // session. A gate whose failure mode is indistinguishable from a bad
+      // model is not worth what it saves.
+      //
+      // `inpaint` already returns null on ANY failure - missing asset included
+      // - and null is exactly the signal to fall through. So just try it. The
+      // only cost when the asset is absent is one failed load per fill.
+      final generated = await ref
+          .read(inpaintEngineProvider)
+          .inpaint(bytes, object);
+      if (generated != null) return generated;
       return await ref.read(contentFillEngineProvider).fill(bytes, object);
     } catch (_) {
       return null;

@@ -94,10 +94,16 @@ result, not a failure.
 
 The Fill/Erase chooser was written with the MI-GAN tier and gated on
 `inpaintAvailableProvider`, an asset-manifest check for `assets/models/migan.onnx`.
-That asset has never shipped, so the branch was dead: every tap erased the object
+That asset had never shipped, so the branch was dead: every tap erased the object
 to a transparent hole, with nothing on screen saying which of the two things
 "Remove object" was about to do. People read the hole as a broken fill and
 reported it as one.
+
+Then un-gating the chooser removed that provider's only `ref.watch`, which left
+`_tryInpaint` reading it synchronously - and an uninitialised FutureProvider
+reads as "no model". So the first fill of every session silently used
+content-aware fill, which looked like a bad model rather than an absent one.
+The gate is gone entirely now; that is three strikes for this one decision.
 
 Two things were wrong and both are fixed: the feature is no longer *conditional*
 on an optional asset (there is now an unconditional tier under it), and the
@@ -112,8 +118,16 @@ had ever entered the mode.
 `model_conversion/convert_migan.py` from `migan_512_places2.pt`. See
 `model_conversion/README.md` for provenance, both sha256s, and the reproduce
 step. **Nothing in the UI changes when it is present** - the tier is an
-implementation detail of "Fill in", not a mode anyone picks, which is why
-`inpaintAvailableProvider` gates it silently.
+implementation detail of "Fill in", not a mode anyone picks.
+
+**There is no availability gate, deliberately.** `_tryInpaint` just calls the
+engine; `inpaint` returns null for a missing or unloadable asset, and null is
+already the signal to fall through. The gate that used to be here - an
+asset-manifest `FutureProvider` - skipped this tier three times without ever
+saying so, most recently because a synchronous `ref.read(...).asData` on an
+uninitialised FutureProvider reads as AsyncLoading, i.e. "no model", for the
+first fill of every session. A gate whose failure mode is indistinguishable
+from a bad model is worse than no gate.
 
 ### Licensing: the concrete rule
 

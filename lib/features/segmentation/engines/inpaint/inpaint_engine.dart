@@ -3,7 +3,6 @@ import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart'
     show debugPrint, debugPrintStack, kDebugMode;
-import 'package:flutter/services.dart' show AssetManifest, rootBundle;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image/image.dart' as img;
 
@@ -215,13 +214,11 @@ final inpaintEngineProvider = Provider<InpaintEngine>((ref) {
   return engine;
 });
 
-/// Whether the optional MI-GAN model is bundled - checked cheaply from the asset
-/// manifest (no model load). Gates the "Fill" object-removal option.
-final inpaintAvailableProvider = FutureProvider<bool>((ref) async {
-  try {
-    final manifest = await AssetManifest.loadFromAssetBundle(rootBundle);
-    return manifest.listAssets().contains(kInpaintModelAsset);
-  } catch (_) {
-    return false;
-  }
-});
+// There is deliberately NO `inpaintAvailableProvider` any more. It was a
+// FutureProvider over the asset manifest, and gating this tier on it skipped
+// the tier three separate times without ever saying so - most recently because
+// a synchronous `ref.read(...).asData` on an uninitialised FutureProvider
+// reads as AsyncLoading, i.e. "no model", for the first fill of every session.
+// `inpaint` already returns null for a missing or unloadable asset, and null is
+// the caller's signal to fall through, so the gate bought nothing and hid
+// everything. See test/segmentation/inpaint_available_test.dart.

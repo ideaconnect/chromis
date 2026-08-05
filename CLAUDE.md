@@ -195,6 +195,14 @@ it. **The tier is invisible to the user on purpose** - it is not a mode anyone
 picks, and the old label "Fill (AI)" was a promise the shipped app could not
 keep.
 
+**There is no availability gate on the generative tier, and that is
+deliberate.** Deciding "should we even try MI-GAN?" got this tier silently
+skipped THREE times - the dead chooser branch, then a synchronous
+`ref.read(futureProvider).asData` that reads as AsyncLoading (i.e. "no model")
+for the first fill of every session. `inpaint` already returns null for a
+missing or unloadable asset, and null is the signal to fall through, so the
+gate bought nothing and hid everything. Do not reintroduce one.
+
 **A permissive licence with no carve-out covers the weights its authors
 distribute under it, and the training set is a disclosed risk rather than a
 veto.** That rule is forced: reading Places2's research-only terms as
