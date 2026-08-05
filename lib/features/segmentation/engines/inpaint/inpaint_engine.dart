@@ -65,6 +65,7 @@ class InpaintEngine {
           pre.height,
           pre.box,
           pre.window,
+          pre.weight,
         ),
       );
     } catch (e, stack) {
@@ -105,6 +106,24 @@ typedef InpaintWindow = ({int x, int y, int w, int h});
 
 /// Context kept around the object, as a fraction of its longer side.
 const _windowMargin = 0.5;
+
+/// Extra pixels (in the 512 field) filled beyond the mask.
+///
+/// Not a refinement - load-bearing. A segmentation mask's boundary is a BLEND
+/// of object and background, and `alpha > 128` cuts INSIDE it, so feeding the
+/// model the raw mask leaves a rim of the object in the visible context. The
+/// model conditions on that rim and synthesises the whole region in the
+/// object's colour. Measured on a soft-edged pink object: 1384 object-coloured
+/// pixels survived and the entire fill came back pink; with dilation, zero.
+/// `ContentFillEngine` always did this. The generative tier did not, which is
+/// why it looked worse than the model actually is.
+const _guard = 4;
+
+/// Half-width of the ramp from filled to original, so the seam is a blend and
+/// not a cut. The region SYNTHESISED runs a further [_seam] wider than the
+/// region blended at full strength, or the ramp fades back into the object's
+/// own fringe instead of into clean photo.
+const _seam = 3;
 
 /// A square-ish crop around the marked region, clamped to the photo.
 ///
@@ -177,6 +196,7 @@ InpaintWindow inpaintWindow(
   int height,
   InpaintBox box,
   InpaintWindow window,
+  Uint8List weight,
 })
 _preprocess(Uint8List imageBytes, AlphaMask region) {
   final src = img.decodeImage(imageBytes)!;
@@ -202,28 +222,104 @@ _preprocess(Uint8List imageBytes, AlphaMask region) {
   );
   final rgba = fitted.getBytes(order: img.ChannelOrder.rgba);
   const plane = _side * _side;
+
+  // Sample the mask into the 512 field FIRST, so it can be grown before
+  // anything - the model or the composite - conditions on it.
+  final raw = Uint8List(plane);
+  for (var i = 0; i < plane; i++) {
+    final x = i % _side, y = i ~/ _side;
+    if (x < lx || x >= lx + lw || y < ly || y >= ly + lh) continue;
+    // Window pixel -> image pixel -> mask pixel.
+    final ix = window.x + ((x - lx) * window.w) ~/ lw;
+    final iy = window.y + ((y - ly) * window.h) ~/ lh;
+    final rx = ((ix * region.width) ~/ w).clamp(0, region.width - 1);
+    final ry = ((iy * region.height) ~/ h).clamp(0, region.height - 1);
+    if (region.alpha[ry * region.width + rx] > 128) raw[i] = 1;
+  }
+  final hole = _dilate(raw, _guard + 2 * _seam);
+  final weight = _blur(_dilate(raw, _guard + _seam), _seam);
+
   final input = Float32List(4 * plane);
   for (var i = 0; i < plane; i++) {
     final x = i % _side, y = i ~/ _side;
-    final inside = x >= lx && x < lx + lw && y >= ly && y < ly + lh;
     // Edge-replicate outside the window so padding is neutral known context.
     final fx = (x - lx).clamp(0, lw - 1);
     final fy = (y - ly).clamp(0, lh - 1);
-    // Window pixel -> image pixel -> mask pixel.
-    final ix = window.x + (fx * window.w) ~/ lw;
-    final iy = window.y + (fy * window.h) ~/ lh;
-    final rx = ((ix * region.width) ~/ w).clamp(0, region.width - 1);
-    final ry = ((iy * region.height) ~/ h).clamp(0, region.height - 1);
-    final keep = (inside && region.alpha[ry * region.width + rx] > 128)
-        ? 0.0
-        : 1.0;
+    final keep = hole[i] != 0 ? 0.0 : 1.0;
     input[i] = keep - 0.5;
     final o = (fy * lw + fx) * 4;
     input[plane + i] = (rgba[o] / 127.5 - 1.0) * keep;
     input[2 * plane + i] = (rgba[o + 1] / 127.5 - 1.0) * keep;
     input[3 * plane + i] = (rgba[o + 2] / 127.5 - 1.0) * keep;
   }
-  return (input: input, width: w, height: h, box: box, window: window);
+  return (
+    input: input,
+    width: w,
+    height: h,
+    box: box,
+    window: window,
+    weight: weight,
+  );
+}
+
+/// Grows a 0/1 mask over the 512 field by [radius], separably (a square
+/// dilation is the horizontal pass followed by the vertical one).
+Uint8List _dilate(Uint8List mask, int radius) {
+  final tmp = Uint8List(_side * _side);
+  for (var y = 0; y < _side; y++) {
+    final row = y * _side;
+    for (var x = 0; x < _side; x++) {
+      final lo = x - radius < 0 ? 0 : x - radius;
+      final hi = x + radius >= _side ? _side - 1 : x + radius;
+      for (var i = lo; i <= hi; i++) {
+        if (mask[row + i] != 0) {
+          tmp[row + x] = 1;
+          break;
+        }
+      }
+    }
+  }
+  final out = Uint8List(_side * _side);
+  for (var x = 0; x < _side; x++) {
+    for (var y = 0; y < _side; y++) {
+      final lo = y - radius < 0 ? 0 : y - radius;
+      final hi = y + radius >= _side ? _side - 1 : y + radius;
+      for (var i = lo; i <= hi; i++) {
+        if (tmp[i * _side + x] != 0) {
+          out[y * _side + x] = 1;
+          break;
+        }
+      }
+    }
+  }
+  return out;
+}
+
+/// Separable box blur of a 0/1 mask into 0…255 blend weights.
+Uint8List _blur(Uint8List mask, int radius) {
+  final win = 2 * radius + 1;
+  final tmp = Uint16List(_side * _side);
+  for (var y = 0; y < _side; y++) {
+    final row = y * _side;
+    for (var x = 0; x < _side; x++) {
+      var sum = 0;
+      for (var k = -radius; k <= radius; k++) {
+        sum += mask[row + (x + k).clamp(0, _side - 1)] != 0 ? 255 : 0;
+      }
+      tmp[row + x] = sum ~/ win;
+    }
+  }
+  final out = Uint8List(_side * _side);
+  for (var x = 0; x < _side; x++) {
+    for (var y = 0; y < _side; y++) {
+      var sum = 0;
+      for (var k = -radius; k <= radius; k++) {
+        sum += tmp[(y + k).clamp(0, _side - 1) * _side + x];
+      }
+      out[y * _side + x] = sum ~/ win;
+    }
+  }
+  return out;
 }
 
 /// Composites the model's fill (cropped out of the letterboxed 512 field and
@@ -237,6 +333,7 @@ Uint8List _postprocess(
   int height,
   InpaintBox box,
   InpaintWindow window,
+  Uint8List weight,
 ) {
   const plane = _side * _side;
   final fillRgba = Uint8List(plane * 4);
@@ -280,16 +377,30 @@ Uint8List _postprocess(
   final fill = filledWindow.getBytes(order: img.ChannelOrder.rgba);
   // Only the window can contain marked pixels - it was built around their
   // bounding box - so walk it rather than the whole photo.
+  //
+  // The blend weight is the FEATHERED, dilated mask from _preprocess rather
+  // than a hard `alpha > 128` test: a hard edge here re-exposes the object's
+  // own boundary blend as a rim around otherwise-good output, and reads as a
+  // cut-out pasted over the photo.
   for (var y = window.y; y < window.y + window.h; y++) {
+    // Full-res window pixel -> the letterboxed 512 field the weight lives in.
+    final wy = box.y + ((y - window.y) * box.h) ~/ window.h;
+    final fy = wy < 0 ? 0 : (wy >= _side ? _side - 1 : wy);
     for (var x = window.x; x < window.x + window.w; x++) {
-      final rx = ((x * region.width) ~/ width).clamp(0, region.width - 1);
-      final ry = ((y * region.height) ~/ height).clamp(0, region.height - 1);
-      if (region.alpha[ry * region.width + rx] > 128) {
-        final o = (y * width + x) * 4;
-        final f = ((y - window.y) * window.w + (x - window.x)) * 4;
+      final wx = box.x + ((x - window.x) * box.w) ~/ window.w;
+      final fx = wx < 0 ? 0 : (wx >= _side ? _side - 1 : wx);
+      final a = weight[fy * _side + fx];
+      if (a == 0) continue;
+      final o = (y * width + x) * 4;
+      final f = ((y - window.y) * window.w + (x - window.x)) * 4;
+      if (a == 255) {
         base[o] = fill[f];
         base[o + 1] = fill[f + 1];
         base[o + 2] = fill[f + 2]; // keep the original alpha
+      } else {
+        for (var c = 0; c < 3; c++) {
+          base[o + c] = base[o + c] + ((fill[f + c] - base[o + c]) * a) ~/ 255;
+        }
       }
     }
   }

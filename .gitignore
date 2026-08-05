@@ -82,3 +82,9 @@ website/assets/img/effects/dog-chip.png
 # them, which ARE committed. A re-encode shares no bytes with the previous
 # one, so every regeneration would add another full copy to history forever.
 assets/store/ads/**/video/
+# The LaMa ONNX is 198 MB - over GitHub's 100 MB file limit - and is only ever
+# a bench artifact of the lama-test branch, never a shipped asset on main.
+# Ignored here too so a `git add -A` on main cannot sweep it into a commit,
+# which is exactly what happened once. Re-fetch from
+# https://huggingface.co/Carve/LaMa-ONNX (lama_fp32.onnx).
+assets/models/lama.onnx
