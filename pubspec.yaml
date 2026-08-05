@@ -71,13 +71,16 @@ flutter:
     # tap. Apache-2.0, converted by model_conversion/convert_mobile_sam.py.
     - assets/models/mobile_sam_encoder.onnx
     - assets/models/mobile_sam_decoder.onnx
-    # OPTIONAL generative fill (object removal → "Fill"). Drop a permissively-
-    # licensed MI-GAN ONNX at assets/models/migan.onnx and uncomment the line
-    # below to enable it; absent, the "Fill" option is hidden. See
-    # docs/inpaint-setup.md.
-    # - assets/models/migan.onnx
+    # Generative fill, the top tier of object removal's "Fill in". MI-GAN
+    # (MIT), converted by model_conversion/convert_migan.py. Absent, Fill still
+    # works - it falls through to the pure-Dart ContentFillEngine, which is why
+    # this is safe to drop. See docs/inpaint-setup.md.
+    - assets/models/migan.onnx
     # Bundled AI model licenses (MobileSAM + U²-Netp, Apache-2.0).
     - assets/licenses/Apache-2.0-models.txt
+    # MI-GAN is MIT, not Apache-2.0, so it needs its own notice: the licence
+    # requires the copyright line be reproduced verbatim.
+    - assets/licenses/MIT-migan.txt
     # Bundled font license texts - registered into LicenseRegistry as SIL OFL /
     # Apache-2.0 require. Reskinned to Space Grotesk + Manrope in M0; the full
     # display-font set lands in M4. See about/bundled_licenses.dart.

@@ -186,11 +186,24 @@ fine either way and the gate is a runtime provider rather than a compile-time
 flag, so nothing could catch it but a test that entered the mode, which is what
 `test/editor/object_fill_mode_test.dart` now is.
 
-Fill has **two tiers, tried in order by `_tryInpaint`**: MI-GAN if bundled, then
-`ContentFillEngine`, which is pure Dart and always runs. The floor is what lets
-Fill be offered unconditionally. **The tier is invisible to the user on
-purpose** - it is not a mode anyone picks, and the old label "Fill (AI)" was a
-promise the shipped app could not keep.
+Fill has **two tiers, tried in order by `_tryInpaint`**: MI-GAN (bundled,
+26.7 MB, MIT) then `ContentFillEngine`, which is pure Dart and always runs. The
+floor is what lets Fill be offered unconditionally - it degrades rather than
+disappears - but the generative tier is what makes it good: on a person-shaped
+hole PatchMatch pastes a slab of background through the subject, MI-GAN rebuilds
+it. **The tier is invisible to the user on purpose** - it is not a mode anyone
+picks, and the old label "Fill (AI)" was a promise the shipped app could not
+keep.
+
+**A permissive licence with no carve-out covers the weights its authors
+distribute under it, and the training set is a disclosed risk rather than a
+veto.** That rule is forced: reading Places2's research-only terms as
+encumbering MI-GAN's weights would also disqualify MobileSAM, which this app
+already ships. What it does NOT license is the `ffhq` checkpoint sitting in the
+same download folder - FFHQ is CC BY-NC-SA, and it is what a search for "person
+removal" surfaces first. `model_conversion/convert_migan.py` exports the raw
+generator ourselves rather than taking upstream's published ONNX, which is a
+*pipeline* export with a different signature that would fail silently.
 
 `content_fill_engine.dart` fills a **window** around the object (its bbox plus
 75% of its longer side, downscaled only past 512 px), not the whole photo. That

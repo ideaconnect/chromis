@@ -49,6 +49,10 @@ secrets/
 # shipped artifact is assets/models/u2netp.onnx (committed). Re-fetch the .pth
 # per model_conversion/README.md and re-run convert_u2netp.py to reproduce.
 model_conversion/*.pth
+# Same for the MI-GAN generative-fill checkpoint (28 MB). The shipped artifact
+# is assets/models/migan.onnx; re-fetch migan_512_places2.pt per
+# model_conversion/README.md and re-run convert_migan.py to reproduce.
+model_conversion/*.pt
 # MobileSAM checkpoint (40 MB) + fp32 export intermediates - only the shipped
 # fp16 .onnx artifacts in assets/models/ are committed (#84).
 assets/models/mobile_sam.pt

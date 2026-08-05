@@ -31,6 +31,11 @@ const bundledLicenses = <BundledLicense>[
     'MobileSAM',
     'U²-Netp',
   ], 'assets/licenses/Apache-2.0-models.txt'),
+  // MI-GAN (generative fill) is MIT, a different licence from the two above, so
+  // it gets its own entry rather than being folded into the Apache text - MIT
+  // requires ITS copyright notice reproduced, and a reader has to be able to
+  // tell which terms cover which model.
+  BundledLicense(['MI-GAN'], 'assets/licenses/MIT-migan.txt'),
 ];
 
 /// Registers the bundled font license texts into [LicenseRegistry] so they

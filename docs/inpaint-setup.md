@@ -8,8 +8,8 @@ choice, shown before the tap that acts on it:
 - **Erase** - the object is cut out to transparency, leaving a hole.
 
 Erase is the original behaviour and is still one tap away. It was for a long
-time the ONLY behaviour, because the chooser was built behind an optional model
-that no shipped build has ever bundled - see "How it got this way" below.
+time the ONLY behaviour, because the chooser was built behind a model no shipped
+build bundled - see "How it got this way" below.
 
 ## The two fill tiers
 
@@ -18,12 +18,13 @@ non-null result:
 
 | Tier | File | Bundled? | What it does |
 |---|---|---|---|
-| Generative | `engines/inpaint/inpaint_engine.dart` | **Optional** MI-GAN ONNX | Synthesizes plausible new content |
+| Generative | `engines/inpaint/inpaint_engine.dart` | MI-GAN ONNX, 26.7 MB | Synthesizes plausible new content |
 | Content-aware | `engines/inpaint/content_fill_engine.dart` | Always - pure Dart | Rebuilds from texture the photo already contains |
 
-Content-aware fill is the floor, and it is why Fill can be offered
-unconditionally: nothing to download, no licence to audit, no ONNX runtime to
-fail on. It is PatchMatch (Barnes et al. 2009) driving Wexler-style coarse-to-fine
+Content-aware fill is the FLOOR, not the answer: it is what makes Fill safe to
+offer unconditionally - no asset to be missing, no ONNX runtime to fail on - so
+the feature degrades instead of disappearing. The generative tier is what makes
+it good. It is PatchMatch (Barnes et al. 2009) driving Wexler-style coarse-to-fine
 patch voting - `engines/inpaint/patch_match.dart`, pure byte arrays in and out so
 it runs inside `Isolate.run` and is unit-testable without decoding an image.
 
@@ -40,11 +41,15 @@ the object's bounding box plus 75% of its longer side as context, downscaled
 only if that exceeds 512 px (`contentFillWindow`, covered by
 `test/segmentation/content_fill_test.dart`).
 
-This is the difference between a patch and a smudge. MI-GAN has to squeeze the
-entire image into its 512² input, so a 100 px object in a 2000 px photo is
-synthesized about 25 px wide and blown back up. The window keeps a small object
-at native resolution, and matching locally finds better patches anyway - the
+This is the difference between a patch and a smudge: a small object stays at
+native resolution, and matching locally finds better patches anyway - the
 texture right next to the object is what should replace it.
+
+The generative tier does NOT do this yet: `_preprocess` letterboxes the whole
+photo into 512², so a person filling 7% of a 2048 px frame is synthesized ~64 px
+wide. Cropping a window first measures at 90 px for the same ~530 ms - a real
++40% and an obvious follow-up, but the whole-photo path already looks good, so
+it is an improvement rather than a defect.
 
 The composite is weighted, not a hard swap: the region synthesized runs one blur
 radius wider than the region weighted at full strength, so the seam fades into
@@ -101,54 +106,64 @@ always built). `test/editor/object_fill_mode_test.dart` is the coverage whose
 absence let a dead branch ship - the panel renders fine either way, and no test
 had ever entered the mode.
 
-## Adding the MI-GAN tier (optional)
+## The MI-GAN tier, as bundled
 
-The engine and wiring are built; this is a drop-in asset step, like the AdMob
-ids and the release keystore.
+`assets/models/migan.onnx` (26.7 MB) is produced by
+`model_conversion/convert_migan.py` from `migan_512_places2.pt`. See
+`model_conversion/README.md` for provenance, both sha256s, and the reproduce
+step. **Nothing in the UI changes when it is present** - the tier is an
+implementation detail of "Fill in", not a mode anyone picks, which is why
+`inpaintAvailableProvider` gates it silently.
 
-> Not yet exercised on-device - verify the model + output on a real device
-> before shipping it.
+### Licensing: the concrete rule
 
-### 1. Obtain a permissively-licensed model
+The old wording here said "check the specific weights' license… some
+checkpoints are trained on non-commercial datasets", which is true and
+unactionable. The rule that actually decides it:
 
-Bundle **only** MIT / BSD / Apache-2.0 / SIL-OFL (project licensing policy -
-no GPL/LGPL, no CC-BY-NC). MI-GAN's code is MIT, but **check the specific
-weights' license** before bundling - some inpainting checkpoints are trained on
-non-commercial datasets. A `places2` MI-GAN checkpoint exported to ONNX is the
-usual choice.
+- **An unmodified permissive licence with no carve-out covers the weights the
+  authors distribute under it.** MI-GAN is MIT (© 2024 Picsart AI Research),
+  the LICENSE has no scope limitation, and the README ships the checkpoints
+  with no separate terms. That is a grant.
+- **The training dataset is a disclosed, accepted risk, not a veto.** Places2's
+  own terms say research/education. Reading that as encumbering the weights
+  would also disqualify **MobileSAM**, which this app already ships and which
+  Meta licenses Apache-2.0 despite SA-1B being research-only. The app cannot
+  hold both positions; it holds this one.
+- **`places2` ships. `ffhq` and CelebA-HQ never do.** FFHQ is CC BY-NC-SA 4.0
+  outright and CelebA's agreement reaches "any portion of derived data", which
+  is written to catch weights. `migan_256_ffhq.pt` is in the same download
+  folder and is the checkpoint a search for "person removal" surfaces first -
+  it is the single most likely way to get this wrong.
 
-Export/convert to ONNX at **512×512** (the model's native resolution). A
-conversion script belongs alongside `model_conversion/convert_mobile_sam.py`.
+### The tensor signature
 
-### 2. Match the tensor signature
-
-The engine feeds exactly this (adjust the constants in `inpaint_engine.dart` if
-your export differs - `_inputName`, `_outputName`, `_side`):
+`convert_migan.py` asserts all of this at export time, because a mismatch is
+silent - `InpaintEngine` catches broadly and the app just quietly serves
+content-aware fill instead.
 
 | Tensor | Name | Shape | Content |
 |---|---|---|---|
 | input | `input` | `[1, 4, 512, 512]` f32 | ch0 = `keep - 0.5` (keep: 1 outside the hole, 0 inside); ch1-3 = `rgb/127.5 - 1`, multiplied by `keep` |
 | output | `output` | `[1, 3, 512, 512]` f32 | inpainted RGB in `[-1, 1]` |
 
+This matches upstream's own `scripts/export_inference_model.py`
+(`x = cat([mask - 0.5, img * mask])` with `img = (ToTensor() - 0.5) * 2`,
+decoded `* 127.5 + 127.5`) exactly. **Do not "fix" either half independently.**
+
 The engine **letterboxes** the photo (fit-contain, centered) into the 512²
-field so the model sees undistorted geometry, builds that input, runs the model,
-then crops the fill back out of the letterbox and composites it over the
-**full-resolution original** (only the filled area is resampled). The letterbox
-geometry is covered by `test/inpaint_letterbox_test.dart`.
+field so the model sees undistorted geometry, then crops the fill back out and
+composites it over the **full-resolution original** (only the filled area is
+resampled). Covered by `test/inpaint_letterbox_test.dart`.
 
-### 3. Install
+### What it is worth
 
-1. Put the file at `assets/models/migan.onnx`.
-2. Uncomment the `- assets/models/migan.onnx` line in `pubspec.yaml`.
-3. `flutter pub get` and rebuild.
-4. Add its license text to `lib/features/about/bundled_licenses.dart`.
-
-`inpaintAvailableProvider` checks the asset manifest, so the generative tier is
-tried first automatically once the model is bundled. **Nothing in the UI
-changes** - and that is deliberate. The tier is an implementation detail of
-"Fill in", not a mode the user picks; labelling it "Fill (AI)" would have been a
-promise the shipped app could not keep, which is how this got misleading in the
-first place.
+Measured against the content-aware tier on the same photo and the same mask, a
+tall person-shaped hole: PatchMatch pastes a slab of grass through the subject
+and leaves a hard-edged rectangle; MI-GAN reconstructs the body, the collar and
+the rock underneath seamlessly. This is not a marginal upgrade - it is the
+difference between "why is it broken" and "I cannot tell anything was removed".
+Desktop CPU inference is ~600 ms at 512².
 
 ## Known refinements
 

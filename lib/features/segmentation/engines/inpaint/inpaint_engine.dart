@@ -1,6 +1,8 @@
 import 'dart:isolate';
 import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart'
+    show debugPrint, debugPrintStack, kDebugMode;
 import 'package:flutter/services.dart' show AssetManifest, rootBundle;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image/image.dart' as img;
@@ -8,10 +10,9 @@ import 'package:image/image.dart' as img;
 import '../../alpha_mask.dart';
 import '../object/ort_graph.dart';
 
-/// Bundled MI-GAN model (OPTIONAL). Add the file + a pubspec `assets:` entry to
-/// enable generative fill; see docs/inpaint-setup.md. Absent → the "Fill" option
-/// is hidden ([inpaintAvailableProvider]) and object removal erases to
-/// transparent as before.
+/// Bundled MI-GAN model. Converted by `model_conversion/convert_migan.py`; see
+/// docs/inpaint-setup.md. Absent → "Fill in" still works, falling through to
+/// `ContentFillEngine`, which is what makes this asset safe to drop.
 const kInpaintModelAsset = 'assets/models/migan.onnx';
 
 /// The MI-GAN working resolution (the model is trained at 512²).
@@ -66,7 +67,17 @@ class InpaintEngine {
           pre.box,
         ),
       );
-    } catch (_) {
+    } catch (e, stack) {
+      // Returning null is correct - the caller falls through to content-aware
+      // fill, which is the whole point of the ladder. But swallowing the reason
+      // is how this feature shipped dead once already: a wrong tensor
+      // signature, a missing op and an out-of-memory kill all look identical
+      // from the outside, and all look like "the model is just bad". Say which
+      // in debug, where someone is watching.
+      if (kDebugMode) {
+        debugPrint('InpaintEngine: generative fill failed, falling back - $e');
+        debugPrintStack(stackTrace: stack, maxFrames: 6);
+      }
       return null;
     }
   }
