@@ -292,6 +292,14 @@
       }
     }
   },
+  "snap": "Snap",
+  "@snap": {
+    "description": "Adjust panel toggle, above the placement sliders: when on, moving or resizing a layer pulls it onto an alignment with the other layers."
+  },
+  "snapHint": "Layers line up with each other's edges and centres, and stop at each other's size.",
+  "@snapHint": {
+    "description": "One-line explainer under the Snap toggle."
+  },
   "scale": "Scale",
   "@scale": {
     "description": "Adjust panel slider: the selected layer's size, shown as a percentage."

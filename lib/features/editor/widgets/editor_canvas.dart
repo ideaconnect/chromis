@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
+import 'package:flutter/foundation.dart' show listEquals, setEquals;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -15,12 +16,15 @@ import '../../../core/theme/app_tokens.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/checkerboard.dart';
 import '../../../l10n/app_localizations.dart';
+import '../brush_size.dart';
 import '../layer_bounds.dart';
 import '../layer_scale_curve.dart';
+import '../layer_snap.dart';
 import '../state/editor_controller.dart';
 import '../state/editor_state.dart';
 import '../state/editor_tool.dart';
 import 'bubble_view.dart';
+import 'erase_trail.dart';
 import 'project_canvas.dart';
 
 /// The interactive editing surface: renders the current frame and lets the user
@@ -34,6 +38,8 @@ class EditorCanvas extends ConsumerStatefulWidget {
     this.onEmptyCellTap,
     this.onEraseStroke,
     this.onObjectTap,
+    this.eraseTrail,
+    this.brushSize = kDefaultBrushSize,
     this.onionFrame,
   });
 
@@ -51,8 +57,21 @@ class EditorCanvas extends ConsumerStatefulWidget {
   final Frame? onionFrame;
 
   /// Called with a brush stroke (points in 512-logical canvas units) when the
-  /// Erase tool is active over the selected image layer.
-  final void Function(List<Offset> pointsLogical)? onEraseStroke;
+  /// Erase tool is active over the selected image layer. [trailTicket] is the
+  /// stroke's entry in [eraseTrail] - hand it back to
+  /// `EraseTrail.markCommitted` / `retireIfUncommitted` so the blue trail is
+  /// held until the real pixels land, and dropped if they never do.
+  final void Function(List<Offset> pointsLogical, int trailTicket)?
+  onEraseStroke;
+
+  /// The live erase stroke, drawn under the finger. Optional: every other
+  /// caller of this widget (tests, and anything that does not erase) leaves it
+  /// null and gets exactly the behaviour it had before.
+  final EraseTrail? eraseTrail;
+
+  /// The brush's diameter in 512-logical canvas units, so the trail is drawn at
+  /// the width the stroke will actually erase.
+  final double brushSize;
 
   /// When non-null and the Cut-out tool is active over the selected image
   /// layer, a tap becomes "remove the object under the finger" (#83) instead
@@ -103,6 +122,34 @@ class _EditorCanvasState extends ConsumerState<EditorCanvas> {
   /// per canvas: a fixed logical slop would be a few pixels wide on a 1080-px
   /// canvas shown at ~400.
   static const double _dividerTouchPx = 16;
+
+  /// How near an alignment has to be before the gesture is pulled onto it, in
+  /// SCREEN px - same conversion, and for a stronger reason: "close enough"
+  /// during a drag is a statement about the finger, so a snap radius fixed in
+  /// canvas units would grab from a centimetre away on a 4000-px canvas and be
+  /// unreachable on a small one.
+  static const double _snapTouchPx = 8;
+
+  /// The alignments the current gesture is resting on, for the guide lines -
+  /// empty whenever nothing is being dragged.
+  List<SnapGuide> _guides = const [];
+
+  /// The layers the gesture has just matched the size or the ANGLE of, outlined
+  /// rather than drawn a line through: they are somewhere else on the canvas
+  /// entirely, and what happened is "you are now like that one".
+  Set<String> _snapMatchIds = const {};
+
+  void _setSnapFeedback(SnapResult? result) {
+    final guides = result?.guides ?? const <SnapGuide>[];
+    final matches = result?.matchIds ?? const <String>{};
+    if (setEquals(matches, _snapMatchIds) && listEquals(guides, _guides)) {
+      return;
+    }
+    setState(() {
+      _guides = guides;
+      _snapMatchIds = matches;
+    });
+  }
 
   /// Tools where a canvas gesture already means "manipulate" rather than
   /// "paint". Only there are divider handles live, so a brush stroke or an
@@ -240,13 +287,31 @@ class _EditorCanvasState extends ConsumerState<EditorCanvas> {
                     grid: editor.project.grid,
                     showCellPlaceholders: true,
                     gesturingLayerId: _gestureLayerId,
+                    onLayerPainted: widget.eraseTrail?.paintedFor,
                   ),
+                // The live erase stroke, above the photo it is erasing and
+                // below every piece of selection chrome.
+                if (_isErasing(editor) && widget.eraseTrail != null)
+                  _brushTrailOverlay(editor, scale),
                 // Divider handles sit above the composition but below the layer
                 // selection chrome.
                 if (_dividerTools.contains(editor.tool))
                   for (final divider
                       in _layoutOf(editor)?.dividers ?? const <GridDivider>[])
                     _dividerHandle(divider, scale),
+                // Snap feedback sits above the composition and below the
+                // selection frame: the cyan frame is where the finger is, and
+                // must not be the thing that gets covered.
+                for (final guide in _guides)
+                  _guideLine(
+                    guide,
+                    scale,
+                    Size(
+                      editor.project.canvasWidth.toDouble(),
+                      editor.project.canvasHeight.toDouble(),
+                    ),
+                  ),
+                ..._matchOutlines(editor.layers, scale),
                 if (selected != null && editor.tool != EditorTool.frames) ...[
                   _selectionOverlay(selected, scale),
                   // Bubbles get a draggable knob at the tail tip (#78) - except
@@ -274,6 +339,44 @@ class _EditorCanvasState extends ConsumerState<EditorCanvas> {
     );
   }
 
+  /// The live erase stroke. `IgnorePointer` because it must not take the very
+  /// gesture that is drawing it, and `RepaintBoundary` because it repaints on
+  /// every pointer move and the composition beneath it must not.
+  Widget _brushTrailOverlay(EditorState editor, double scale) {
+    final layer = editor.selectedLayer;
+    Rect? clip;
+    if (layer != null) {
+      // The layer's own content box, so a stroke that runs off the photo does
+      // not promise an erase that cannot happen...
+      final size = _sizeOf(layer);
+      clip = Rect.fromCenter(
+        center: layer.transform.position,
+        width: size.width,
+        height: size.height,
+      );
+      // ...intersected with its collage cell, which clips it as well.
+      final cell = layer.cellId == null
+          ? null
+          : _layoutOf(editor)?.cells[layer.cellId];
+      if (cell != null) clip = clip.intersect(cell);
+    }
+    return Positioned.fill(
+      child: IgnorePointer(
+        child: RepaintBoundary(
+          child: CustomPaint(
+            key: const ValueKey('erase-trail'),
+            willChange: true,
+            painter: BrushTrailPainter(
+              trail: widget.eraseTrail!,
+              scale: scale,
+              clip: clip,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   // --------------------------------------------------------- divider handle
   /// A grab pill centred on a divider. Purely an affordance - the drag itself
   /// is handled by the canvas-wide recognizer, which checks dividers before
@@ -295,6 +398,92 @@ class _EditorCanvasState extends ConsumerState<EditorCanvas> {
             color: context.colors.cyan,
             borderRadius: BorderRadius.circular(3),
             border: Border.all(color: AppScrim.outline.withValues(alpha: 0.4)),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // -------------------------------------------------------------- snap guides
+  /// A hairline across the whole canvas at the alignment the layer landed on.
+  ///
+  /// It runs along the FRAME the alignment was found in, not along the canvas.
+  /// The whole point of two layers sharing an angle is that they then share a
+  /// set of edge directions, and a guide drawn square to the canvas would cross
+  /// those edges instead of lying on them.
+  ///
+  /// Magenta rather than the selection's cyan on purpose: these two are on
+  /// screen together during every snapped drag, and a guide in the selection
+  /// colour reads as part of the frame rather than as something the canvas is
+  /// telling you.
+  Widget _guideLine(SnapGuide guide, double scale, Size canvasLogical) {
+    final cos = math.cos(guide.angle);
+    final sin = math.sin(guide.angle);
+    // The axis the alignment was measured along, and the direction the line
+    // itself runs - square to it.
+    final axis = guide.axis == SnapAxis.x
+        ? Offset(cos, sin)
+        : Offset(-sin, cos);
+    final along = Offset(-axis.dy, axis.dx);
+    // Anchored at the point of the line nearest the canvas centre, so the drawn
+    // segment covers the part anyone is looking at. Long enough to cross the
+    // canvas from any angle; the editor's own ClipRect trims the rest.
+    final centre = Offset(canvasLogical.width / 2, canvasLogical.height / 2);
+    final point =
+        centre +
+        axis * (guide.position - (centre.dx * axis.dx + centre.dy * axis.dy));
+    final px = point * scale;
+    final length =
+        1.2 *
+        scale *
+        math.sqrt(
+          canvasLogical.width * canvasLogical.width +
+              canvasLogical.height * canvasLogical.height,
+        );
+    return Positioned(
+      key: ValueKey('snap-guide-${guide.axis.name}-${guide.position}'),
+      left: px.dx - length / 2,
+      top: px.dy - 0.5,
+      width: length,
+      height: 1,
+      child: IgnorePointer(
+        child: Transform.rotate(
+          angle: math.atan2(along.dy, along.dx),
+          child: ColoredBox(color: context.colors.magenta),
+        ),
+      ),
+    );
+  }
+
+  /// Outlines a layer this gesture has just matched the size or the ANGLE of. A
+  /// match like that has no line to draw - the two layers are nowhere near each
+  /// other - so the only way to say WHICH layer is now alike is to point at it.
+  List<Widget> _matchOutlines(List<Layer> layers, double scale) {
+    return [
+      for (final layer in layers)
+        if (_snapMatchIds.contains(layer.id))
+          _outline(layer, scale, ValueKey('snap-match-${layer.id}')),
+    ];
+  }
+
+  Widget _outline(Layer layer, double scale, Key key) {
+    final size = _sizeOf(layer);
+    final wPx = size.width * scale;
+    final hPx = size.height * scale;
+    final centre = layer.transform.position * scale;
+    return Positioned(
+      key: key,
+      left: centre.dx - wPx / 2,
+      top: centre.dy - hPx / 2,
+      width: wPx,
+      height: hPx,
+      child: IgnorePointer(
+        child: Transform.rotate(
+          angle: layer.transform.rotation,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              border: Border.all(color: context.colors.magenta),
+            ),
           ),
         ),
       ),
@@ -440,7 +629,8 @@ class _EditorCanvasState extends ConsumerState<EditorCanvas> {
   void _onTap(Offset pointLogical, EditorState editor, double scale) {
     // Erase tool: a tap lays down a single dab on the selected photo.
     if (_isErasing(editor)) {
-      widget.onEraseStroke?.call([pointLogical]);
+      _beginTrail(editor, pointLogical);
+      _dispatchStroke([pointLogical]);
       return;
     }
     // A tap that lands on a divider is a mis-aimed drag, not a deselect.
@@ -473,12 +663,40 @@ class _EditorCanvasState extends ConsumerState<EditorCanvas> {
     }
   }
 
+  /// Starts the visible half of a stroke. Kept beside the dispatch so the two
+  /// halves of "draw it, then hand it over" cannot drift apart.
+  void _beginTrail(EditorState editor, Offset pointLogical) {
+    final layer = editor.selectedLayer;
+    if (layer == null) return;
+    widget.eraseTrail?.begin(layer.id, pointLogical, widget.brushSize / 2);
+  }
+
+  /// Hands a stroke to the screen along with its trail ticket.
+  ///
+  /// The ticket is what lets the screen say "these pixels have landed" or "this
+  /// one failed, stop drawing it". With no trail attached there is nothing to
+  /// settle and nothing to report, so the stroke is dispatched with a ticket of
+  /// 0 and the screen's ledger calls are no-ops.
+  void _dispatchStroke(List<Offset> pointsLogical) {
+    final ticket = widget.eraseTrail?.settle() ?? 0;
+    widget.onEraseStroke?.call(pointsLogical, ticket);
+  }
+
   void _onScaleStart(ScaleStartDetails d, EditorState editor, double scale) {
     final focalLogical = d.localFocalPoint / scale;
     // Erase tool: start collecting a brush stroke on the selected photo,
     // instead of moving/scaling a layer.
     if (_isErasing(editor)) {
-      _strokePoints = [focalLogical];
+      // From the pointer-down, not the focal point: a scale gesture is not
+      // recognised until the finger has travelled its slop, so seeding here
+      // silently threw away the first ~36 logical px of every stroke. Nobody
+      // noticed while nothing was drawn during the drag; with a trail under the
+      // finger it would be plainly visible as a stroke that starts late. Same
+      // guard and same reason as the divider grab below.
+      final seed =
+          (d.pointerCount <= 1 ? _pointerDownLogical : null) ?? focalLogical;
+      _strokePoints = [seed];
+      _beginTrail(editor, seed);
       return;
     }
     // A grab near a Photo Grid divider resizes the columns/rows instead of
@@ -514,7 +732,15 @@ class _EditorCanvasState extends ConsumerState<EditorCanvas> {
 
   void _onScaleUpdate(ScaleUpdateDetails d, double scale) {
     if (_strokePoints != null) {
-      _strokePoints!.add(d.localFocalPoint / scale);
+      final point = d.localFocalPoint / scale;
+      _strokePoints!.add(point);
+      // The whole of the "it only appears after a delay" complaint was here:
+      // this method appended to a list and returned, with no setState and no
+      // callback, so the tree did not even rebuild and nothing on screen COULD
+      // change until the finger lifted. The trail is a ChangeNotifier driving
+      // its painter's `repaint:`, so this dirties one render object rather than
+      // rebuilding the canvas subtree.
+      widget.eraseTrail?.extend(point);
       return;
     }
     final divider = _dragDivider;
@@ -550,6 +776,54 @@ class _EditorCanvasState extends ConsumerState<EditorCanvas> {
     );
     if (layer != null) {
       final cell = _layoutOf(editor)?.cells[layer.cellId];
+      // A photo that fills a cell is placed by the clamp below, which has the
+      // last word anyway - snapping it would only fight that. Everything else
+      // in a cell (captions, bubbles) is a free layer and snaps normally.
+      final clamped = cell != null && layer is ImageLayer;
+      if (_controller.snapEnabled && !clamped) {
+        final result = snapTransform(
+          moving: layer,
+          proposed: next,
+          others: editor.layers,
+          measure: (l, s) => layerLogicalSize(
+            l,
+            scale: s,
+            imagePixels: l is ImageLayer ? _imageDims[l.assetPath] : null,
+          ),
+          canvas: Size(
+            editor.project.canvasWidth.toDouble(),
+            editor.project.canvasHeight.toDouble(),
+          ),
+          // A layer in a collage cell is CLIPPED to it, and a cell photo is
+          // cover-scaled, so a good deal of its box is behind the neighbouring
+          // cells. Only what is on screen may be lined up with - the same rule
+          // `_hitTest` applies to taps, for the same reason.
+          clipOf: (l) =>
+              l.cellId == null ? null : _layoutOf(editor)?.cells[l.cellId],
+          tolerance: _snapTouchPx / scale,
+          // "Is this gesture resizing / turning the layer" - and asked with a
+          // SLOP, never as `!= 1` or `!= 0`. Flutter derives both numbers from
+          // the line between two pointers, so with two fingers down neither is
+          // ever exactly its neutral value; read as intent, an exact comparison
+          // answers yes to both for the whole of every two-finger gesture, and
+          // a plain two-finger move would come out resized to a neighbour's
+          // width and turned to its angle. A one-finger drag is unambiguous -
+          // there is no second pointer, so both are exactly neutral.
+          snapScale: (d.scale - 1).abs() > kSnapPinchSlop,
+          // A move MAY still take a neighbour's angle - that is the only way
+          // two turned layers ever go flush - but only by landing on that
+          // neighbour's edge and not at the cost of an alignment it already
+          // had; `snapTransform` enforces both. Past the twist slop the user is
+          // plainly turning it, and then the angle is asked for outright,
+          // exactly as the size is.
+          rotationTolerance: kSnapRotationTolerance,
+          snapRotation: d.rotation.abs() > kSnapTwistSlop,
+        );
+        next = result.transform;
+        _setSnapFeedback(result);
+      } else {
+        _setSnapFeedback(null);
+      }
       if (cell != null) next = _clampToCell(layer, next, cell);
     }
     _controller.updateTransform(id, next);
@@ -592,7 +866,12 @@ class _EditorCanvasState extends ConsumerState<EditorCanvas> {
     final stroke = _strokePoints;
     if (stroke != null) {
       _strokePoints = null;
-      if (stroke.isNotEmpty) widget.onEraseStroke?.call(stroke);
+      // A documented exception to "gesture-scoped canvas state is cleared in
+      // _onScaleEnd": the trail is NOT cleared here. The pixels have not been
+      // written yet, let alone decoded, so clearing it now is exactly the
+      // flash of un-erased photo the feature exists to remove. It is retired
+      // by the renderer instead - see EraseTrail.
+      if (stroke.isNotEmpty) _dispatchStroke(stroke);
       return;
     }
     if (_dragDivider != null) {
@@ -603,6 +882,7 @@ class _EditorCanvasState extends ConsumerState<EditorCanvas> {
     }
     final id = _gestureLayerId;
     _setGestureLayer(null);
+    _setSnapFeedback(null);
     _controller.endEdit();
     if (id != null) _dropIntoCell(id);
   }
@@ -650,12 +930,11 @@ class _EditorCanvasState extends ConsumerState<EditorCanvas> {
 
   /// [_sizeOf] at an explicit [scale] rather than the layer's own - used by the
   /// cell cover clamp, which needs the size the layer WOULD have.
-  Size _sizeOfAt(Layer layer, double scale) {
-    final own = layer.transform.scale;
-    final size = _sizeOf(layer);
-    if (own == 0) return size;
-    return Size(size.width / own * scale, size.height / own * scale);
-  }
+  Size _sizeOfAt(Layer layer, double scale) => layerLogicalSize(
+    layer,
+    scale: scale,
+    imagePixels: layer is ImageLayer ? _imageDims[layer.assetPath] : null,
+  );
 
   /// The layer's bounding size in canvas-logical units, including its own
   /// scale. Image layers shrink to their BoxFit.contain content rect (once the

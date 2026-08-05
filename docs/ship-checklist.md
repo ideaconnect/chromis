@@ -64,9 +64,10 @@ Install the debug build and walk every feature. It's already built:
 
 ## B. AdMob console (Google AdMob)
 
-1. Create the app in AdMob; copy its **App ID** →
-   `android/app/src/main/AndroidManifest.xml` (replace the test
-   `ca-app-pub-3940256099942544~3347511713`).
+1. **Already done for this app**: the manifest carries the real App ID
+   (`ca-app-pub-6904561240517963~5964201716`) and `ads_config.dart` has
+   `useTestAds = false` with real banner and rewarded units. Verify, do not
+   replace. The instruction below is what to do for a *new* app.
 2. Create three ad units - Banner, Interstitial, and **Rewarded interstitial**
    (NOT plain "Rewarded": `AdsService` loads a `RewardedInterstitialAd`, and the
    SDK rejects the other format with "Ad unit doesn't match format" - which the
@@ -197,18 +198,41 @@ eight states again on each device; run the three profiles at once, they do not
 contend:
 
 ```bash
+python tool/capture_store_shots.py prepare phone tab10 tab7   # once per device
+python tool/capture_store_shots.py seed    phone tab10 tab7   # the CC0 samples
 python tool/capture_store_shots.py phone   # + tab10, tab7 in parallel
 python tool/gen_store_screens.py
 python tool/gen_store_graphic.py
 ```
 
 That script needs a **debug** build installed (a Play-store emulator image
-refuses `adb root`, so app data goes through `run-as` - which is also how the
-Pro entitlement gets set) and the sample photos already present in the app's
-`projects/assets`. It writes the project manifests itself, and the project
-names, layer names, the sticker's caption and the bubble's line are localized
-in that file: those are *document data*, stored once and never re-translated,
-so a Polish screenshot needs Polish names on disk rather than a Polish build.
+refuses `adb root`, so app data goes through `run-as`). It writes the project
+manifests itself, and the project names, layer names, the sticker's caption and
+the bubble's line are localized in that file: those are *document data*, stored
+once and never re-translated, so a Polish screenshot needs Polish names on disk
+rather than a Polish build.
+
+**`prepare` is not optional, and skipping it does not look like an error.**
+Writing `proEntitled: true` keeps ads out only until the app checks it:
+`reconcileEntitlement` re-verifies the flag against Play on every launch and
+revokes it on a confirmed "not owned", which is exactly what a Play-store
+emulator with no purchase answers. And **without Pro the editor's rail grows a
+Go Pro entry at the top, which pushes every tool down one slot** - so the tap
+tables hit Bubble where they mean AI Cut and the run produces eight plausible
+screenshots of the wrong panels. `prepare` disables the Play Store so the
+billing query throws instead (every uncertain case keeps Pro), takes the radios
+down so UMP cannot fetch a consent form, and sets the dark theme the listing
+art is built from. `restore` puts all of it back.
+
+**The sample photos are CC0 and live in the repo.** `assets/store/samples/`,
+fetched by `tool/fetch_stock_photos.py` from Wikimedia Commons with the licence
+and source URL of each recorded in `SOURCES.json`; `seed` pushes them to the
+device. A Play listing is commercial use of every pixel inside the device
+frame, so which photograph appears in one is a decision that belongs in the
+repo, not whatever happened to be in an emulator's gallery. The cut-out
+(`subject-mask.png`) is a real AI Cut output, made once with
+`capture_store_shots.py mask phone` and copied to the other devices - a
+hand-drawn alpha would show a result the app did not produce.
 
 The system photo picker keeps its own index: after re-seeding `/sdcard` it reports
 "No photos yet" even while `content query` lists every file. Fix with
@@ -251,9 +275,8 @@ Upload `build/app/outputs/bundle/release/app-release.aab`.
   (which segments *any* tapped object, more precisely) and would add the
   `google_mlkit_object_detection` native dependency + model. Say the word and I'll
   add it.
-- **MI-GAN generative fill.** Object removal now offers Fill in (the default)
-  as well as Erase, backed by pure-Dart content-aware fill that always runs;
-  the MI-GAN tier is a drop-in ONNX asset that would be tried ahead of it. No
-  UI change either way - see `docs/inpaint-setup.md`. Optional.
+- ~~**MI-GAN generative fill.**~~ **Shipped in 1.3.0.** `assets/models/migan.onnx`
+  is bundled (26.7 MB, MIT) and tried ahead of the pure-Dart `ContentFillEngine`,
+  which remains the floor. See `docs/inpaint-setup.md`.
 
 Everything else from the original scope is implemented.

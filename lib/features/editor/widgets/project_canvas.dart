@@ -36,6 +36,7 @@ class ProjectCanvas extends StatelessWidget {
     this.grid,
     this.showCellPlaceholders = false,
     this.gesturingLayerId,
+    this.onLayerPainted,
   });
 
   final Frame frame;
@@ -61,6 +62,21 @@ class ProjectCanvas extends StatelessWidget {
   /// Draws the "tap to add a photo" hint in empty cells. Editor chrome only:
   /// off by default so Home thumbnails and the export renderer never show it.
   final bool showCellPlaceholders;
+
+  /// Fired with `(layerId, maskPath)` once a decode carrying that mask has been
+  /// handed to the painter.
+  ///
+  /// It exists for the live erase trail, which has to survive until the erased
+  /// pixels are actually on screen - not until the write completes. The write
+  /// finishing is where the RE-DECODE starts (both the photo and the new mask,
+  /// with no cache), so a trail cleared there uncovers the original for the
+  /// length of that decode: a flash of un-erased photo, which is a worse
+  /// artefact than the delay it was meant to hide.
+  ///
+  /// Null by default and only ever set by the editor's own canvas - Home
+  /// thumbnails, frame strips, the onion skin and the export renderer all leave
+  /// it alone, so they are byte-identical to before.
+  final void Function(String layerId, String? maskPath)? onLayerPainted;
 
   /// Cached `File.existsSync` results keyed by absolute path. A path's on-disk
   /// presence is stable for a layer's lifetime - asset paths are written once at
@@ -282,6 +298,9 @@ class ProjectCanvas extends StatelessWidget {
       return _MaskedImage(
         imagePath: layer.assetPath,
         maskPath: hasMask ? maskPath : null,
+        onPainted: onLayerPainted == null
+            ? null
+            : (decodedMaskPath) => onLayerPainted!(layer.id, decodedMaskPath),
         cropRect: layer.cropRect,
         side: base,
         decodeTarget: target,
@@ -344,7 +363,14 @@ class _MaskedImage extends StatefulWidget {
     this.vignette = Vignette.none,
     this.stroke = LayerStroke.none,
     this.strokeWidthPx = 0,
+    this.onPainted,
   });
+
+  /// Fired with the mask path a completed decode carries - see
+  /// [ProjectCanvas.onLayerPainted]. Called AFTER the setState that installs
+  /// the decode, so a listener that dirties another render object does so
+  /// against the new pixels rather than the old.
+  final void Function(String? maskPath)? onPainted;
 
   final String imagePath;
 
@@ -419,6 +445,12 @@ class _MaskedImageState extends State<_MaskedImage> {
       _mask = mask;
       _decodedTarget = target;
     });
+    // After the setState, not inside it: this notifies a listener that marks a
+    // DIFFERENT render object dirty (the erase trail's painter), and doing that
+    // from inside a build/layout pass is what "setState() called during build"
+    // means. The decode is installed by the line above, so by here the erased
+    // pixels really are what the next frame will show.
+    widget.onPainted?.call(widget.maskPath);
   }
 
   /// Decodes [path] at most [targetWidth] px wide - never upscaled past the

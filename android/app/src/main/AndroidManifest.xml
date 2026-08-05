@@ -13,10 +13,23 @@
     <uses-permission
         android:name="android.permission.WRITE_EXTERNAL_STORAGE"
         android:maxSdkVersion="28"/>
+    <!-- Backup is OFF, and that is a privacy decision rather than a default.
+         Android's Auto Backup is ON unless refused, and its default include-set
+         covers getApplicationDocumentsDirectory() - which is exactly where
+         `projects/assets/` keeps every photo the user imported and every AI
+         cut-out mask. Left alone, installing this editor would have copied the
+         user's photo library into their Google Drive. The store listing
+         promises the editing stays on the device; this is what makes that true.
+         `allowBackup` covers Android 11 and below; Android 12+ reads
+         dataExtractionRules, which refuses cloud backup AND phone-to-phone
+         transfer separately. Both are needed - neither implies the other. -->
     <application
         android:label="@string/app_name"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:allowBackup="false"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="false">
         <activity
             android:name=".MainActivity"
             android:exported="true"

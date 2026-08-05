@@ -48,9 +48,13 @@ flutter build appbundle --release
 ```
 
 Output: `build/app/outputs/bundle/release/app-release.aab` - upload this to Play
-Console (App bundles, not APKs). The bundle carries all ABIs; Play generates
-per-device splits. (`flutter build apk --release` is only for sideload testing;
-its x86_64 ABI is stripped from release per `build.gradle.kts`.)
+Console (App bundles, not APKs). The bundle carries **arm64-v8a and
+armeabi-v7a only** and Play generates per-device splits from those. The
+`build.gradle.kts` x86_64 exclusion is scoped to the release *buildType*, not to
+APK outputs, so it applies to the bundle too - verified in the artifact. Nothing
+here supports an x86_64 Android device or a Chromebook running one; that is the
+intended trade ("release builds ship only real-device ABIs"), but it is a trade,
+not an accident.
 
 ---
 
@@ -58,8 +62,10 @@ its x86_64 ABI is stripped from release per `build.gradle.kts`.)
 
 - `lib/config/ads_config.dart`: set `useTestAds = false` and fill the real
   `_prod*` unit ids.
-- `AndroidManifest.xml`: replace the test `com.google.android.gms.ads.APPLICATION_ID`
-  (`ca-app-pub-3940256099942544~3347511713`) with your real AdMob app id.
+- `AndroidManifest.xml`: `com.google.android.gms.ads.APPLICATION_ID` already
+  carries the real AdMob app id (`ca-app-pub-6904561240517963~5964201716`), and
+  `useTestAds` is already `false`. **Both of these are done** - this step is
+  here for the next app, not this one. Check rather than replace.
 - Create the `chromis_pro_mode` one-time product in Play Console (see
   monetization-setup.md), with a **backward-compatible** purchase option. IAP
   only returns a product on a signed build that's on a Play track (internal
@@ -92,6 +98,31 @@ code, collects these):
 **Photos & media:** **Not collected.** The user picks an image; it is edited
 locally and only leaves the device if the user explicitly Shares/exports it.
 Do **not** declare photos as collected - we never send them anywhere.
+
+> That answer was true of *our* code and false of the app, until 1.3.0. Android
+> Auto Backup is ON unless a manifest refuses it, and its default include-set
+> covers `getApplicationDocumentsDirectory()` - which is precisely where
+> `projects/assets/` keeps every imported photo and every AI cut-out mask. So
+> installing the editor would have copied the user's photo library into their
+> Drive, with no code of ours involved. The manifest now sets
+> `android:allowBackup="false"` (Android 11 and below) **and**
+> `android:dataExtractionRules` (Android 12+, which split cloud backup from
+> phone-to-phone transfer and needs both refused separately). Neither attribute
+> implies the other; check both are still present before an upload.
+
+**The full permission list, which is not one entry.** The listing copy used to
+say "one permission: internet", which the store page itself contradicts - Play
+prints the real list beside it. The shipped bundle declares eleven:
+
+| Permission | Comes from | Note |
+|---|---|---|
+| `INTERNET` | ours | ads + purchases |
+| `WRITE_EXTERNAL_STORAGE` (`maxSdkVersion=28`) | ours | the pre-Q gallery save; **requested at runtime** on Android 8-9, so "no storage access" was false there |
+| `ACCESS_NETWORK_STATE` | `google_mobile_ads` | |
+| `AD_ID`, `ACCESS_ADSERVICES_AD_ID` / `_ATTRIBUTION` / `_TOPICS` | `google_mobile_ads` | drives the Advertising ID declaration below |
+| `com.android.vending.BILLING` | `in_app_purchase` | |
+| `WAKE_LOCK`, `FOREGROUND_SERVICE` | `androidx.work` (transitive) | |
+| `DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION` | AndroidX | self-scoped, not user-visible |
 
 **App content → Advertising ID** is a SEPARATE page from Data safety and is the
 one people forget. Answer **Yes**, purpose *Advertising or marketing* (plus

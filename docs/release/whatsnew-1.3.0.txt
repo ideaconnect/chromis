@@ -1,0 +1,36 @@
+<en-US>
+• Remove an object and the background is rebuilt behind it, on your phone. Pick Fill in or Erase before you tap.
+• Snap: layers line up with each other's edges, centres and size, and with the canvas. Toggle it in Adjust.
+• Scale, Rotation, Horizontal and Vertical sliders now drive any layer, so a caption too small to grab is never stranded.
+• Dark is pure black now, so an AMOLED pixel stays off; light is pure white and readable outdoors.
+</en-US>
+<pl-PL>
+• Usuń obiekt, a tło pod nim zostanie odtworzone - na Twoim telefonie. Przed dotknięciem wybierz Wypełnij albo Wymaż.
+• Przyciąganie: warstwy równają się do krawędzi, środków i rozmiaru innych warstw oraz płótna. Przełącznik w panelu Korekta.
+• Suwaki Skala, Obrót, Poziomo i Pionowo działają teraz na każdej warstwie - mały napis nigdy nie zostanie poza zasięgiem.
+• Ciemny motyw jest czysto czarny, jasny - czysto biały.
+</pl-PL>
+<de-DE>
+• Entferne ein Objekt, und der Hintergrund dahinter wird neu aufgebaut - auf dem Gerät. Wähle vorher Füllen oder Radieren.
+• Einrasten: Ebenen richten sich an Kanten, Mitten und Größe der anderen Ebenen und der Leinwand aus. Schalter unter Anpassen.
+• Skalierung, Drehung, Horizontal und Vertikal wirken jetzt auf jede Ebene - ein zu kleiner Text bleibt nie unerreichbar.
+• Dunkel ist jetzt reines Schwarz, Hell reines Weiß.
+</de-DE>
+<es-ES>
+• Quita un objeto y el fondo se reconstruye detrás, en tu móvil. Elige Rellenar o Borrar antes de tocar.
+• Ajuste: las capas se alinean con los bordes, los centros y el tamaño de las demás y del lienzo. Interruptor en Ajustar.
+• Escala, Rotación, Horizontal y Vertical ya mueven cualquier capa: un texto diminuto nunca queda fuera de alcance.
+• El tema oscuro es negro puro; el claro, blanco puro.
+</es-ES>
+<fr-FR>
+• Supprimez un objet et l'arrière-plan est reconstruit derrière, sur l'appareil. Choisissez Remplir ou Effacer avant de toucher.
+• Magnétisme : les calques s'alignent sur les bords, les centres et la taille des autres et de la toile. Interrupteur dans Réglages.
+• Échelle, Rotation, Horizontal et Vertical agissent sur n'importe quel calque : une légende trop petite n'est jamais bloquée.
+• Le thème sombre est noir pur, le clair blanc pur.
+</fr-FR>
+<cs-CZ>
+• Odstraňte objekt a pozadí za ním se dopočítá - přímo v telefonu. Před klepnutím zvolte Vyplnit nebo Mazat.
+• Přichytávání: vrstvy se zarovnají k hranám, středům a velikosti ostatních vrstev i plátna. Přepínač v panelu Úpravy.
+• Měřítko, Otočení, Vodorovně a Svisle teď ovládají každou vrstvu - malý popisek už nikdy nezůstane mimo dosah.
+• Tmavý motiv je čistě černý, světlý čistě bílý.
+</cs-CZ>

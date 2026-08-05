@@ -24,6 +24,12 @@ visible until Play rejects the upload or a user reads it:
    says "Żywy". Every label the copy quotes must be the one the ARB gives for
    that locale.
 
+4. **Release notes over 500 characters.** `docs/release/whatsnew-<version>.txt`
+   holds all six languages in Play's `<en-US>…</en-US>` block format, and the
+   cap is **per language**, not per file. Measured with the newlines counted
+   twice, because a paste that converts LF to CRLF adds one character per line
+   and Play measures what it received, not what was typed.
+
 Nothing here needs Flutter or a device; it reads the ARBs and the Dart enums.
 """
 from __future__ import annotations
@@ -64,6 +70,32 @@ COUNTED = {
 }
 
 ASPECTS = ["1:1", "4:5", "9:16", "16:9", "3:2", "2:3"]
+
+WHATSNEW_LIMIT = 500
+RELEASE_DIR = os.path.join(ROOT, "docs", "release")
+
+
+def check_whatsnew(problems):
+    """Every language block in the newest whatsnew file, against Play's cap."""
+    files = sorted(f for f in os.listdir(RELEASE_DIR) if f.startswith("whatsnew-"))
+    if not files:
+        return
+    path = os.path.join(RELEASE_DIR, files[-1])
+    text = read(path)
+    blocks = re.findall(r"<([a-z]{2}-[A-Z]{2})>\n(.*?)\n</\1>", text, re.S)
+    print("\n%s" % files[-1])
+    seen = {tag for tag, _ in blocks}
+    for tag in LOCALES:
+        if tag not in seen:
+            problems.append("%s: no <%s> block in %s" % (tag, tag, files[-1]))
+    for tag, body in blocks:
+        # +1 per line: a paste that converts LF to CRLF is what Play measures.
+        n = len(body) + body.count("\n")
+        print("  %-6s %d/%d%s" % (tag, n, WHATSNEW_LIMIT,
+                                  "!" if n > WHATSNEW_LIMIT else ""))
+        if n > WHATSNEW_LIMIT:
+            problems.append("%s: release notes are %d chars, Play allows %d"
+                            % (tag, n, WHATSNEW_LIMIT))
 
 
 def read(path):
@@ -174,6 +206,8 @@ def main():
                       "PNG", "JPG", "WebP", "100", "75", "50", "25", "200"):
             if token not in long:
                 problems.append("%s: %r missing from the copy" % (play, token))
+
+    check_whatsnew(problems)
 
     print()
     if not problems:

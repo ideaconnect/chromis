@@ -153,6 +153,18 @@ class EditorController extends Notifier<EditorState> {
     _commit(state.project.copyWith(frames: frames), coalesce: coalesce);
   }
 
+  /// When true, moving or resizing a layer pulls it onto the nearest alignment
+  /// with the other layers - see `layer_snap.dart`. Toggled from the Adjust
+  /// panel, and read by both resizers: the canvas gesture and the placement
+  /// sliders.
+  ///
+  /// Session state rather than a field on the document, like [addToAllFrames]:
+  /// it changes how an edit is MADE, not what the edit is, so a project must
+  /// not carry it to whoever opens it next. Default on, because a toggle that
+  /// ships off is one most users never find, and the guides the canvas draws
+  /// say what it is doing while it does it.
+  bool snapEnabled = true;
+
   /// When true, layers added via the Add menu are inserted onto **every** frame
   /// (a fresh id per frame) - the basis for animating one caption across frames.
   /// Toggled from the Frames panel; only takes effect on animated projects.

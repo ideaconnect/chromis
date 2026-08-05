@@ -163,6 +163,8 @@
   "freeformCrop": "Kadrowanie dowolne",
   "ratiosSection": "PROPORCJE",
   "croppedTo": "Wykadrowano do {width}×{height}",
+  "snap": "Przyciąganie",
+  "snapHint": "Warstwy wyrównują się do swoich krawędzi i środków oraz zatrzymują się na wielkości innej warstwy.",
   "scale": "Skala",
   "rotation": "Obrót",
   "horizontal": "Poziomo",

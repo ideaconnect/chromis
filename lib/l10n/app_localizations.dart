@@ -1084,6 +1084,18 @@ abstract class AppLocalizations {
   /// **'Cropped to {width}×{height}'**
   String croppedTo(int width, int height);
 
+  /// Adjust panel toggle, above the placement sliders: when on, moving or resizing a layer pulls it onto an alignment with the other layers.
+  ///
+  /// In en, this message translates to:
+  /// **'Snap'**
+  String get snap;
+
+  /// One-line explainer under the Snap toggle.
+  ///
+  /// In en, this message translates to:
+  /// **'Layers line up with each other\'s edges and centres, and stop at each other\'s size.'**
+  String get snapHint;
+
   /// Adjust panel slider: the selected layer's size, shown as a percentage.
   ///
   /// In en, this message translates to:

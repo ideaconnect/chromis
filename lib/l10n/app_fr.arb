@@ -163,6 +163,8 @@
   "freeformCrop": "Recadrage libre",
   "ratiosSection": "FORMATS",
   "croppedTo": "Toile recadrée en {width}×{height}",
+  "snap": "Magnétisme",
+  "snapHint": "Les calques s'alignent sur les bords et les centres des autres, et s'arrêtent à leur taille.",
   "scale": "Échelle",
   "rotation": "Rotation",
   "horizontal": "Horizontal",

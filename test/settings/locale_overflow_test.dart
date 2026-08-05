@@ -1,3 +1,6 @@
+import 'package:chromis/core/models/frame.dart';
+import 'package:chromis/core/models/layer.dart';
+import 'package:chromis/core/models/layer_transform.dart';
 import 'package:chromis/core/models/project.dart';
 import 'package:chromis/core/theme/app_theme.dart';
 import 'package:chromis/features/editor/editor_screen.dart';
@@ -49,7 +52,29 @@ void main() {
     'landscape phone': Size(915, 412),
   };
 
-  Project populated() => Project.empty(id: 'p1', name: 'Projekt');
+  /// A project with a layer in it, AND that layer selected.
+  ///
+  /// An empty canvas exercises the empty hint and nothing else: the Adjust
+  /// panel's chips, crop buttons, Snap toggle and placement sliders are all
+  /// built only for a selected layer, so every translated string in the tool
+  /// panel was outside this sweep while the project here was `Project.empty`.
+  /// That is the same blind spot that let the panel header's 50/50 split ship
+  /// past five review rounds.
+  Project populated() => Project.empty(id: 'p1', name: 'Projekt').copyWith(
+    frames: [
+      const Frame(
+        id: 'p1_f0',
+        layers: [
+          ImageLayer(
+            id: 'l0',
+            name: 'Photo',
+            assetPath: '/nope.png',
+            transform: LayerTransform(position: Offset(540, 540)),
+          ),
+        ],
+      ),
+    ],
+  );
 
   Future<void> pump(
     WidgetTester tester,
@@ -75,10 +100,12 @@ void main() {
     );
     await tester.pump(const Duration(milliseconds: 400));
     if (project != null) {
-      ProviderScope.containerOf(
+      final controller = ProviderScope.containerOf(
         tester.element(find.byType(MaterialApp)),
         listen: false,
-      ).read(editorControllerProvider.notifier).loadProject(project);
+      ).read(editorControllerProvider.notifier);
+      controller.loadProject(project);
+      controller.selectLayer(project.frames.first.layers.first.id);
       await tester.pump(const Duration(milliseconds: 400));
     }
   }

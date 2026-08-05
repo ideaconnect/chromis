@@ -163,6 +163,8 @@
   "freeformCrop": "Volný ořez",
   "ratiosSection": "POMĚRY",
   "croppedTo": "Oříznuto na {width}×{height}",
+  "snap": "Přichytávání",
+  "snapHint": "Vrstvy se zarovnávají k okrajům a středům ostatních a zastaví se na jejich velikosti.",
   "scale": "Měřítko",
   "rotation": "Otočení",
   "horizontal": "Vodorovně",

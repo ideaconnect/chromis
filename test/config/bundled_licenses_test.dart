@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:chromis/features/about/bundled_licenses.dart';
 import 'package:flutter/foundation.dart';
@@ -51,7 +52,7 @@ void main() {
     }
   });
 
-  test('covers the six bundled fonts and both Apache AI models', () async {
+  test('covers the six bundled fonts and all three AI models', () async {
     final entries = await drain();
     final allPackages = <String>{for (final e in entries) ...e.packages};
     expect(
@@ -65,10 +66,70 @@ void main() {
         'Rubik',
         'MobileSAM',
         'U²-Netp',
+        'MI-GAN',
       ]),
     );
-    // The two on-device models ship together under one Apache-2.0 notice.
+    // The two Apache models ship together under one notice; MI-GAN is MIT and
+    // therefore has to be its own entry, not a third name on that one.
     final models = entries.firstWhere((e) => e.packages.contains('MobileSAM'));
     expect(models.packages, containsAll(<String>['MobileSAM', 'U²-Netp']));
+    expect(models.packages, isNot(contains('MI-GAN')));
+  });
+
+  // The three guards above all run the SAME direction: they start from what is
+  // registered and check it resolves. Nothing ran the other way, so a model or
+  // font added to `pubspec.yaml` with no registration shipped silently and the
+  // suite stayed green - which is exactly what happened to MI-GAN, bundled as
+  // an asset for a whole release while the in-app attribution still said the
+  // app carried two models under one licence.
+  //
+  // Reads pubspec.yaml as text rather than parsing YAML: the assertion is
+  // about which files are listed, the list is flat, and a parser dependency
+  // for that is not worth it.
+  test('every bundled model and font has a licence registration', () {
+    final pubspec = File('pubspec.yaml').readAsStringSync();
+    final flutter = pubspec.split(RegExp(r'^flutter:$', multiLine: true)).last;
+
+    final bundledModels = RegExp(
+      r'^\s+-\s+(assets/models/\S+\.onnx)\s*$',
+      multiLine: true,
+    ).allMatches(flutter).map((m) => m.group(1)!).toList();
+    expect(bundledModels, isNotEmpty, reason: 'the app bundles ONNX models');
+
+    // model file -> the package name its licence entry must carry.
+    const owner = <String, String>{
+      'assets/models/u2netp.onnx': 'U²-Netp',
+      'assets/models/mobile_sam_encoder.onnx': 'MobileSAM',
+      'assets/models/mobile_sam_decoder.onnx': 'MobileSAM',
+      'assets/models/migan.onnx': 'MI-GAN',
+    };
+    final registered = <String>{for (final e in bundledLicenses) ...e.packages};
+
+    for (final model in bundledModels) {
+      final name = owner[model];
+      expect(
+        name,
+        isNotNull,
+        reason:
+            '$model is bundled but this test does not know whose licence '
+            'covers it - add it to `owner` and register its notice',
+      );
+      expect(
+        registered,
+        contains(name),
+        reason: '$model ships with no entry in bundledLicenses',
+      );
+    }
+
+    // Same rule for the licence texts themselves: every asset a registration
+    // points at has to be one the build actually bundles, or the entry throws
+    // at runtime on the licence page instead of failing here.
+    for (final entry in bundledLicenses) {
+      expect(
+        flutter,
+        contains(entry.asset),
+        reason: '${entry.asset} is registered but not listed in pubspec assets',
+      );
+    }
   });
 }

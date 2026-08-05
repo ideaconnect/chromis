@@ -559,6 +559,13 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
+  String get snap => 'Ajuste';
+
+  @override
+  String get snapHint =>
+      'Las capas se alinean con los bordes y centros de las demás, y se detienen en su mismo tamaño.';
+
+  @override
   String get scale => 'Escala';
 
   @override

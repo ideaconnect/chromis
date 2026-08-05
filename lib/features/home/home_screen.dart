@@ -700,7 +700,14 @@ class _HomeAdBannerState extends ConsumerState<_HomeAdBanner> {
   /// `canRequestAds` once, at launch.
   void _onConsentChanged() {
     if (!mounted) return;
-    if (_ads.canRequestAds) {
+    // The Pro check is not optional here, and it is easy to miss because the
+    // slot is invisible to a Pro user either way: [build] returns an empty box
+    // for them, but this State is mounted for EVERY user (the banner is an
+    // unconditional `bottomNavigationBar`), so without it a paying user who
+    // changed their consent answer put a production banner request on the wire
+    // for an ad nobody would ever see. Its sibling [_loadWhenAllowed] checks
+    // the same flag twice.
+    if (_ads.canRequestAds && !ref.read(isProProvider)) {
       if (_ad == null) _load(AdsConfig.banner);
       return;
     }

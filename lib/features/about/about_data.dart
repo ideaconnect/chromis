@@ -15,7 +15,7 @@ abstract final class AboutInfo {
   /// the About sheet and the Licenses page were all showing to users.
   /// `about_data_test.dart` now parses pubspec.yaml and fails if the two
   /// disagree, so a version bump cannot forget this again.
-  static const appVersion = '1.2.0';
+  static const appVersion = '1.3.0';
   static const publisher = 'IDCT · Bartosz Pachołek';
   static const contactEmail = 'bartosz@idct.tech';
 
@@ -135,6 +135,20 @@ const licenseNotices = <LicenseNotice>[
     by: 'Kyung Hee University · Xuebin Qin et al.',
     license: 'Apache-2.0',
     use: 'On-device object & background removal',
+  ),
+  // A row of its own rather than a third name on the line above, because the
+  // licence differs: the two models above are Apache-2.0 and this one is MIT.
+  // Folding it in would have made this list say the app ships two models under
+  // one licence when it ships three under two - which is what it said for the
+  // whole of 1.3.0's development. The MIT text itself is bundled and
+  // registered separately (see bundled_licenses.dart), so the notice reaches
+  // the user either way; this list is the readable summary beside it.
+  LicenseNotice(
+    category: 'On-device AI',
+    name: 'MI-GAN (bundled model)',
+    by: 'Picsart AI Research',
+    license: 'MIT',
+    use: 'Generative fill when an object is removed',
   ),
   // Media encoding.
   LicenseNotice(

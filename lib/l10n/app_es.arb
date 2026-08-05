@@ -163,6 +163,8 @@
   "freeformCrop": "Recorte libre",
   "ratiosSection": "PROPORCIONES",
   "croppedTo": "Lienzo recortado a {width}×{height}",
+  "snap": "Ajuste",
+  "snapHint": "Las capas se alinean con los bordes y centros de las demás, y se detienen en su mismo tamaño.",
   "scale": "Escala",
   "rotation": "Rotación",
   "horizontal": "Horizontal",

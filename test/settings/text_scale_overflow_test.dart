@@ -106,10 +106,18 @@ void main() {
     );
     await tester.pump(const Duration(milliseconds: 400));
     if (project != null) {
-      ProviderScope.containerOf(
+      final controller = ProviderScope.containerOf(
         tester.element(find.byType(MaterialApp)),
         listen: false,
-      ).read(editorControllerProvider.notifier).loadProject(project);
+      ).read(editorControllerProvider.notifier);
+      controller.loadProject(project);
+      // SELECTED, not merely present. Half of the Adjust panel - the Reset
+      // chip, the crop buttons, the Snap toggle, every placement slider - is
+      // built only for a selected layer, so a project loaded and left
+      // unselected exercises the empty hint and nothing else. That blind spot
+      // is what let the panel header's 50/50 split ship: five review rounds on
+      // a canvas with nothing selected all passed.
+      controller.selectLayer(project.frames.first.layers.first.id);
       await tester.pump(const Duration(milliseconds: 400));
     }
     FlutterError.onError = previous;

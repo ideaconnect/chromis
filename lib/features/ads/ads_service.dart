@@ -14,6 +14,23 @@ import '../go_pro/iap.dart';
 class AdsService {
   AdsService();
 
+  /// Whether the user has bought Pro, and therefore whether ANY request may
+  /// leave this device.
+  ///
+  /// Asked in [_preloadRewarded] rather than at each caller, because the
+  /// callers kept forgetting: [requestConsent] ended with an ungated preload
+  /// reachable from "Ad privacy choices", and both UMP failure paths preloaded
+  /// unconditionally. Gating [init] alone was never enough - it only covers
+  /// the launch path, and every one of those three runs later.
+  ///
+  /// Starts **true**, i.e. refuse. The entitlement is read from disk
+  /// asynchronously and a guard whose job is to refuse must read "not known
+  /// yet" as "no": [adsInitProvider] already makes exactly this trade by
+  /// awaiting `proEntitledProvider.future` instead of reading `isProProvider`,
+  /// which reports false while it loads. Nothing is lost by starting closed -
+  /// [adsServiceProvider] sets the real value before any request path runs.
+  bool proEntitled = true;
+
   bool _initialized = false;
 
   /// A **rewarded interstitial**, because that is the format the console's unit
@@ -171,19 +188,43 @@ class AdsService {
           _settleConsent();
           if (canRequestAds) _preloadRewarded();
         },
-        (error) {
+        (error) async {
           // Could not reach the consent service. Requesting ads anyway is the
           // documented fallback - a user outside the EEA must not lose ads
-          // (and with them the free tier) because a network call failed.
+          // (and with them the free tier) because a network call failed. But
+          // fall back to the *stored* answer first, not to the default.
           debugPrint('AdsService: consent update failed - ${error.message}');
+          await _adoptStoredConsent();
           _settleConsent();
-          _preloadRewarded();
+          if (canRequestAds) _preloadRewarded();
         },
       );
     } catch (e) {
       debugPrint('AdsService: consent request threw - $e');
+      await _adoptStoredConsent();
       _settleConsent();
-      _preloadRewarded();
+      if (canRequestAds) _preloadRewarded();
+    }
+  }
+
+  /// Adopts whatever consent decision UMP already has on this device.
+  ///
+  /// The two failure paths above used to fall straight through to
+  /// [_preloadRewarded]. That reads as "we could not ask, so carry on", and for
+  /// a user who never had to consent it is right. But [_canRequestAds] DEFAULTS
+  /// to true and is assigned only in the success callback, so for a user who
+  /// had already REFUSED, a failed *lookup* silently restored ad requests - and
+  /// the lookup fails for more than being offline (an internal UMP error, a
+  /// misconfigured app id, a throttled request).
+  ///
+  /// The refusal is stored on the device, so reading it needs no network. Only
+  /// when there is genuinely no stored answer does the permissive default
+  /// stand, which is what keeps a non-EEA user's free tier working.
+  Future<void> _adoptStoredConsent() async {
+    try {
+      _canRequestAds.value = await ConsentInformation.instance.canRequestAds();
+    } catch (e) {
+      debugPrint('AdsService: no stored consent to adopt - $e');
     }
   }
 
@@ -200,6 +241,9 @@ class AdsService {
   /// a free one, silently. If the unit is ever recreated as a plain *Rewarded*,
   /// this has to change back in step with it.
   void _preloadRewarded() {
+    // Pro: never request an ad. The single choke point for every path into
+    // this class - see [proEntitled] for why it is here and not at the callers.
+    if (proEntitled) return;
     // One load at a time. Four call sites reach this (init, the fail-open
     // retry, and both dismissal paths), so a gated action taken while a load is
     // still in flight starts a second one - and then whichever lands last wins
@@ -293,7 +337,20 @@ class AdsService {
   }
 }
 
-final adsServiceProvider = Provider<AdsService>((ref) => AdsService());
+final adsServiceProvider = Provider<AdsService>((ref) {
+  final ads = AdsService();
+  // The entitlement is what decides whether a request may be made at all, so
+  // the service tracks it instead of trusting each call site to remember - see
+  // [AdsService.proEntitled]. `fireImmediately` so a service built after the
+  // flag has already resolved does not sit closed waiting for a change that
+  // will never come; `?? true` so AsyncLoading and AsyncError both mean refuse.
+  ref.listen<AsyncValue<bool>>(
+    proEntitledProvider,
+    (_, next) => ads.proEntitled = next.value ?? true,
+    fireImmediately: true,
+  );
+  return ads;
+});
 
 /// Runs AdMob init + UMP consent once. Activated by watching it at app start.
 ///

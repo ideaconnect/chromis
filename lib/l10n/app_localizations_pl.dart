@@ -563,6 +563,13 @@ class AppLocalizationsPl extends AppLocalizations {
   }
 
   @override
+  String get snap => 'Przyciąganie';
+
+  @override
+  String get snapHint =>
+      'Warstwy wyrównują się do swoich krawędzi i środków oraz zatrzymują się na wielkości innej warstwy.';
+
+  @override
   String get scale => 'Skala';
 
   @override

@@ -82,6 +82,28 @@ void main() {
   Layer layerOf(ProviderContainer c) =>
       c.read(editorControllerProvider).selectedLayer!;
 
+  /// Scrolls the tool panel until [target] is inside its viewport.
+  ///
+  /// The portrait panel is capped at 300dp and scrolls - Opacity and the
+  /// Effects link have always been below the fold - and the Snap toggle above
+  /// these sliders moved Vertical down past it too. A widget outside a
+  /// SingleChildScrollView's viewport is clipped and so cannot be hit-tested at
+  /// all: a drag aimed at it silently does nothing, which is not a failure the
+  /// assertion below could describe.
+  Future<void> reveal(WidgetTester tester, Finder target) async {
+    await tester.scrollUntilVisible(
+      target,
+      40,
+      scrollable: find
+          .descendant(
+            of: find.byKey(const ValueKey('tool-panel')),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
+    await tester.pump();
+  }
+
   Project withLayers(List<Layer> layers, {GridSpec? grid}) =>
       Project.empty(id: 'p').copyWith(
         grid: grid,
@@ -370,6 +392,7 @@ void main() {
       select: 'bub',
     );
 
+    await reveal(tester, sliderFor('Vertical'));
     await tester.drag(sliderFor('Vertical'), const Offset(2000, 0));
     await tester.pump();
     final t = layerOf(container).transform;

@@ -62,6 +62,19 @@ abstract final class AppScrim {
   /// The Frames accent at its dark-theme value, because the badge it labels is
   /// always dark.
   static const Color accent = Color(0xFFF0885A);
+
+  /// The live erase stroke, drawn under the finger while it moves.
+  ///
+  /// An `AppScrim` colour for the usual reason - it is painted on the user's
+  /// photo, which has no theme - and blue for a second one: the selection frame
+  /// is `context.colors.cyan` and the snap guides are magenta, both on screen
+  /// during a stroke, so the trail needs a hue that is neither. Semi-transparent
+  /// because it is a promise about pixels that are still there, not a claim that
+  /// they are already gone - but only just. Checked on the device rather than
+  /// picked: at 44% over a mid-tone photo it desaturated into slate grey and
+  /// stopped reading as a colour at all. 60% still shows the photo through it
+  /// and is unmistakably blue.
+  static const Color brush = Color(0x994D9BFF);
 }
 
 @immutable

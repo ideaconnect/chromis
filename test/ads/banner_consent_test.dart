@@ -34,6 +34,7 @@ void main() {
   Future<AdsService> pumpHome(
     WidgetTester tester, {
     required bool consented,
+    bool pro = false,
   }) async {
     final ads = AdsService()..debugSetConsent(canRequestAds: consented);
     setSurface(tester, const Size(412, 915));
@@ -42,7 +43,7 @@ void main() {
         overrides: [
           projectRepositoryProvider.overrideWithValue(_EmptyRepo()),
           adsServiceProvider.overrideWithValue(ads),
-          isProProvider.overrideWithValue(false),
+          isProProvider.overrideWithValue(pro),
         ],
         child: MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -84,6 +85,44 @@ void main() {
 
     expect(find.byType(AdWidget), findsNothing);
     expect(find.byKey(const ValueKey('home-banner-dev-notice')), findsNothing);
+  });
+
+  // A Pro user's slot is invisible either way - `build` returns an empty box
+  // for them - so the bug this pins left no trace on screen: the State is
+  // mounted for EVERY user (the banner is an unconditional
+  // `bottomNavigationBar`) and its consent listener had no Pro check, so a
+  // consent change put a production banner request on the wire for an ad
+  // nobody would ever see. Granting is the direction that requests; the
+  // withdrawal branch was always harmless.
+  testWidgets('Pro: a consent change requests nothing', (tester) async {
+    final ads = await pumpHome(tester, consented: false, pro: true);
+    ads.debugSetConsent(canRequestAds: true);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(find.byType(AdWidget), findsNothing);
+    expect(find.byKey(const ValueKey('home-banner-dev-notice')), findsNothing);
+    expect(
+      tester.takeException(),
+      isNull,
+      reason: 'a request would have thrown MissingPluginException',
+    );
+  });
+
+  // The rewarded preload has four call sites and only [init] was ever gated on
+  // the entitlement, so "Ad privacy choices" and both UMP failure paths each
+  // reached it for a paying user. The guard now sits on the request itself.
+  test('AdsService refuses to preload while Pro', () {
+    final ads = AdsService();
+    expect(
+      ads.proEntitled,
+      isTrue,
+      reason: 'closed until the entitlement is known, not open',
+    );
+    // Nothing to assert on directly - a preload would throw
+    // MissingPluginException here, so surviving the call IS the assertion.
+    ads.debugSetConsent(canRequestAds: true);
+    expect(ads.canRequestAds, isTrue);
   });
 
   // What the test above CANNOT do: start from a banner that is actually on

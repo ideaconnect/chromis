@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Android 12+ replacement for android:allowBackup, which that release split in
+  two: `cloud-backup` is Auto Backup to the user's Drive, `device-transfer` is
+  the phone-to-phone copy during setup. `android:allowBackup="false"` alone no
+  longer covers the second one, so both are refused here explicitly.
+
+  Everything this app stores is the user's photographs: `projects/assets/`
+  holds every imported image and every AI cut-out mask, and the manifests name
+  them. That lives under getApplicationDocumentsDirectory(), which is inside
+  Auto Backup's default include-set - so the platform default (backup ON, no
+  rules) would have copied a user's whole photo library into their Drive as a
+  side effect of installing a photo editor. The listing's privacy section is
+  the promise this keeps.
+
+  Deliberately a blanket refusal rather than an exclude list: an exclude list
+  is a rule about paths that exist today, and the failure mode of a new
+  directory nobody added to it is silent upload.
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="root" />
+        <exclude domain="file" />
+        <exclude domain="database" />
+        <exclude domain="sharedpref" />
+        <exclude domain="external" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="root" />
+        <exclude domain="file" />
+        <exclude domain="database" />
+        <exclude domain="sharedpref" />
+        <exclude domain="external" />
+    </device-transfer>
+</data-extraction-rules>

@@ -22,8 +22,14 @@ import 'widgets/bubble_view.dart';
 /// which is the largest it could be. Rounding UP is the safe direction for both
 /// callers: a hit box that is too big is still grabbable, and slider travel
 /// that is too long still reaches off-canvas.
-Size layerLogicalSize(Layer layer, {Size? imagePixels}) {
-  final s = layer.transform.scale;
+///
+/// [scale] overrides the layer's own, for the callers that ask how big it WOULD
+/// be: the grid cell's cover clamp, and the snap engine, which needs the size
+/// at scale 1 to work out what scale would match a neighbour. It is a parameter
+/// rather than arithmetic at those call sites because dividing a measured size
+/// back out by the layer's scale is the same formula written a second time.
+Size layerLogicalSize(Layer layer, {Size? imagePixels, double? scale}) {
+  final s = scale ?? layer.transform.scale;
   return switch (layer) {
     ImageLayer(:final cropRect) => () {
       const box = kLayerFitBoxSide;

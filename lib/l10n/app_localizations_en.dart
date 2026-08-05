@@ -552,6 +552,13 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get snap => 'Snap';
+
+  @override
+  String get snapHint =>
+      'Layers line up with each other\'s edges and centres, and stop at each other\'s size.';
+
+  @override
   String get scale => 'Scale';
 
   @override

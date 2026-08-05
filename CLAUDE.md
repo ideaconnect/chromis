@@ -219,6 +219,147 @@ Nothing is lost - a cell photo fills its cell, so it is never the layer you
 cannot touch or the one hiding under another. Captions and bubbles in a cell
 keep the sliders: they are never clamped there, only clipped.
 
+#### Snapping
+
+`layer_snap.dart` is pure and takes a proposed `LayerTransform` back to the
+nearest alignment: three anchors per axis - leading edge, centre, trailing edge -
+matched against the same three on every other visible layer **and on the
+canvas**, closest pair wins, axes independent.
+
+**All of it happens in a FRAME, and that is the whole design.** Alignment is
+measured along a pair of axes at some angle, not along the canvas's x and y.
+Two layers at the same angle are not turned at all *relative to each other*, so
+in their shared frame their edges are parallel and can be made flush; two layers
+at different angles have no parallel edges, and the most either can say about
+the other is where its corners reach. An axis-aligned engine can only ever
+compare bounding boxes, and **two turned layers can never be brought flush by
+comparing bounding boxes** - the boxes touch at a corner while the edges are
+still degrees apart.
+
+`SnapFrame` is therefore a parameter, because the two callers cannot share one:
+
+- **`layer`** - the moving layer's own rotation. What a gesture uses. In its own
+  frame the layer is not turned, so its extent is its true width and height and
+  its edges are the ones it draws.
+- **`canvas`** - the canvas's x and y, with a turned layer measured by its
+  bounding box. What the placement sliders MUST use: each of them moves the
+  layer along one canvas axis, and an alignment found on a turned layer's own
+  edge runs diagonally, so taking it would move the layer on the axis the slider
+  does not own. A one-axis control that moves two axes is a bug whatever it
+  snapped to.
+
+At angle 0 the frame is the canvas - `cos 0` is exactly 1.0 and `sin 0` exactly
+0.0, so the projection is an identity and the unrotated path is bit-for-bit what
+it was before the frame existed.
+
+**A layer may TAKE a neighbour's angle** (`kSnapRotationTolerance`, 4°), which is
+the only way two turned layers ever become flush: 26° carried up against 28°
+comes out at 28° with the edges touching. But a move is not a request to rotate,
+so a borrowed angle has to be **paid for - it is kept only if the alignment it
+produces is with the very layer it was borrowed from**. That gate, not the 4°,
+is what stops a deliberately tilted caption being straightened by being carried
+past an upright photo; without it every near-angle neighbour on the canvas would
+fuse. `snapRotation` lifts the gate and only a gesture that is ITSELF turning the
+layer passes it (`d.rotation != 0`, and the Rotation slider via
+`nearestLayerRotation`) - there, matching a neighbour's angle is the thing being
+asked for rather than a side effect of asking for something else.
+
+Two more things a borrow has to clear, both found by adversarial review rather
+than by use:
+
+- **It must not cost an alignment the layer already has with somebody else.**
+  Otherwise a borrow wins on merely existing: a layer sitting exactly flush with
+  one neighbour would tilt itself off that alignment to take a seven-unit one
+  with another. The own frame is therefore evaluated up front as *evidence*, not
+  as a fallback.
+- **A layer SQUARE to the canvas does not borrow on a move at all.** Arriving at
+  level is a small surprise and leaving it is a large one, so the asymmetry is
+  deliberate - without it one tilted sticker knocks every layer it is aligned to
+  askew. A deliberate twist may still take any angle; by then the layer is not
+  square anyway.
+
+Borrowed angles are expressed as an offset from the layer's own rotation, not as
+the neighbour's absolute angle, because the canvas ACCUMULATES rotation: a layer
+wound to 386° taking a 28° neighbour's angle must come out at 388°, not unwind
+three-quarters of a turn for the same picture.
+
+**`d.scale != 1` and `d.rotation != 0` are the wrong question, and the tests
+cannot tell you so.** Flutter derives both from the line between two pointers - a
+span ratio and an `atan2` difference - so with two fingers down they are exactly
+1 and 0 only when the fingers move perfectly parallel and perfectly together,
+which no hand does. Read as *intent* they answer "yes, a deliberate resize" and
+"yes, a deliberate twist" for the whole of every two-finger gesture, so a plain
+two-finger move came out resized to a neighbour's width and turned to its angle.
+A synthetic pointer moves exactly, so every widget test passed. They are asked
+with a slop now - `kSnapPinchSlop`, `kSnapTwistSlop` - and the two tests that
+pin it have to stage the wobble by hand.
+
+The Rotation slider snaps to **straight first and a neighbour's angle only if
+straight did not fire**. Level is the stronger of the two - a layer resting a
+hair off level reads as a mistake - and a neighbour at 3° must not be able to
+pull a layer off 0.
+
+**The Snap toggle governs the canvas gesture AND the placement sliders**, because
+those are the same two edits - the sliders exist for the layer a finger cannot
+reach, and a toggle sitting directly above them that only reached the canvas
+would be a promise about the controls under it that it does not keep. It is
+session state on `EditorController` (like `addToAllFrames`), not a field on the
+document: it changes how an edit is made, not what the edit is. Default **on**.
+
+Three things it would be easy to get wrong:
+
+- **`snapScale` is off by default, and a one-finger drag leaves it off.** On a
+  plain move the proposed scale IS the layer's own, so a layer that happened to
+  sit near a neighbour's width would be silently resized by being moved. Only a
+  pinch (`d.scale != 1`) and the Scale slider ask for it. Size is matched on the
+  resulting extent rather than on the scale factor - a scale ratio means nothing
+  between two layers whose own sizes differ - and a match that would need a
+  scale outside `kMinLayerScale…kMaxLayerScale` is **dropped, not clamped**.
+- **The tolerance is the caller's, and the two callers are right to disagree.**
+  A finger on the canvas is a screen-space thing, so `EditorCanvas` converts an
+  8-px radius through the zoom; a slider thumb is somewhere else entirely, so
+  the panel uses 2% of the canvas. A radius fixed in canvas units would grab
+  from a centimetre away on a 4000-px canvas.
+- **A snap with no feedback reads as the drag stuttering.** The canvas draws a
+  magenta hairline on each alignment it landed on - magenta, not the selection's
+  cyan, because the two are on screen together. **The line runs along the frame,
+  not along the canvas**: the point of two layers sharing an angle is that they
+  share a set of edge directions, and a guide drawn square to the canvas would
+  cross those edges instead of lying on them. A size or angle match has no line
+  to draw (the other layer is nowhere near), so the canvas **outlines that
+  layer** instead. Both are gesture-scoped and cleared in `_onScaleEnd`.
+- **The canvas's own edges are only a target while the frame is square to
+  them.** Turned, "the canvas's left edge" is a diagonal in frame coordinates -
+  the supporting line of the canvas's corner, which sits OUTSIDE the canvas and
+  would draw a guide nobody can see. Its CENTRE stays a target at every angle,
+  because a point is a point whichever way the axes run.
+- **Only what is on SCREEN may be lined up with.** A collage cell clips its
+  layer and a cell photo is cover-scaled, so on a 2×2 grid a 3:2 photo reaches
+  135 units into the cell next door; aligning to that edge sticks the layer to a
+  line with nothing on it. `clipOf` hands the engine each target's cell and it
+  aligns to the intersection - which for a cover photo IS the cell, so the cell's
+  edges and centre become the targets, which is what a collage is lined up to
+  anyway. `_hitTest` has always applied this rule to taps; the snap path did not.
+
+`_setPlacement` keeps its own snap-to-dead-centre: that one is not optional, a
+slider that cannot hit its own middle is broken with snapping off too. Running
+the engine afterwards is safe because it finds the position already exactly on
+the canvas-centre target.
+
+**The toggle cost the placement stack one slider's worth of fold.** The portrait
+panel is capped at 300dp and scrolls, and a 48dp switch row pushed Vertical
+below it - which is why the explainer is a `Semantics` hint rather than a second
+line of muted text, and why `layer_transform_sliders_test.dart` now scrolls the
+panel before driving that slider. A widget outside a `SingleChildScrollView`'s
+viewport is clipped and cannot be hit-tested at all, so a drag aimed at it does
+nothing at all rather than failing.
+
+**Both overflow sweeps now SELECT a layer.** `text_scale_overflow_test` loaded a
+project and left it unselected and `locale_overflow_test` used `Project.empty`,
+so the Adjust panel's chips, crop buttons, toggle and sliders - every translated
+string in the tool panel - were outside both. That is the same blind spot that
+let the panel header's 50/50 split ship past five review rounds.
+
 ### Object removal: which pixels, and what goes there
 
 Removing an object is two questions, and only the first one was ever really
@@ -547,6 +688,21 @@ the problem because it distinguishes "Add" from "Add layer".
 
 ### Persistence
 
+**Android Auto Backup is refused in the manifest, and that is load-bearing.**
+Backup is ON by default and its default include-set covers
+`getApplicationDocumentsDirectory()` - which is exactly where `projects/assets/`
+keeps every photo the user imported and every AI cut-out mask. Left at the
+default, installing this app would have copied the user's photo library into
+their Google Drive with no code of ours involved, which is the one claim the
+whole listing is built on. It takes **two** attributes, not one, and neither
+implies the other: `android:allowBackup="false"` covers Android 11 and below,
+and `android:dataExtractionRules` covers Android 12+, where the platform split
+cloud backup from phone-to-phone transfer and a refusal has to name both.
+`res/xml/data_extraction_rules.xml` is a blanket refusal rather than an exclude
+list on purpose - an exclude list is a statement about the directories that
+exist today, and the failure mode of one nobody remembered to add is a silent
+upload.
+
 Anything the user cannot re-enter is written through `writeFileAtomically`
 (`core/persistence/atomic_file.dart`): tmp + flush + rename, so a kill or a full
 disk leaves the previous file rather than a truncated one. Both the project
@@ -603,9 +759,12 @@ Models in `assets/models/*.onnx` (Apache-2.0). Runs via `flutter_onnxruntime`.
 
 ## Monetization
 
-`google_mobile_ads` (banner/interstitial/rewarded + UMP) and `in_app_purchase`
-(one-time `pro_remove_ads`). Ad unit IDs live in one config file; Google **test**
-IDs are placeholders until the real ones are set. See `docs/monetization-setup.md`.
+`google_mobile_ads` (banner + **rewarded interstitial** + UMP; there is no
+plain interstitial) and `in_app_purchase`. The one-time product id is
+**`chromis_pro_mode`** - it is `kProProductId` in `lib/features/go_pro/iap.dart`,
+and a product created under any other name simply returns nothing from
+`queryProductDetails`, which only reproduces on a Play track. Ad unit IDs live in
+one config file. See `docs/monetization-setup.md`.
 
 ## Licensing policy (closed-source app)
 
@@ -638,6 +797,41 @@ Home screen shows Polish project names only if the manifest says so. The
 capture script writes the manifests, and `DOCS` in it is where "Park day",
 "Photo 2", the sticker's "PARK DAY" and the bubble's "WALKIES" get their
 translations.
+
+**The photographs in those captures are CC0 and live in the repo.** A Play
+listing is commercial use of every pixel inside the device frame, so which
+photograph is in one is a decision that belongs in version control rather than
+in whatever happened to be in an emulator's gallery - the first six listings
+shipped a personal photo. `assets/store/samples/` holds them,
+`tool/fetch_stock_photos.py` fetches them from Wikimedia Commons filtered to
+CC0 as a **structured claim** (`haswbstatement:P275=Q6938433`, not a licence
+string somebody has to read), and `SOURCES.json` keeps each one's title, size,
+licence and source URL beside the pixels. Each is centre-cropped to its slot's
+exact size, because the manifests carry transforms tuned to those dimensions -
+1536x2048 at scale 4.6545 is full-bleed, and a photo of another aspect
+letterboxes itself inside the frame. The cut-out is a **real AI Cut output**
+(`capture_store_shots.py mask phone`), not a hand-drawn alpha: the sticker and
+bubble shots are showing what the app produces.
+
+**`capture_store_shots.py prepare` is not optional, and skipping it does not
+look like an error.** Seeding `proEntitled: true` keeps ads out only until the
+app checks it - `reconcileEntitlement` re-verifies the flag against Play on
+every launch and revokes it on a confirmed "not owned", which is exactly what a
+Play-store emulator with no purchase answers. The damage is not an ad in a
+corner: **without Pro the editor's rail grows a Go Pro entry at the top, which
+pushes every tool down one slot**, so the tap tables hit Bubble where they mean
+AI Cut and the run yields eight plausible screenshots of the wrong panels, on
+every device, in every language. `prepare` disables the Play Store so the
+billing query throws instead (every uncertain case keeps Pro), drops the radios
+so UMP cannot fetch a consent form over the first frame, and sets the dark
+theme the listing art is composed from.
+
+**A stopped capture run leaves the previous run's PNGs under the same names.**
+Nothing downstream can tell a fresh set from a half-replaced one - the files
+are all present and all the right size - which is how a tablet set captured
+before a device fix survived into a composed listing. `tool/verify_shots.py
+--since tab10=HH:MM` is the check, and its cutoff is **per profile** because
+the devices are re-run independently.
 
 **Two offline checks, because both failure modes are silent:**
 

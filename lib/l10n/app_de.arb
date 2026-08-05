@@ -163,6 +163,8 @@
   "freeformCrop": "Freier Zuschnitt",
   "ratiosSection": "FORMATE",
   "croppedTo": "Zugeschnitten auf {width}×{height}",
+  "snap": "Einrasten",
+  "snapHint": "Ebenen richten sich an den Kanten und Mittelpunkten der anderen aus und rasten auf deren Größe ein.",
   "scale": "Skalierung",
   "rotation": "Drehung",
   "horizontal": "Horizontal",

@@ -30,14 +30,23 @@ Preconditions
   2560x1600/320dpi, an sw600dp tablet at 1920x1200/320dpi, all in their natural
   orientation (`user_rotation 0` is portrait on the phone, landscape on both
   tablets).
-- A **debug** build installed. Everything that touches app-private data goes
-  through `run-as`, and these are Play-store system images, so `adb root` is
-  refused. The debug build is also how the Pro entitlement gets set, which is
-  what keeps ads out of the captures.
-- The sample photos already in the app's `projects/assets` (`img_*`, `mask_*`).
-  This script writes the manifests that point at them; it does not import
-  photos. Copy the directory from a device that has them with
-  `run-as ... tar -cf -`.
+- A **debug** build installed, then `prepare` run once per device. Everything
+  that touches app-private data goes through `run-as`, and these are Play-store
+  system images, so `adb root` is refused. `prepare` is what keeps ads, the
+  consent form and the Go Pro rail entry out of the captures - see its
+  docstring for why setting the Pro flag alone is not enough.
+- The sample photos in the app's `projects/assets`. `seed` puts them there from
+  `assets/store/samples/` (CC0, provenance in its `SOURCES.json`) and `mask`
+  then makes the cut-out by running the app's own AI Cut once:
+
+      python tool/capture_store_shots.py prepare phone tab10 tab7
+      python tool/capture_store_shots.py seed phone tab10 tab7
+      python tool/capture_store_shots.py mask phone   # writes subject-mask.png
+      python tool/capture_store_shots.py seed phone tab10 tab7   # now with it
+
+  The mask is made once and copied rather than re-derived per device, so all
+  three form factors show the same cut-out rather than three runs of a model
+  that is not bit-deterministic.
 
 Two things that were not obvious
 --------------------------------
@@ -80,36 +89,50 @@ LOCALE_TAGS = {"en": "en-US", "pl": "pl-PL", "de": "de-DE",
 # A screenshot in Polish therefore needs Polish names ON DISK, not just a
 # Polish build - which is why they are here rather than read from the ARB.
 ASSETS = "/data/user/0/%s/app_flutter/projects/assets" % PKG
-DOG = ASSETS + "/img_1785189869988262.jpg"
-MASK = ASSETS + "/mask_l_1_1785189950064696.png"
-YOS = ASSETS + "/img_1785190641018039.jpg"
-CELLS = [ASSETS + "/img_" + n for n in ("1785190567587941.jpg",
-                                        "1785190567591660.jpg",
-                                        "1785190567592655.jpg",
-                                        "1785190567594783.jpg")]
+
+# The sample photos are CC0 and come from `assets/store/samples/`, which
+# `tool/fetch_stock_photos.py` fills from Wikimedia Commons and documents in
+# `SOURCES.json`. They are PUSHED by `seed` rather than assumed to be on the
+# device: a Play listing is commercial use of every pixel inside the device
+# frame, so which photograph is in it has to be a decision this file records,
+# not whatever happened to be in the emulator's gallery.
+#
+# The names are fixed, not timestamped like the app's own imports, because the
+# manifests below point at them by path and a fresh name per run would mean a
+# fresh manifest per run.
+SAMPLES = ROOT / "assets" / "store" / "samples"
+SUBJECT = ASSETS + "/img_sample_subject.jpg"
+SCENE = ASSETS + "/img_sample_landscape.jpg"
+CELLS = [ASSETS + "/img_sample_cell%d.jpg" % i for i in (1, 2, 3, 4)]
+
+# The cut-out of SUBJECT, made by running the app's own AI Cut once and keeping
+# what it wrote (`python tool/capture_store_shots.py mask <profile>`). It is a
+# real model output rather than a hand-drawn alpha, which is the point: the
+# sticker and park shots are showing what the app produces.
+MASK = ASSETS + "/mask_sample_subject.png"
 
 DOCS = {
     "en": dict(untitled="Untitled", photo="Photo", park="Park day",
-               collage="Summer collage", valley="Yosemite valley",
+               collage="Summer collage", valley="Mountain lake",
                caption="PARK DAY", bubble="WALKIES"),
     "pl": dict(untitled="Bez tytułu", photo="Zdjęcie", park="Dzień w parku",
-               collage="Letni kolaż", valley="Dolina Yosemite",
+               collage="Letni kolaż", valley="Górskie jezioro",
                caption="W PARKU", bubble="NA SPACER!"),
     "de": dict(untitled="Ohne Titel", photo="Foto", park="Parktag",
-               collage="Sommercollage", valley="Yosemite Valley",
+               collage="Sommercollage", valley="Bergsee",
                caption="PARKTAG", bubble="GASSI!"),
     "es": dict(untitled="Sin título", photo="Foto", park="Día en el parque",
-               collage="Collage de verano", valley="Valle de Yosemite",
+               collage="Collage de verano", valley="Lago de montaña",
                caption="AL PARQUE", bubble="¡A PASEAR!"),
-    # "Vallée de Yosemite" was cut to "Vallée de Yosemi…" on the Home tile:
-    # the name shares its row with the layer count, and French "1 calque" is
-    # the longest of the six. A tile name is the one string here that has to
-    # fit a slot, so check the Home shot before changing one.
+    # The tile name shares its row with the layer count, and French "1 calque"
+    # is the longest of the six - "Vallée de Yosemite" was cut to "Vallée de
+    # Yosemi…" there. A tile name is the one string here that has to fit a
+    # slot, so check the Home shot before lengthening one.
     "fr": dict(untitled="Sans titre", photo="Photo", park="Journée au parc",
-               collage="Collage d'été", valley="Vallée Yosemite",
+               collage="Collage d'été", valley="Lac de montagne",
                caption="AU PARC", bubble="ON SORT !"),
     "cs": dict(untitled="Bez názvu", photo="Fotka", park="Den v parku",
-               collage="Letní koláž", valley="Údolí Yosemite",
+               collage="Letní koláž", valley="Horské jezero",
                caption="V PARKU", bubble="NA PROCHÁZKU!"),
 }
 
@@ -177,12 +200,12 @@ def project_set(locale, which):
         # the result sheet in that shot, so they are matched deliberately.
         adj = {"brightness": 1.15, "contrast": 1.19, "saturation": 1.17, "hue": 0.0}
         return _project("pe_cutout", name, 1536, 2048,
-                        [_image("l_1", t["photo"], DOG, 768.0, 1024.0,
+                        [_image("l_1", t["photo"], SUBJECT, 768.0, 1024.0,
                                 4.654545454545454, adjust=adj)], stamp)
 
     def sticker(name, stamp):
         return _project("pe_sticker", name, 1536, 2048,
-                        [_image("l_1", t["photo"], DOG, 768.0, 1024.0,
+                        [_image("l_1", t["photo"], SUBJECT, 768.0, 1024.0,
                                 4.654545454545454, mask=MASK,
                                 effects=STICKER_FX)], stamp)
 
@@ -191,7 +214,7 @@ def project_set(locale, which):
                "filter": "vivid", "filterStrength": 1.0,
                "hdr": 0.4846153846153846}
         return _project("pe_valley", name, 1600, 1067,
-                        [_image("l_8", t["photo"], YOS, 800.0, 533.5,
+                        [_image("l_8", t["photo"], SCENE, 800.0, 533.5,
                                 3.6363636363636362, adjust=adj)], stamp)
 
     def collage(name, stamp):
@@ -208,7 +231,7 @@ def project_set(locale, which):
 
     def park(name, stamp):
         layers = [
-            _image("l_1", t["photo"], DOG, 768.0, 1024.0, 4.654545454545454,
+            _image("l_1", t["photo"], SUBJECT, 768.0, 1024.0, 4.654545454545454,
                    mask=MASK, effects=STICKER_FX),
             {"type": "text", "id": "l_2", "name": t["caption"],
              "transform": {"x": 484.151376146789, "y": 1828.738532110092,
@@ -279,10 +302,74 @@ def set_projects(serial, locale, which):
     return push_tar(serial, members, APPDIR)
 
 
+def seed_photos(serial, with_mask=True):
+    """Put the CC0 samples (and the cut-out, if made) in `projects/assets`.
+
+    `mkdir -p` first: a device that has never had a project has no `projects`
+    directory at all, and `tar -xf` into a missing parent fails quietly enough
+    to look like the push worked.
+    """
+    runas(serial, "mkdir -p %s/projects/assets" % APPDIR)
+    members = {}
+    for slot, name in (("subject", "img_sample_subject.jpg"),
+                       ("landscape", "img_sample_landscape.jpg"),
+                       ("cell1", "img_sample_cell1.jpg"),
+                       ("cell2", "img_sample_cell2.jpg"),
+                       ("cell3", "img_sample_cell3.jpg"),
+                       ("cell4", "img_sample_cell4.jpg")):
+        members["projects/assets/" + name] = (SAMPLES / (slot + ".jpg")).read_bytes()
+    cut = SAMPLES / "subject-mask.png"
+    if with_mask and cut.exists():
+        members["projects/assets/mask_sample_subject.png"] = cut.read_bytes()
+    push_tar(serial, members, APPDIR)
+    return runas(serial, "ls %s/projects/assets" % APPDIR)
+
+
 def set_pro(serial, on=True):
     body = '{"onboardingSeen":true,"proEntitled":%s}' % ("true" if on else "false")
     return runas(serial, 'printf %%s "%s" > %s/settings.json'
                  % (body.replace('"', '\\"'), APPDIR))
+
+
+def prepare(serial):
+    """Make a device deterministic for capture. Run once per device.
+
+    Writing `proEntitled: true` is NOT enough on its own, and the way it fails
+    is quiet. `reconcileEntitlement` re-checks the cached flag against Play on
+    every launch and revokes it on a *confirmed* "not owned" - which is exactly
+    what a Play-store emulator with no purchase answers. So the seeded Pro flag
+    survived the write, got revoked a second after launch, and the run carried
+    on: settings.json read `proEntitled:false` afterwards.
+
+    That is not just an ad in the corner. Without Pro the editor's rail grows a
+    **Go Pro entry at the top**, which pushes every tool down one slot - so the
+    RAIL tables below tap Bubble where they mean AI Cut, and the run produces
+    eight plausible screenshots of the wrong panels. It also brings back the
+    UMP consent form, which covers the whole screen on a first launch.
+    Disabling the Play Store makes `restorePurchases` throw instead of
+    answering, and every uncertain case keeps Pro (see `reconcileEntitlement`).
+
+    The radios go down for the same reason and one more: an offline device
+    cannot fetch a consent form at all, and the AI models are on-device, so
+    nothing a capture needs is lost.
+    """
+    shell(serial, "am force-stop %s" % PKG)
+    shell(serial, "pm disable-user --user 0 com.android.vending")
+    shell(serial, "svc wifi disable")
+    shell(serial, "svc data disable")
+    shell(serial, "cmd uimode night yes")   # the listing art is the dark theme
+    set_pro(serial, True)
+    quiet_status_bar(serial)
+    return runas(serial, "cat %s/settings.json" % APPDIR)
+
+
+def restore_device(serial):
+    """Undo `prepare`. The Play Store staying off is how ad paths stop working."""
+    shell(serial, "pm enable --user 0 com.android.vending")
+    shell(serial, "svc wifi enable")
+    shell(serial, "svc data enable")
+    set_pro(serial, False)
+    return runas(serial, "cat %s/settings.json" % APPDIR)
 
 
 def set_locale(serial, tag):
@@ -374,7 +461,7 @@ PROFILES = {
         panel_scroll=(400, 1640, 400, 1116),
     ),
     "tab10": dict(
-        serial="emulator-5556", nav="rail", size=(2560, 1600),
+        serial="emulator-5558", nav="rail", size=(2560, 1600),
         tiles={1: (735, 774), 2: (1277, 774), 3: (1819, 774),
                4: (735, 1394), 5: (1277, 1394)},
         canvas=(1665, 850), canvas_valley=(1665, 850),
@@ -383,7 +470,7 @@ PROFILES = {
         panel_scroll=None,             # the panel is tall enough here
     ),
     "tab7": dict(
-        serial="emulator-5558", nav="rail", size=(1920, 1200),
+        serial="emulator-5556", nav="rail", size=(1920, 1200),
         tiles={1: (416, 780), 2: (960, 780), 3: (1500, 780),
                4: (420, 857), 5: (975, 857)},
         # Only three project tiles fit above the fold here.
@@ -519,10 +606,62 @@ def run(profile, locale, only=None):
         print("  %-6s %-3s %s" % (profile, locale, name), flush=True)
 
 
+def make_mask(profile):
+    """Run the app's AI Cut on the subject once and keep the mask it wrote.
+
+    The alternative - drawing an alpha here with PIL - would put a cut-out in
+    the listing that the app did not make, which is exactly the kind of claim
+    Play rejects a listing for. So the model runs, the app saves, and the file
+    it saved is read back out of the manifest it recorded it in.
+    """
+    p = PROFILES[profile]
+    s = p["serial"]
+    set_locale(s, "en-US")
+    set_pro(s, True)
+    seed_photos(s, with_mask=False)
+    set_projects(s, "en", "editor")
+    restart(s)
+
+    open_tile(s, p, 1)
+    tap(s, *p["canvas"], 1.4)
+    go(s, p, "aicut")
+    tap(s, *p["sheet_button"], 1.0)
+    time.sleep(35)                        # the model runs on the device
+    tap(s, *p["sheet_button"], 2.0)       # the result sheet's Apply
+    time.sleep(6)                         # let autosave land
+
+    doc = json.loads(runas(s, "cat %s/projects/pe_cutout.json" % APPDIR))
+    path = doc["frames"][0]["layers"][0].get("maskPath")
+    if not path:
+        sys.exit("AI Cut did not apply - no maskPath in pe_cutout.json")
+    blob = subprocess.run(
+        ["adb", "-s", s, "exec-out", "run-as", PKG, "cat", path],
+        capture_output=True, timeout=120).stdout
+    dest = SAMPLES / "subject-mask.png"
+    dest.write_bytes(blob)
+    print("  %s  %d KB  (from %s)" % (dest, len(blob) // 1024, path.rsplit("/", 1)[-1]))
+    return 0
+
+
+COMMANDS = {"seed": seed_photos, "prepare": prepare, "restore": restore_device}
+
+
 def main():
+    if len(sys.argv) > 2 and sys.argv[1] in set(COMMANDS) | {"mask"}:
+        for prof in sys.argv[2:]:
+            if prof not in PROFILES:
+                sys.exit("unknown profile: %s" % prof)
+        if sys.argv[1] == "mask":
+            return make_mask(sys.argv[2])
+        fn = COMMANDS[sys.argv[1]]
+        for prof in sys.argv[2:]:
+            print("  %-6s %s" % (prof, fn(PROFILES[prof]["serial"]).replace("\n", " ")))
+        return 0
     if len(sys.argv) < 2 or sys.argv[1] not in PROFILES:
-        sys.exit("usage: %s <%s> [locale ...] [shot ...]"
-                 % (os.path.basename(sys.argv[0]), "|".join(PROFILES)))
+        sys.exit("usage: %s <%s> [locale ...] [shot ...]\n"
+                 "       %s prepare|seed|mask|restore <profile ...>"
+                 % (os.path.basename(sys.argv[0]), "|".join(PROFILES),
+                    os.path.basename(sys.argv[0])))
     profile = sys.argv[1]
     rest = sys.argv[2:]
     locales = [a for a in rest if a in LOCALES] or LOCALES

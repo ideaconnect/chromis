@@ -6,21 +6,22 @@ Chromis : Éditeur photo IA
 Détourage par IA sur l'appareil. Calques, filtres, collages. Privé.
 
 # Long description (up to 4000 chars)
-Chromis est un éditeur photo dont l'IA tourne sur l'appareil. Détourez un sujet, effacez un intrus dans le cadre, empilez des calques, montez un collage, exportez. Vos photos ne partent nulle part.
+Chromis est un éditeur photo dont l'IA tourne sur l'appareil. Détourez un sujet, effacez un intrus, empilez des calques, montez un collage. Rien ne part nulle part.
 
 UNE IA QUI TOURNE SUR L'APPAREIL
-• Une touche enlève l'arrière-plan et laisse le sujet sur fond transparent. Deux modèles : la segmentation intégrée d'Android, ou U2-Net, open source, embarqué dans l'app.
-• Touchez l'objet à faire disparaître : l'arrière-plan est reconstitué à sa place, ou vous le découpez en transparence.
-• Affinez : nettoyage auto des points isolés, bord adouci, ou retouche au pinceau effacer et restaurer.
-• U2-Net est embarqué : les détourages marchent hors connexion.
+• Une touche enlève l'arrière-plan et laisse le sujet sur fond transparent. Deux modèles : la segmentation d'Android, ou U2-Net open source.
+• Touchez l'objet à faire disparaître. Remplir reconstruit l'arrière-plan : il reste du décor, pas un trou. Effacer le découpe en transparence.
+• Affinez : nettoyage auto des points isolés, bord adouci, retouche au pinceau.
+• Les modèles sont embarqués : tout cela marche hors connexion.
 
 CALQUES
 • Empilez photos, légendes et bulles sur une même toile.
 • Glissez pour déplacer, pincez pour redimensionner et pivoter.
+• Le magnétisme aligne un calque sur les bords, les centres et la taille des autres et de la toile.
+• Échelle, Rotation, Horizontal, Vertical et Opacité pilotent tout calque, même trop petit à saisir ou caché sous un autre.
 • Réordonnez, masquez, dupliquez, renommez ou supprimez dans le panneau Calques.
 • 16 modes de fusion, de Produit à Luminosité.
 • Ombre portée et contour sur tout calque : sur un sujet détouré, les deux suivent sa silhouette, pas un rectangle.
-• Réglez l'opacité de tout calque.
 • Fusionnez deux calques, ou aplatissez toute la pile en une photo.
 
 COULEUR ET LUMIÈRE
@@ -28,7 +29,7 @@ COULEUR ET LUMIÈRE
 • Luminosité, contraste, saturation de 0 à 200 pour cent, teinte sur tout le cercle.
 • HDR qui relève les ombres et fait ressortir le détail local.
 • Vignettage avec sa taille, sa douceur et sa couleur.
-• Rien n'est figé : l'original n'est jamais modifié, chaque valeur revient en arrière.
+• Rien n'est figé : l'original n'est jamais modifié.
 
 TEXTE ET BULLES DE BD
 • Légendes en cinq polices d'affichage, ou importez votre fichier .ttf ou .otf.
@@ -37,31 +38,33 @@ TEXTE ET BULLES DE BD
 
 COLLAGES EN GRILLE
 • De 2 à 5 photos, dans 18 dispositions.
-• Tirez une séparation : l'espace passe entre ces deux cellules, et elles seules.
+• Tirez une séparation : l'espace passe entre ces deux cellules seules.
 • Bordure jusqu'à 80 px, coins arrondis jusqu'à 60 px, neuf couleurs de cadre.
-• Tous les outils marchent dans une cellule : détourez un sujet d'une seule photo du collage.
-• Mélangez les photos entre cellules, ou glissez-en une sur une autre pour échanger.
+• Tous les outils marchent dans une cellule : détourez un sujet du collage.
+• Mélangez les photos, ou glissez-en une sur une autre.
 
 PROJETS
 • Importez des photos depuis la galerie, l'appareil photo ou le presse-papiers.
-• Chaque modification s'enregistre seule. Fermez l'app, reprenez plus tard.
-• L'accueil garde vos projets récents en aperçu direct. Cherchez par nom, renommez, dupliquez, supprimez.
+• Chaque modification s'enregistre seule. Reprenez plus tard.
+• L'accueil garde vos projets récents en aperçu direct. Cherchez, renommez, dupliquez.
 
 TOILE ET EXPORT
 • Partez d'une photo à sa taille, d'un préréglage carré, portrait ou story, ou d'une taille saisie.
 • Recadrez à main levée, ou en 1:1, 4:5, 9:16, 16:9, 3:2 ou 2:3.
 • Exportez en PNG, JPG ou WebP à 100, 75, 50 ou 25 pour cent de la toile.
-• PNG et WebP gardent la transparence. Enregistrez dans la galerie ou envoyez vers une autre app.
-• Annulez et rétablissez tout. Les projets s'enregistrent en cours de route.
+• PNG et WebP gardent la transparence. Enregistrez dans la galerie ou partagez.
+• Annulez et rétablissez tout.
+
+CLAIR ET SOMBRE
+Les deux suivent l'appareil, ou choisissez dans les Réglages. Sombre : noir pur (AMOLED). Clair : blanc pur.
 
 GRATUIT, AVEC UN SEUL ACHAT FACULTATIF
-Tous les outils sont gratuits. La publicité les finance : une bannière sur l'accueil, une courte vidéo avec récompense avant un export, et une par session d'édition, qui déverrouille les outils d'IA. Aucune publicité plein écran ne s'ouvre d'elle-même.
-Un achat facultatif supprime définitivement publicités et propositions. Il ne déverrouille rien d'autre : rien d'autre n'est verrouillé.
+Tous les outils sont gratuits. La publicité les finance : une bannière sur l'accueil, une courte vidéo avec récompense avant un export, et une par session pour les outils d'IA. Aucune publicité plein écran ne s'ouvre seule.
+Un achat facultatif supprime définitivement les publicités. Il ne déverrouille rien d'autre : rien d'autre n'est verrouillé.
 
 CONFIDENTIALITÉ
-• Une seule autorisation demandée : Internet, pour les publicités et les achats.
-• Aucun accès à l'appareil photo, au stockage ni à la position. Les photos passent par le sélecteur Android, qui ne transmet que l'image choisie.
-• Aucun compte, aucune connexion.
-• Rien de ce que vous modifiez ne quitte l'appareil, sauf si vous le partagez ou l'exportez.
+• Aucun compte, aucune connexion, aucun accès à l'appareil photo ni à la position. Les photos passent par le sélecteur Android, qui ne transmet que celle choisie.
+• Internet sert aux publicités et aux achats. La galerie ne demande le stockage que sur Android 9 et antérieur.
+• Vos photos ne sont jamais envoyées pour être modifiées. Chaque outil d'IA tourne sur l'appareil.
 
 Fonctionne sur Android 8.0 et plus, sur téléphones et tablettes, en portrait comme en paysage.

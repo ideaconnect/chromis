@@ -559,6 +559,13 @@ class AppLocalizationsCs extends AppLocalizations {
   }
 
   @override
+  String get snap => 'Přichytávání';
+
+  @override
+  String get snapHint =>
+      'Vrstvy se zarovnávají k okrajům a středům ostatních a zastaví se na jejich velikosti.';
+
+  @override
   String get scale => 'Měřítko';
 
   @override

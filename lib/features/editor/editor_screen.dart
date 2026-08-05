@@ -54,8 +54,10 @@ import '../segmentation/mask_store.dart';
 import '../segmentation/seg_model.dart';
 import '../segmentation/segmentation_engine.dart';
 import '../segmentation/segmentation_registry.dart';
+import 'brush_size.dart';
 import 'layer_bounds.dart';
 import 'layer_scale_curve.dart';
+import 'layer_snap.dart';
 import 'mask_mapper.dart';
 import 'services/image_import.dart';
 import 'services/layer_flattener.dart';
@@ -66,6 +68,7 @@ import 'widgets/bubble_shape_sheet.dart';
 import 'widgets/canvas_size_sheet.dart';
 import 'widgets/crop_overlay.dart';
 import 'widgets/editor_canvas.dart';
+import 'widgets/erase_trail.dart';
 import 'widgets/filter_strip.dart';
 import 'widgets/project_canvas.dart';
 
@@ -112,7 +115,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
   bool _onionSkin = false; // ghost the previous frame (M4 #37)
   bool _eraseMode = true; // erase vs restore (M2)
   bool _softEdges = true;
-  double _brushSize = 40;
+  double _brushSize = kDefaultBrushSize;
   bool _removingBg = false; // AI cut-out in progress
   bool _removeObjectMode = false; // tap-to-remove mode in the cutout tool (#83)
   // Fill (rebuild the background) vs Erase (cut to transparency) in
@@ -150,6 +153,12 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
   // Serializes erase strokes so overlapping async applies can't race and lose
   // dabs (each stroke starts only after the previous one has fully applied).
   Future<void> _strokeLock = Future<void>.value();
+
+  /// The blue mark drawn under the finger during an erase, held until the real
+  /// pixels are on screen. Owned here rather than by the canvas because its
+  /// lifetime spans the async apply, which is this screen's - the canvas can be
+  /// rebuilt (or the tool switched) while a stroke is still being written.
+  final EraseTrail _eraseTrail = EraseTrail();
 
   // Reclaims superseded mask PNGs (previous cut-out / erase files a newer mask
   // replaced) once they fall out of undo/redo reach, so intermediate masks
@@ -270,6 +279,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         if (_homeDirty) _homeContainer?.invalidate(savedProjectsProvider);
       }),
     );
+    _eraseTrail.dispose();
     _textController.dispose();
     _bubbleTextController.dispose();
     _bubbleFormatScroll.dispose();
@@ -513,6 +523,8 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                       onEmptyCellTap: _pickPhotoIntoCell,
                       dropPlaceholder: const DropPlaceholder(),
                       onEraseStroke: _applyEraseStroke,
+                      eraseTrail: _eraseTrail,
+                      brushSize: _brushSize,
                       // Non-null only while the cutout tool's Remove-object
                       // mode is armed (#83).
                       onObjectTap: _removeObjectMode
@@ -793,11 +805,41 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     // Snapped to straight over the last couple of degrees: a caption a hair off
     // level reads as a mistake rather than a choice, and a slider cannot be
     // nudged to an exact value the way a field can.
-    final snapped = degrees.abs() < 2 ? 0.0 : degrees;
-    final radians = snapped * math.pi / 180;
+    final straight = degrees.abs() < 2;
+    var shown = straight ? 0.0 : degrees;
+    var radians = shown * math.pi / 180;
+
+    // Failing that, the nearest other layer's angle - the Rotation slider's
+    // half of "layers snap to each other", and the way to make a caption
+    // parallel to a photo that is already at 26.4°, which is not a number
+    // anyone can hit by dragging.
+    //
+    // Only when straight did NOT fire: level is the stronger target of the two,
+    // and letting a neighbour at 3° pull a layer off 0 would break the snap
+    // that keeps a layer from resting a hair off level.
+    if (!straight && _controller.snapEnabled) {
+      final match = nearestLayerRotation(
+        moving: layer,
+        proposed: radians,
+        others: ref.read(editorControllerProvider).layers,
+        tolerance: kSnapRotationTolerance,
+      );
+      if (match != null) {
+        radians = match;
+        // The reading nearest the one the drag was already showing. -180 and
+        // 180 are the same angle and both ends of the bar, so taking the
+        // wrapped value blindly could teleport the thumb across the track
+        // mid-drag - the very thing `_rotationDegreesOf` exists to prevent.
+        shown = _degreesOf(match);
+        if ((shown - degrees).abs() > 180) {
+          shown += shown > degrees ? -360 : 360;
+        }
+      }
+    }
+
     setState(() {
       _rotationSliderLayerId = layer.id;
-      _rotationSliderDegrees = snapped;
+      _rotationSliderDegrees = shown;
       _rotationSliderRadians = radians;
     });
     _controller.updateTransform(
@@ -846,18 +888,106 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     final travel = _placementTravelOf(layer, project, axisX: axisX);
     // Snapped to centred over the last couple of percent, for the same reason
     // Rotation snaps to straight: dead-centre is a value a user asks for by
-    // name and a slider cannot hit on purpose.
+    // name and a slider cannot hit on purpose. It stays here rather than being
+    // left to the Snap toggle's canvas centre target, because it is not
+    // optional - a slider that cannot hit its own middle is broken with
+    // snapping off too. Alignment snapping then runs on top and finds this
+    // position already exactly on target, so the two cannot fight.
     final snapped = percent.abs() < 2 ? 0.0 : percent;
     final centre = project.canvasCenter;
     final offset = snapped / 100 * travel;
     _controller.updateTransform(
       layer.id,
-      layer.transform.copyWith(
-        position: axisX
-            ? Offset(centre.dx + offset, layer.transform.position.dy)
-            : Offset(layer.transform.position.dx, centre.dy + offset),
+      _snapped(
+        layer,
+        layer.transform.copyWith(
+          position: axisX
+              ? Offset(centre.dx + offset, layer.transform.position.dy)
+              : Offset(layer.transform.position.dx, centre.dy + offset),
+        ),
+        // One axis at a time: this slider moves the one it is named after, and
+        // a snap that also nudged the other would make it a two-axis control.
+        // Which is also why it measures on the CANVAS's axes rather than the
+        // layer's - an alignment found on a turned layer's own edge runs
+        // diagonally across the canvas, so taking it would move the layer on
+        // the axis this slider does not own.
+        frame: SnapFrame.canvas,
+        snapX: axisX,
+        snapY: !axisX,
       ),
     );
+  }
+
+  /// The cell rect per cell id for the current document, or empty when it is
+  /// not a collage. Cheap and pure, like `EditorCanvas._layoutOf`, so it is
+  /// recomputed per use rather than cached into state that could go stale.
+  Map<String, Rect> _cellRects(EditorState editor) {
+    final grid = editor.project.grid;
+    if (grid == null) return const {};
+    return layoutGrid(
+      grid,
+      Size(
+        editor.project.canvasWidth.toDouble(),
+        editor.project.canvasHeight.toDouble(),
+      ),
+    ).cells;
+  }
+
+  /// How near an alignment has to be, for a slider, in canvas-logical units.
+  ///
+  /// A share of the canvas rather than a screen distance - the opposite of the
+  /// canvas gesture's radius, and for the same reason. There is no finger on
+  /// the layer here: the thumb is somewhere else entirely, so "close" can only
+  /// mean close on the canvas. 2% is the reach the Rotation and centre snaps
+  /// already use in bar space.
+  static double _sliderSnapTolerance(Project project) =>
+      math.min(project.canvasWidth, project.canvasHeight) * 0.02;
+
+  /// [next] pulled onto the nearest alignment with the other layers, or [next]
+  /// unchanged when the Snap toggle is off.
+  ///
+  /// The sliders snap as well as the canvas because they are the SAME two
+  /// edits - a layer too small to grab, or buried under a bigger one, is moved
+  /// and resized from here, and a toggle sitting directly above them that
+  /// governed only the canvas would be a promise about the controls under it
+  /// that it does not keep. No guides are drawn for these: the layer visibly
+  /// arriving on the alignment is the feedback, and the eye is on the canvas
+  /// either way.
+  LayerTransform _snapped(
+    Layer layer,
+    LayerTransform next, {
+    bool snapScale = false,
+    bool snapX = false,
+    bool snapY = false,
+    SnapFrame frame = SnapFrame.layer,
+  }) {
+    if (!_controller.snapEnabled) return next;
+    final editor = ref.read(editorControllerProvider);
+    return snapTransform(
+      moving: layer,
+      proposed: next,
+      others: editor.layers,
+      frame: frame,
+      measure: (l, s) {
+        if (l is ImageLayer) _ensurePhotoPixels(l.assetPath);
+        return layerLogicalSize(
+          l,
+          scale: s,
+          imagePixels: l is ImageLayer ? _photoPixels[l.assetPath] : null,
+        );
+      },
+      canvas: Size(
+        editor.project.canvasWidth.toDouble(),
+        editor.project.canvasHeight.toDouble(),
+      ),
+      // Only what is on screen may be lined up with: a collage cell clips its
+      // layer, and a cell photo is cover-scaled well past its cell.
+      clipOf: (l) => l.cellId == null ? null : _cellRects(editor)[l.cellId],
+      tolerance: _sliderSnapTolerance(editor.project),
+      snapScale: snapScale,
+      snapX: snapX,
+      snapY: snapY,
+    ).transform;
   }
 
   double _placementTravelOf(
@@ -873,6 +1003,52 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     return axisX
         ? placementTravel(project.canvasWidth.toDouble(), size.width)
         : placementTravel(project.canvasHeight.toDouble(), size.height);
+  }
+
+  /// The Snap toggle, above the placement sliders because it governs them and
+  /// the canvas gesture alike - the two ways a layer is moved and resized.
+  ///
+  /// Sits with the sliders rather than in Settings for the same reason it
+  /// defaults on: it is a thing you turn off for one fiddly layer and back on
+  /// afterwards, and a trip to another screen for that is a trip nobody makes.
+  Widget _snapToggle() {
+    // The explainer is a spoken hint rather than a line of muted text under the
+    // label, and that is a space decision, not an accessibility one. The
+    // portrait panel is capped at 300dp and this row already costs the
+    // placement stack one slider's worth of fold; a second line would cost
+    // another, and Horizontal and Vertical exist precisely to reach a layer
+    // nothing else can. What the toggle does is visible the moment it does it -
+    // the canvas draws the guide it landed on - so the sentence is worth less
+    // here than the control it would push down.
+    return Semantics(
+      hint: _l10n.snapHint,
+      // Merged, or TalkBack announces a switch with no name: the label is a
+      // sibling Text, and nothing otherwise ties the two together.
+      container: true,
+      child: MergeSemantics(
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                _l10n.snap,
+                style: TextStyle(
+                  fontFamily: AppFonts.ui,
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w600,
+                  color: context.colors.textSecondary,
+                ),
+              ),
+            ),
+            Switch(
+              value: _controller.snapEnabled,
+              activeThumbColor: context.colors.onAccent,
+              activeTrackColor: context.colors.teal,
+              onChanged: (v) => setState(() => _controller.snapEnabled = v),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   /// Placement for the selected layer, whatever its type: scale, rotation and
@@ -915,7 +1091,14 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         valueLabel: '${(t.scale * 100).round()}%',
         onChanged: (v) => _controller.updateTransform(
           id,
-          t.copyWith(scale: layerScaleFromSlider(v)),
+          // Snapped on SIZE, not on position: the resize is what this slider
+          // does, so it stops on another layer's width or height and the layer
+          // stays where it is.
+          _snapped(
+            layer,
+            t.copyWith(scale: layerScaleFromSlider(v)),
+            snapScale: true,
+          ),
         ),
         onChangeEnd: _endSliderEdit,
       ),
@@ -1026,7 +1209,10 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         // so the one button in the panel stays at the top of it rather than
         // splitting the slider stack in two.
         if (photo != null) ..._cropControls(photo),
-        if (placeable) ..._placementSliders(selected, editor.project),
+        if (placeable) ...[
+          _snapToggle(),
+          ..._placementSliders(selected, editor.project),
+        ],
         if (photo != null) ..._colorSliders(photo),
         LabeledSlider(
           label: _l10n.opacity,
@@ -2971,10 +3157,18 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
   /// Enqueues an erase stroke onto [_strokeLock] so strokes apply strictly in
   /// order - overlapping async applies (esp. the cold-cache rebuild-after-await)
   /// can't interleave and drop each other's dabs.
-  void _applyEraseStroke(List<Offset> pointsLogical) {
+  void _applyEraseStroke(List<Offset> pointsLogical, int trailTicket) {
     _strokeLock = _strokeLock
-        .then((_) => _runEraseStroke(pointsLogical))
-        .catchError((Object _) {});
+        .then((_) => _runEraseStroke(pointsLogical, trailTicket))
+        .catchError((Object _) {})
+        // The floor under every silent exit below - not an ImageLayer, no
+        // working mask, every point outside the photo, unmounted mid-await, or
+        // the catch that toasts brushFailed. None of those commits anything, so
+        // without this a stroke that quietly did nothing would leave its blue
+        // trail on the photo for the rest of the session, waiting for pixels
+        // that are not coming. A stroke that DID commit has already been
+        // recorded, and retireIfUncommitted leaves it alone.
+        .whenComplete(() => _eraseTrail.retireIfUncommitted(trailTicket));
   }
 
   /// Applies an Erase/Restore brush stroke (points in 512-logical canvas units)
@@ -3003,7 +3197,10 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     return true;
   }
 
-  Future<void> _runEraseStroke(List<Offset> pointsLogical) async {
+  Future<void> _runEraseStroke(
+    List<Offset> pointsLogical,
+    int trailTicket,
+  ) async {
     final layer = ref.read(editorControllerProvider).selectedLayer;
     if (layer is! ImageLayer) return;
     try {
@@ -3039,6 +3236,10 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       _maskGc.supersede(layer.maskPath, path);
       _workingMaskPath = path;
       _controller.setImageMask(layer.id, path);
+      // Hand the trail over to the renderer: keep drawing this stroke until a
+      // decode carrying THIS mask has been painted. Deliberately after
+      // setImageMask, which is where the re-decode starts rather than ends.
+      _eraseTrail.markCommitted(trailTicket, path);
     } catch (_) {
       if (mounted) _toast(_l10n.brushFailed, ok: false);
     }
@@ -3319,8 +3520,8 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
               child: LabeledSlider(
                 label: _l10n.brushSize,
                 value: _brushSize,
-                min: 8,
-                max: 120,
+                min: kMinBrushSize,
+                max: kMaxBrushSize,
                 accent: context.colors.amber,
                 valueColor: context.colors.textMuted,
                 valueLabel: '${_brushSize.round()}px',

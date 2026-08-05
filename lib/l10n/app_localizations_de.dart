@@ -562,6 +562,13 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String get snap => 'Einrasten';
+
+  @override
+  String get snapHint =>
+      'Ebenen richten sich an den Kanten und Mittelpunkten der anderen aus und rasten auf deren Größe ein.';
+
+  @override
   String get scale => 'Skalierung';
 
   @override

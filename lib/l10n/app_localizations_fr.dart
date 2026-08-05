@@ -563,6 +563,13 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String get snap => 'Magnétisme';
+
+  @override
+  String get snapHint =>
+      'Les calques s\'alignent sur les bords et les centres des autres, et s\'arrêtent à leur taille.';
+
+  @override
   String get scale => 'Échelle';
 
   @override
