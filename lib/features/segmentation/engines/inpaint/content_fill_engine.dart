@@ -172,10 +172,8 @@ Uint8List? _fill(Uint8List imageBytes, AlphaMask region) {
       final o = ((win.y + y) * imageW + win.x + x) * 4;
       for (var c = 0; c < 3; c++) {
         final synth = _sample(filled, workW, workH, 3, c, wx, wy);
-        base[o + c] = (base[o + c] + (synth - base[o + c]) * a).round().clamp(
-          0,
-          255,
-        );
+        final v = (base[o + c] + (synth - base[o + c]) * a).round();
+        base[o + c] = v < 0 ? 0 : (v > 255 ? 255 : v);
       }
     }
   }
@@ -303,12 +301,14 @@ double _sample(
   double fx,
   double fy,
 ) {
-  final cx = fx.clamp(0.0, w - 1.0);
-  final cy = fy.clamp(0.0, h - 1.0);
+  // Manual bounds rather than `clamp`, which is declared on `num` and boxes:
+  // this runs four times per pixel of the window, at full photo resolution.
+  final cx = fx < 0 ? 0.0 : (fx > w - 1 ? w - 1.0 : fx);
+  final cy = fy < 0 ? 0.0 : (fy > h - 1 ? h - 1.0 : fy);
   final x0 = cx.floor();
   final y0 = cy.floor();
-  final x1 = math.min(x0 + 1, w - 1);
-  final y1 = math.min(y0 + 1, h - 1);
+  final x1 = x0 + 1 < w ? x0 + 1 : w - 1;
+  final y1 = y0 + 1 < h ? y0 + 1 : h - 1;
   final tx = cx - x0;
   final ty = cy - y0;
   final v00 = data[(y0 * w + x0) * stride + c].toDouble();

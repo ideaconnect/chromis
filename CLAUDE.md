@@ -172,7 +172,14 @@ invariants it must keep: **known pixels are never written** - the result
 composites over the full-resolution photo, so writing outside the hole would
 resample the whole window as a soft rectangle around every removed object - and
 a fill it cannot do returns **null** rather than a smear, which is what makes
-the editor fall back to erasing and say so. See `docs/inpaint-setup.md`.
+the editor fall back to erasing and say so.
+
+**`clamp()` is declared on `num`, so it boxes even when every argument is an
+`int`** - and it was in the innermost loop of the patch search. Removing it
+halved the fill (5.3 s → 2.4 s of work on a debug emulator);
+`integration_test/content_fill_device_test.dart` is what found that, by printing
+a decode/encode/search breakdown a host test cannot measure. Watch for the same
+shape anywhere else per-pixel. See `docs/inpaint-setup.md`.
 
 ### Landscape
 

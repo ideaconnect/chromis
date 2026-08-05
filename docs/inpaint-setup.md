@@ -51,6 +51,33 @@ radius wider than the region weighted at full strength, so the seam fades into
 clean photo rather than back into the object's own colour fringe. Everything
 outside the window is untouched byte for byte.
 
+### What it costs
+
+Measured by `integration_test/content_fill_device_test.dart`, which prints a
+breakdown, on an x86_64 Android 17 emulator in a **debug** build - so these are
+an upper bound, not the shipping figure: debug Dart is JIT'd with bounds checks
+everywhere, and a release AOT build on ARM runs this kind of typed-data loop
+several times faster.
+
+Filling a 90 px object in a 1600×1200 photo, warm:
+
+| | before | after |
+|---|---|---|
+| PNG decode + encode | ~1.6 s | ~1.3 s |
+| patch search + composite | 5.3 s | **2.4 s** |
+| total | 6.9 s | **3.7 s** |
+
+The halving is one change: `_patchDistance` no longer calls `clamp()`. It is
+declared on `num`, so its result is **boxed even when every argument is an
+`int`** - and that call sat in the innermost loop of the patch search, running
+a few hundred thousand times per pyramid level. A target patch entirely inside
+the image now needs no bounds work at all and walks both patches on a running
+offset; only a patch hanging off an edge clamps, with comparisons.
+
+Worth knowing before optimising further: the FIRST fill in a process is
+noticeably slower than the rest (8.8 s against 3.7 s here) because it pays JIT
+warm-up for the whole search. Measure the second one.
+
 ### When it refuses
 
 `fill` returns null when nothing is marked, or when the window is over 90% hole -
@@ -125,9 +152,11 @@ first place.
 
 ## Known refinements
 
-- **Content-aware fill perf** - `_vote` allocates its accumulators per EM sweep,
-  and `_patchDistance` is the hot loop. It is a one-shot, gated action on a
-  ≤512 px window, so this is low priority until measured on-device.
+- **Content-aware fill perf** - the boxing in `_patchDistance` is gone (see
+  "What it costs"); what is left is `_vote` allocating its accumulators fresh
+  per EM sweep. Everything past that trades quality for speed - fewer sweeps at
+  the finest level, or a subsampled patch - so it wants a real-photo quality
+  signal first, not another synthetic measurement.
 - **MI-GAN perf** - `_postprocess` decodes the source a second time and scans
   every pixel to composite. Decode once and clamp the composite to the region's
   bounding box if fill latency is a problem.

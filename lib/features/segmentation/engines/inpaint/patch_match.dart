@@ -79,6 +79,16 @@ Uint8List contentAwareFill(
   return levels.first.rgb;
 }
 
+/// `round().clamp(0, 255)` without the boxing - `clamp` is declared on `num`,
+/// so its result is boxed even when every argument is an `int`. Called once per
+/// channel per hole pixel per sweep, which is often enough to matter.
+int _clamp255(double v) {
+  final r = v.round();
+  if (r < 0) return 0;
+  if (r > 255) return 255;
+  return r;
+}
+
 /// One rung of the image pyramid. [rgb] is mutated in place as the fill
 /// converges; [hole] never changes.
 final class _Level {
@@ -227,7 +237,7 @@ void _carryDown(_Level coarse, _Level fine) {
         final v11 = coarse.rgb[(y1 * coarse.w + x1) * 3 + c].toDouble();
         final top = v00 + (v10 - v00) * fx;
         final bottom = v01 + (v11 - v01) * fx;
-        fine.rgb[p * 3 + c] = (top + (bottom - top) * fy).round().clamp(0, 255);
+        fine.rgb[p * 3 + c] = _clamp255(top + (bottom - top) * fy);
       }
     }
   }
@@ -475,6 +485,13 @@ void _consider(
 /// are rejected in the first row or two, which is what makes the search
 /// affordable. The target patch clamps at the border; the source never needs to
 /// (only fully in-bounds centres are valid).
+///
+/// This is THE hot loop - it runs a few hundred thousand times per pyramid
+/// level - so it is split in two. A target patch that is entirely inside the
+/// image needs no clamping at all and walks both patches with a running offset;
+/// only a patch hanging off an edge pays per-pixel bounds work. The border case
+/// clamps with comparisons rather than `clamp()`, which is declared on `num`
+/// and boxes its result: on device, that boxing was most of the fill's cost.
 int _patchDistance(
   Uint8List rgb,
   int w,
@@ -487,16 +504,45 @@ int _patchDistance(
   int cutoff,
 ) {
   var sum = 0;
+  final span = 2 * r + 1;
+  if (px >= r && py >= r && px + r < w && py + r < h) {
+    for (var dy = -r; dy <= r; dy++) {
+      var t = ((py + dy) * w + px - r) * 3;
+      var s = ((sy + dy) * w + sx - r) * 3;
+      for (var i = 0; i < span; i++) {
+        final d0 = rgb[t] - rgb[s];
+        final d1 = rgb[t + 1] - rgb[s + 1];
+        final d2 = rgb[t + 2] - rgb[s + 2];
+        sum += d0 * d0 + d1 * d1 + d2 * d2;
+        t += 3;
+        s += 3;
+      }
+      if (sum >= cutoff) return sum;
+    }
+    return sum;
+  }
   for (var dy = -r; dy <= r; dy++) {
-    final ty = (py + dy).clamp(0, h - 1) * w;
-    final sourceRow = (sy + dy) * w;
+    var tyy = py + dy;
+    if (tyy < 0) {
+      tyy = 0;
+    } else if (tyy >= h) {
+      tyy = h - 1;
+    }
+    final ty = tyy * w;
+    var s = ((sy + dy) * w + sx - r) * 3;
     for (var dx = -r; dx <= r; dx++) {
-      final t = (ty + (px + dx).clamp(0, w - 1)) * 3;
-      final s = (sourceRow + sx + dx) * 3;
+      var txx = px + dx;
+      if (txx < 0) {
+        txx = 0;
+      } else if (txx >= w) {
+        txx = w - 1;
+      }
+      final t = (ty + txx) * 3;
       final d0 = rgb[t] - rgb[s];
       final d1 = rgb[t + 1] - rgb[s + 1];
       final d2 = rgb[t + 2] - rgb[s + 2];
       sum += d0 * d0 + d1 * d1 + d2 * d2;
+      s += 3;
     }
     if (sum >= cutoff) return sum;
   }
@@ -544,8 +590,8 @@ void _vote(_Level l, Int32List field, Int32List dist, int r) {
   for (var p = 0; p < n; p++) {
     if (l.hole[p] == 0 || weights[p] <= 0) continue;
     final inv = 1.0 / weights[p];
-    l.rgb[p * 3] = (acc[p * 3] * inv).round().clamp(0, 255);
-    l.rgb[p * 3 + 1] = (acc[p * 3 + 1] * inv).round().clamp(0, 255);
-    l.rgb[p * 3 + 2] = (acc[p * 3 + 2] * inv).round().clamp(0, 255);
+    l.rgb[p * 3] = _clamp255(acc[p * 3] * inv);
+    l.rgb[p * 3 + 1] = _clamp255(acc[p * 3 + 1] * inv);
+    l.rgb[p * 3 + 2] = _clamp255(acc[p * 3 + 2] * inv);
   }
 }
