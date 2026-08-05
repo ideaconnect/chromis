@@ -6,13 +6,23 @@
   <title>Terms of Use - Chromis</title>
   <meta name="description" content="The terms that apply when you use the Chromis app and website.">
   <link rel="canonical" href="https://idct.tech/chromis/terms.html">
-  <meta name="theme-color" content="#0a1826">
+  <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
   <link rel="icon" type="image/png" sizes="32x32" href="assets/img/favicon-32.png?v=10">
   <link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png?v=10">
+  <!-- Theme, before the first paint. Same three states as index.html; a
+       visitor who pinned one there must not get a frame of the other here. -->
+  <script>
+    try {
+      var t = localStorage.getItem('pe_theme');
+      if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+    } catch (e) {}
+  </script>
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=10">
+  <link rel="stylesheet" href="styles.css?v=11">
 
   <!-- Analytics (GA4) - replace G-XXXXXXXXXX with your Measurement ID. Loads only
        after the visitor accepts analytics cookies (opt-in banner). -->
@@ -40,6 +50,7 @@
         Chromis
       </a>
       <nav class="nav-links" id="navLinks">
+        <a href="index.html#remove">Object removal</a>
         <a href="index.html#effects">Effects</a>
         <a href="index.html#features">Features</a>
         <a href="index.html#faq">FAQ</a>
@@ -49,6 +60,11 @@
           <span class="store-badge-text"><span class="store-badge-sub">Get it on</span><span class="store-badge-name">Google Play</span></span>
         </a>
       </nav>
+      <button class="theme-toggle" id="themeToggle" type="button" hidden aria-label="Theme: follow system">
+        <svg class="i-sys" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8m-4-4v4"/></svg>
+        <svg class="i-light" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2v2.4M12 19.6V22M4.2 4.2l1.7 1.7M18.1 18.1l1.7 1.7M2 12h2.4M19.6 12H22M4.2 19.8l1.7-1.7M18.1 5.9l1.7-1.7"/></svg>
+        <svg class="i-dark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.5 14.3A8.6 8.6 0 1 1 9.7 3.5a6.9 6.9 0 0 0 10.8 10.8z"/></svg>
+      </button>
       <button class="nav-toggle" id="navToggle" aria-label="Toggle menu" aria-controls="navLinks" aria-expanded="false">☰</button>
     </div>
   </header>
@@ -111,6 +127,29 @@
   </div>
 
   <script>
+    // Theme toggle: System -> Light -> Dark -> System. "System" is the absence
+    // of the attribute, so the stylesheet's prefers-color-scheme rule stays in
+    // charge and a visitor who never touches it has nothing stored about them.
+    (function () {
+      var btn = document.getElementById('themeToggle');
+      if (!btn) return;
+      var root = document.documentElement;
+      var order = [null, 'light', 'dark'];
+      var labels = { 'null': 'Theme: follow system', light: 'Theme: light', dark: 'Theme: dark' };
+      function apply(v) {
+        if (v) root.setAttribute('data-theme', v); else root.removeAttribute('data-theme');
+        btn.setAttribute('aria-label', labels[String(v)]);
+        btn.title = labels[String(v)];
+        try { v ? localStorage.setItem('pe_theme', v) : localStorage.removeItem('pe_theme'); } catch (e) {}
+      }
+      var current = root.getAttribute('data-theme') || null;
+      apply(current);
+      btn.hidden = false;
+      btn.addEventListener('click', function () {
+        current = order[(order.indexOf(current) + 1) % order.length];
+        apply(current);
+      });
+    })();
     (function () {
       var t = document.getElementById('navToggle'), l = document.getElementById('navLinks');
       if (t && l) {

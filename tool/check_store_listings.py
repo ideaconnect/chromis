@@ -164,6 +164,44 @@ def names(label, copy):
     return stem in copy.casefold()
 
 
+def check_website(claim, problems):
+    """The landing page counts the same things, so it can be wrong the same way.
+
+    It said "15 filters" for two releases while the listing said 14 - both
+    describing one enum. The site is not translated, so this is only the count
+    check and not the named-control one, but the count is the half that is a
+    false claim rather than an awkward sentence.
+
+    A number is looked for as `<n> <word>` rather than anywhere in the file:
+    the page is full of unrelated integers (image widths, "2 to 5 photos", the
+    26 MB model), and a bare `"14" in page` passes on any of them.
+    """
+    path = os.path.join(ROOT, "website", "index.html")
+    if not os.path.exists(path):
+        problems.append("website/index.html missing")
+        return
+    page = read(path)
+    print()
+    print("website/index.html")
+    # what the page calls each thing -> the count it must agree with
+    for what, words in (("looks", ("looks", "filters")),
+                        ("blend modes", ("blend modes",)),
+                        ("grid layouts", ("layouts",))):
+        n = claim[what]
+        found = {w: len(re.findall(r"\b%d\s+%s\b" % (n, w), page)) for w in words}
+        stale = [w for w in words
+                 if re.search(r"\b(?!%d\b)\d+\s+%s\b" % (n, w), page)]
+        total = sum(found.values())
+        print("  %-12s %d  (%s)" % (what, n,
+              ", ".join("%s x%d" % (w, c) for w, c in found.items())))
+        if not total:
+            problems.append("website: never says %d %s" % (n, "/".join(words)))
+        for w in stale:
+            hit = re.search(r"\b(?!%d\b)(\d+)\s+%s\b" % (n, w), page).group(1)
+            problems.append("website: says %s %s, the source has %d"
+                            % (hit, w, n))
+
+
 def main():
     arb = {code: json.loads(read(os.path.join(ROOT, "lib/l10n/app_%s.arb" % code)))
            for code in LOCALES.values()}
@@ -208,6 +246,7 @@ def main():
                 problems.append("%s: %r missing from the copy" % (play, token))
 
     check_whatsnew(problems)
+    check_website(claim, problems)
 
     print()
     if not problems:

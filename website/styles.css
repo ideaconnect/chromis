@@ -1,20 +1,44 @@
 /* Chromis - website styles.
-   Palette + type mirror the app (lib/core/theme/app_colors.dart):
-   dark navy surfaces, cyan/pink/green accents, Space Grotesk + Manrope. */
+   Palette + type mirror the app (lib/core/theme/app_palette.dart):
+   neutral surfaces, cyan/pink/green accents, Space Grotesk + Manrope.
+
+   THE SURFACES ARE NEUTRAL, NOT NAVY, and the site has both themes, because
+   the app does. Both of those are the app's decisions restated here rather
+   than a taste of the site's own:
+
+   - The app's page-covering surfaces are pure #000000 / pure #FFFFFF. A
+     near-black keeps an AMOLED pixel lit for a colour that was decoration, and
+     a 94% white goes muddy on an IPS panel in daylight. A landing page whose
+     job is to look like the product cannot be a shade the product refuses.
+   - Structure therefore comes from hairlines and a step of surface, not from a
+     coloured ground - which is why --border is a step stronger than a navy
+     theme needs it to be.
+
+   Theme selection follows the system by default and a toggle can pin it, the
+   same three states as the app's Settings (System / Light / Dark). The toggle
+   writes data-theme on <html>; `color-scheme` goes with each so form controls,
+   scrollbars and the URL bar follow too.
+
+   The light block is written TWICE on purpose - once for the media query, once
+   for the explicit override. `light-dark()` would collapse them into one, and
+   in a browser that does not know it every custom property below would resolve
+   to nothing at all; a stale-looking page beats an unstyled one. */
 
 :root {
-  --bg: #060d16;
-  --surface: #0a1826;
-  --panel: #0e1c2c;
-  --card: #12233a;
-  --elevated: #17324a;
+  color-scheme: dark;
 
-  --text: #eaf1f8;
-  --text-2: #9fbcd6;
-  --muted: #7f93a8;
-  --faint: #8296aa; /* kept >=4.5:1 on --bg for footer/legal small text */
+  --bg: #000000;
+  --surface: #0a0a0c;
+  --panel: #101013;
+  --card: #141418;
+  --elevated: #1f1f25;
 
-  --cyan: #17b6d6;
+  --text: #f4f5f7;
+  --text-2: #b6b8c2;
+  --muted: #8e909c;
+  --faint: #9a9ca7; /* kept >=4.5:1 on --bg for footer/legal small text */
+
+  --cyan: #22c0dd;
   --cyan-light: #7fd6ea;
   --pink: #e87896;
   --green: #35d0a0;
@@ -24,8 +48,35 @@
   --orange: #f0885a;
   --indigo: #6c7fe0;
 
-  --border: rgba(255, 255, 255, 0.08);
-  --border-faint: rgba(255, 255, 255, 0.05);
+  --border: rgba(255, 255, 255, 0.12);
+  --border-faint: rgba(255, 255, 255, 0.07);
+  --tint-hi: rgba(255, 255, 255, 0.045);
+  --tint-lo: rgba(255, 255, 255, 0.012);
+  --hover-border: rgba(255, 255, 255, 0.22);
+  --hover-fill: rgba(255, 255, 255, 0.09);
+  --ghost-fill: rgba(255, 255, 255, 0.05);
+  --faq-fill: rgba(255, 255, 255, 0.025);
+  /* Translucent chrome: the scrim under the sticky header and every pill that
+     sits ON a photo. Both are the page's own colour at low alpha, so they must
+     flip with the theme - a black pill on a white page reads as a hole. */
+  --glass: rgba(0, 0, 0, 0.66);
+  --glass-strong: rgba(0, 0, 0, 0.78);
+  --on-glass: #f4f5f7;
+  /* The device bezel the screenshots sit in, and the plate the cut-out demos
+     are composited onto (those two images carry alpha - see gen_filters.py). */
+  --device: linear-gradient(160deg, #24242b, #0c0c0f);
+  /* Lighter than any other dark surface ON PURPOSE. The drop-shadow demo is a
+     black shadow, and a shadow needs something to fall on - on a near-black
+     plate the whole point of that card is invisible. It reads as a studio
+     backdrop rather than as a panel, which is what it is. */
+  --plate: #2c2c33;
+  /* Ink on a filled accent. One token, because a filled button is
+     bright-on-dark-ink in dark and deep-on-white-ink in light and no caller
+     should have to know which - the same trade `onAccent` makes in the app. */
+  --on-accent: #04121a;
+  --glow-1: rgba(34, 192, 221, 0.16);
+  --glow-2: rgba(232, 120, 150, 0.12);
+  --glow-3: rgba(53, 208, 160, 0.10);
   --hero-grad: linear-gradient(100deg, var(--cyan), var(--indigo) 55%, var(--pink));
 
   --maxw: 1120px;
@@ -35,6 +86,100 @@
 
   --font-display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
   --font-body: "Manrope", ui-sans-serif, system-ui, -apple-system, sans-serif;
+}
+
+/* The light theme's accents are DARKENED variants, not the same hues.
+   The brand cyan reads on black and washes out to illegible on white; every
+   one of these is picked to clear 4.5:1 on --bg, which is what lets .eyebrow,
+   the FAQ marker and the chip labels keep using them as text. */
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  --bg: #ffffff;
+  --surface: #ffffff;
+  --panel: #f5f5f7;
+  --card: #f1f1f4;
+  --elevated: #e3e3e9;
+
+  --text: #0c0c10;
+  --text-2: #43434f;
+  --muted: #5f6070;
+  --faint: #5c5d6b;
+
+  --cyan: #0a7d95;
+  --cyan-light: #086477;
+  --pink: #b4405f;
+  --green: #0d7a5f;
+  --teal: #0a7d95;
+  --violet: #4d5cc4;
+  --amber: #7d5806;
+  --orange: #a8471f;
+  --indigo: #4453bb;
+
+  --border: rgba(0, 0, 0, 0.14);
+  --border-faint: rgba(0, 0, 0, 0.08);
+  --tint-hi: rgba(0, 0, 0, 0.035);
+  --tint-lo: rgba(0, 0, 0, 0.008);
+  --hover-border: rgba(0, 0, 0, 0.26);
+  --hover-fill: rgba(0, 0, 0, 0.07);
+  --ghost-fill: rgba(0, 0, 0, 0.04);
+  --faq-fill: rgba(0, 0, 0, 0.02);
+  --glass: rgba(255, 255, 255, 0.72);
+  --glass-strong: rgba(255, 255, 255, 0.84);
+  --on-glass: #0c0c10;
+  --device: linear-gradient(160deg, #e7e7ee, #cfcfda);
+  --plate: #ebebf0;
+  --on-accent: #ffffff;
+  --glow-1: rgba(10, 125, 149, 0.10);
+  --glow-2: rgba(180, 64, 95, 0.07);
+  --glow-3: rgba(13, 122, 95, 0.07);
+  --shadow: 0 24px 60px rgba(15, 20, 30, 0.14);
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    color-scheme: light;
+
+    --bg: #ffffff;
+    --surface: #ffffff;
+    --panel: #f5f5f7;
+    --card: #f1f1f4;
+    --elevated: #e3e3e9;
+
+    --text: #0c0c10;
+    --text-2: #43434f;
+    --muted: #5f6070;
+    --faint: #5c5d6b;
+
+    --cyan: #0a7d95;
+    --cyan-light: #086477;
+    --pink: #b4405f;
+    --green: #0d7a5f;
+    --teal: #0a7d95;
+    --violet: #4d5cc4;
+    --amber: #7d5806;
+    --orange: #a8471f;
+    --indigo: #4453bb;
+
+    --border: rgba(0, 0, 0, 0.14);
+    --border-faint: rgba(0, 0, 0, 0.08);
+    --tint-hi: rgba(0, 0, 0, 0.035);
+    --tint-lo: rgba(0, 0, 0, 0.008);
+    --hover-border: rgba(0, 0, 0, 0.26);
+    --hover-fill: rgba(0, 0, 0, 0.07);
+    --ghost-fill: rgba(0, 0, 0, 0.04);
+    --faq-fill: rgba(0, 0, 0, 0.02);
+    --glass: rgba(255, 255, 255, 0.72);
+    --glass-strong: rgba(255, 255, 255, 0.84);
+    --on-glass: #0c0c10;
+    --device: linear-gradient(160deg, #e7e7ee, #cfcfda);
+    --plate: #ebebf0;
+    --on-accent: #ffffff;
+    --glow-1: rgba(10, 125, 149, 0.10);
+    --glow-2: rgba(180, 64, 95, 0.07);
+    --glow-3: rgba(13, 122, 95, 0.07);
+    --shadow: 0 24px 60px rgba(15, 20, 30, 0.14);
+  }
 }
 
 * { box-sizing: border-box; }
@@ -60,9 +205,9 @@ body::before {
   inset: 0;
   z-index: -1;
   background:
-    radial-gradient(60% 45% at 78% -5%, rgba(23, 182, 214, 0.16), transparent 60%),
-    radial-gradient(55% 45% at 12% 8%, rgba(232, 120, 150, 0.12), transparent 60%),
-    radial-gradient(50% 50% at 50% 110%, rgba(53, 208, 160, 0.10), transparent 60%);
+    radial-gradient(60% 45% at 78% -5%, var(--glow-1), transparent 60%),
+    radial-gradient(55% 45% at 12% 8%, var(--glow-2), transparent 60%),
+    radial-gradient(50% 50% at 50% 110%, var(--glow-3), transparent 60%);
   pointer-events: none;
 }
 
@@ -115,12 +260,12 @@ img { max-width: 100%; height: auto; display: block; }
 }
 .btn-primary {
   background: var(--hero-grad);
-  color: #04121a;
-  box-shadow: 0 12px 30px rgba(23, 182, 214, 0.28);
+  color: var(--on-accent);
+  box-shadow: 0 12px 30px color-mix(in srgb, var(--cyan) 30%, transparent);
 }
-.btn-primary:hover { transform: translateY(-2px); color: #04121a; box-shadow: 0 16px 38px rgba(23, 182, 214, 0.4); }
-.btn-ghost { background: rgba(255, 255, 255, 0.04); border-color: var(--border); color: var(--text); }
-.btn-ghost:hover { background: rgba(255, 255, 255, 0.09); color: var(--text); transform: translateY(-2px); }
+.btn-primary:hover { transform: translateY(-2px); color: var(--on-accent); box-shadow: 0 16px 38px color-mix(in srgb, var(--cyan) 42%, transparent); }
+.btn-ghost { background: var(--ghost-fill); border-color: var(--border); color: var(--text); }
+.btn-ghost:hover { background: var(--hover-fill); color: var(--text); transform: translateY(-2px); }
 .btn .sub { font-family: var(--font-body); font-weight: 500; font-size: 0.72rem; opacity: 0.85; display: block; line-height: 1; margin-top: 2px; }
 .btn-store { padding: 0.7em 1.3em; text-align: left; }
 
@@ -131,7 +276,7 @@ img { max-width: 100%; height: auto; display: block; }
   border: 1px solid var(--border); background: var(--card); color: var(--text);
   transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
 }
-.store-badge:hover { transform: translateY(-2px); border-color: rgba(255, 255, 255, 0.18); box-shadow: var(--shadow); color: var(--text); }
+.store-badge:hover { transform: translateY(-2px); border-color: var(--hover-border); box-shadow: var(--shadow); color: var(--text); }
 .store-badge .ic { width: 24px; height: 24px; flex: 0 0 auto; }
 .store-badge-text { display: flex; flex-direction: column; line-height: 1.2; text-align: left; }
 .store-badge-sub { font-size: 10px; text-transform: uppercase; letter-spacing: 0.09em; color: var(--muted); }
@@ -148,7 +293,7 @@ img { max-width: 100%; height: auto; display: block; }
   top: 0;
   z-index: 50;
   backdrop-filter: blur(14px);
-  background: rgba(6, 13, 22, 0.72);
+  background: var(--glass-strong);
   border-bottom: 1px solid var(--border-faint);
 }
 .nav { display: flex; align-items: center; justify-content: space-between; height: 68px; }
@@ -162,6 +307,28 @@ img { max-width: 100%; height: auto; display: block; }
 .nav-links a:hover { color: var(--text); }
 .nav-cta { padding: 0.6em 1.15em; font-size: 0.92rem; }
 .nav-toggle { display: none; }
+
+/* Theme toggle. Cycles System -> Light -> Dark and shows the icon for the state
+   it is IN, which is why there are three glyphs rather than a two-way switch:
+   "follow the device" is a state a user can choose and come back to, exactly as
+   it is in the app's Settings, and a two-way switch silently spends it on the
+   first tap. `[hidden]` until the script runs, so a no-JS visitor is not offered
+   a control that cannot do anything. */
+.theme-toggle {
+  display: inline-grid; place-items: center;
+  width: 38px; height: 38px; flex: 0 0 auto; padding: 0;
+  border: 1px solid var(--border); border-radius: 11px;
+  background: var(--ghost-fill); color: var(--text-2); cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+.theme-toggle:hover { color: var(--text); border-color: var(--hover-border); background: var(--hover-fill); }
+.theme-toggle[hidden] { display: none; }
+.theme-toggle svg { width: 19px; height: 19px; display: block; }
+/* Exactly one of the three is shown, picked by what <html> currently says. */
+.theme-toggle .i-sys, .theme-toggle .i-light, .theme-toggle .i-dark { display: none; }
+:root:not([data-theme]) .theme-toggle .i-sys { display: block; }
+:root[data-theme="light"] .theme-toggle .i-light { display: block; }
+:root[data-theme="dark"] .theme-toggle .i-dark { display: block; }
 
 /* ---------- Hero ---------- */
 .hero { padding: 72px 0 40px; }
@@ -199,15 +366,15 @@ img { max-width: 100%; height: auto; display: block; }
 .ba-handle::before { content: ""; position: absolute; top: 0; bottom: 0; width: 2px; background: rgba(255, 255, 255, 0.9); }
 .ba-knob {
   width: 42px; height: 42px; border-radius: 50%;
-  background: rgba(6, 13, 22, 0.7); backdrop-filter: blur(4px);
-  border: 2px solid rgba(255, 255, 255, 0.9);
-  display: flex; align-items: center; justify-content: center; color: #fff;
+  background: var(--glass-strong); backdrop-filter: blur(4px);
+  border: 2px solid var(--on-glass);
+  display: flex; align-items: center; justify-content: center; color: var(--on-glass);
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4); position: relative; z-index: 2;
 }
 .ba-tag {
   position: absolute; bottom: 14px; font-family: var(--font-display); font-size: 0.72rem;
   font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; padding: 5px 11px;
-  border-radius: 999px; background: rgba(6, 13, 22, 0.66); color: var(--text); backdrop-filter: blur(4px);
+  border-radius: 999px; background: var(--glass); color: var(--on-glass); backdrop-filter: blur(4px);
   line-height: 1; border: 1px solid var(--border);
 }
 .ba-tag-l { left: 14px; }
@@ -236,8 +403,8 @@ img { max-width: 100%; height: auto; display: block; }
 .fx-stage figcaption {
   position: absolute; left: 16px; bottom: 16px; line-height: 1;
   font-family: var(--font-display); font-weight: 600; font-size: 0.82rem;
-  letter-spacing: 0.08em; text-transform: uppercase; color: var(--text);
-  background: rgba(6, 13, 22, 0.66); backdrop-filter: blur(4px);
+  letter-spacing: 0.08em; text-transform: uppercase; color: var(--on-glass);
+  background: var(--glass); backdrop-filter: blur(4px);
   border: 1px solid var(--border); border-radius: 999px; padding: 7px 14px;
 }
 /* The label text itself comes from the generated `::after` content, one rule
@@ -263,7 +430,7 @@ img { max-width: 100%; height: auto; display: block; }
 .fx-chip img {
   width: 86px; height: 86px; object-fit: cover; border-radius: 14px;
   border: 2px solid transparent;
-  outline: 2px solid rgba(23, 182, 214, calc(var(--on)));
+  outline: 2px solid color-mix(in srgb, var(--cyan) calc(var(--on) * 100%), transparent);
   outline-offset: 1px;
   transition: transform 0.15s ease, outline-color 0.15s ease;
 }
@@ -282,9 +449,9 @@ img { max-width: 100%; height: auto; display: block; }
 .fx-cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 22px; }
 .fx-card {
   margin: 0; border: 1px solid var(--border); border-radius: var(--radius);
-  overflow: hidden; background: linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.01));
+  overflow: hidden; background: linear-gradient(180deg, var(--tint-hi), var(--tint-lo));
 }
-.fx-ba { position: relative; line-height: 0; aspect-ratio: 16 / 9; background: var(--panel); }
+.fx-ba { position: relative; line-height: 0; aspect-ratio: 16 / 9; background: var(--plate); }
 /* contain, not cover: the demos are rendered at exactly this aspect, so the two
    agree - but `cover` would silently crop the contour's stroke if a card ever
    rounded to a slightly different ratio, and a stroke that runs off the frame is
@@ -311,7 +478,7 @@ img { max-width: 100%; height: auto; display: block; }
   position: absolute; bottom: 10px; z-index: 2; line-height: 1;
   font-family: var(--font-display); font-size: 0.66rem; font-weight: 600;
   letter-spacing: 0.09em; text-transform: uppercase; padding: 5px 9px;
-  border-radius: 999px; background: rgba(6, 13, 22, 0.68); color: var(--text);
+  border-radius: 999px; background: var(--glass); color: var(--on-glass);
   border: 1px solid var(--border); backdrop-filter: blur(4px);
 }
 .fx-ba-tag.l { left: 10px; }
@@ -324,7 +491,7 @@ img { max-width: 100%; height: auto; display: block; }
 .shot-wide {
   margin: 54px auto 0; max-width: 940px; text-align: center;
   border: 1px solid var(--border); border-radius: 22px; padding: 14px 14px 4px;
-  background: linear-gradient(160deg, #1b2a3d, #0a1420); box-shadow: var(--shadow);
+  background: var(--device); box-shadow: var(--shadow);
 }
 .shot-wide img { border-radius: 14px; width: 100%; }
 .shot-wide figcaption { padding: 22px 18px 22px; max-width: 60ch; margin: 0 auto; }
@@ -340,32 +507,32 @@ img { max-width: 100%; height: auto; display: block; }
 .sticker img { width: 100%; height: 100%; object-fit: cover; }
 .sticker span {
   position: absolute; left: 12px; bottom: 12px; font-family: var(--font-display); font-size: 0.78rem;
-  font-weight: 600; padding: 5px 10px; border-radius: 999px; background: rgba(6, 13, 22, 0.6);
-  backdrop-filter: blur(4px); border: 1px solid var(--border); line-height: 1;
+  font-weight: 600; padding: 5px 10px; border-radius: 999px; background: var(--glass);
+  color: var(--on-glass); backdrop-filter: blur(4px); border: 1px solid var(--border); line-height: 1;
 }
 
 /* ---------- Feature cards ---------- */
 .features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
 .feature {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.01));
+  background: linear-gradient(180deg, var(--tint-hi), var(--tint-lo));
   border: 1px solid var(--border); border-radius: var(--radius); padding: 26px 24px;
   transition: transform 0.18s ease, border-color 0.18s ease;
 }
-.feature:hover { transform: translateY(-4px); border-color: rgba(255, 255, 255, 0.16); }
+.feature:hover { transform: translateY(-4px); border-color: var(--hover-border); }
 .feature .ic {
   width: 46px; height: 46px; border-radius: 12px; display: grid; place-items: center;
   margin-bottom: 16px; font-size: 22px;
 }
 .feature h3 { margin-bottom: 0.35em; color: var(--text); }
 .feature p { font-size: 0.97rem; margin: 0; }
-.ic-cyan { background: rgba(23, 182, 214, 0.14); color: var(--cyan); }
-.ic-pink { background: rgba(232, 120, 150, 0.14); color: var(--pink); }
-.ic-green { background: rgba(53, 208, 160, 0.14); color: var(--green); }
-.ic-violet { background: rgba(143, 160, 245, 0.14); color: var(--violet); }
-.ic-amber { background: rgba(230, 184, 74, 0.14); color: var(--amber); }
-.ic-orange { background: rgba(240, 136, 90, 0.14); color: var(--orange); }
-.ic-teal { background: rgba(34, 211, 238, 0.14); color: var(--teal); }
-.ic-indigo { background: rgba(108, 127, 224, 0.16); color: var(--violet); }
+.ic-cyan { background: color-mix(in srgb, var(--cyan) 15%, transparent); color: var(--cyan); }
+.ic-pink { background: color-mix(in srgb, var(--pink) 15%, transparent); color: var(--pink); }
+.ic-green { background: color-mix(in srgb, var(--green) 15%, transparent); color: var(--green); }
+.ic-violet { background: color-mix(in srgb, var(--violet) 15%, transparent); color: var(--violet); }
+.ic-amber { background: color-mix(in srgb, var(--amber) 15%, transparent); color: var(--amber); }
+.ic-orange { background: color-mix(in srgb, var(--orange) 15%, transparent); color: var(--orange); }
+.ic-teal { background: color-mix(in srgb, var(--teal) 15%, transparent); color: var(--teal); }
+.ic-indigo { background: color-mix(in srgb, var(--indigo) 17%, transparent); color: var(--violet); }
 
 /* ---------- Split (screenshot + why) ---------- */
 .split { display: grid; grid-template-columns: 0.8fr 1.2fr; gap: 54px; align-items: center; }
@@ -376,7 +543,7 @@ img { max-width: 100%; height: auto; display: block; }
 .split-rev > :first-child { order: 2; }
 .phone {
   justify-self: center; width: 100%; max-width: 300px; border-radius: 34px; padding: 10px;
-  background: linear-gradient(160deg, #1b2a3d, #0a1420); border: 1px solid var(--border);
+  background: var(--device); border: 1px solid var(--border);
   box-shadow: var(--shadow);
 }
 .phone img { border-radius: 26px; width: 100%; }
@@ -384,9 +551,9 @@ img { max-width: 100%; height: auto; display: block; }
 .why-list li { display: flex; gap: 14px; }
 .why-list .badge {
   flex: none; width: 40px; height: 40px; border-radius: 11px; display: grid; place-items: center;
-  background: rgba(53, 208, 160, 0.13); color: var(--green); font-size: 19px;
+  background: color-mix(in srgb, var(--green) 14%, transparent); color: var(--green); font-size: 19px;
 }
-.why-list .badge-violet { background: rgba(143, 160, 245, 0.14); color: var(--violet); }
+.why-list .badge-violet { background: color-mix(in srgb, var(--violet) 15%, transparent); color: var(--violet); }
 .why-list h3 { font-size: 1.08rem; margin: 2px 0 3px; color: var(--text); }
 .why-list p { margin: 0; font-size: 0.97rem; }
 
@@ -418,7 +585,7 @@ img { max-width: 100%; height: auto; display: block; }
 .faq { max-width: 780px; margin: 0 auto; }
 .faq details {
   border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 4px 20px;
-  margin-bottom: 12px; background: rgba(255, 255, 255, 0.02);
+  margin-bottom: 12px; background: var(--faq-fill);
 }
 .faq summary {
   cursor: pointer; font-family: var(--font-display); font-weight: 600; font-size: 1.05rem;
@@ -432,7 +599,7 @@ img { max-width: 100%; height: auto; display: block; }
 /* ---------- CTA band ---------- */
 .cta-band {
   text-align: center; border-radius: 26px; padding: 60px 30px; margin: 0 auto;
-  background: linear-gradient(135deg, rgba(23, 182, 214, 0.12), rgba(232, 120, 150, 0.1));
+  background: linear-gradient(135deg, color-mix(in srgb, var(--cyan) 13%, transparent), color-mix(in srgb, var(--pink) 11%, transparent));
   border: 1px solid var(--border); position: relative; overflow: hidden;
 }
 .cta-band h2 { margin-bottom: 0.3em; }
@@ -485,7 +652,7 @@ img { max-width: 100%; height: auto; display: block; }
 .legal ul { padding-left: 22px; }
 .legal li { margin-bottom: 8px; }
 .legal .callout {
-  background: rgba(53, 208, 160, 0.08); border: 1px solid rgba(53, 208, 160, 0.25);
+  background: color-mix(in srgb, var(--green) 9%, transparent); border: 1px solid color-mix(in srgb, var(--green) 30%, transparent);
   border-radius: var(--radius-sm); padding: 18px 22px; margin: 22px 0;
 }
 .legal .callout p { margin: 0; color: var(--text); }
@@ -505,6 +672,12 @@ img { max-width: 100%; height: auto; display: block; }
   .nav-links a { padding: 13px 0; border-bottom: 1px solid var(--border-faint); }
   .nav-links .nav-cta { margin-top: 12px; text-align: center; border-bottom: none; }
   .nav-toggle { display: inline-flex; background: none; border: 1px solid var(--border); border-radius: 10px; width: 42px; height: 42px; color: var(--text); align-items: center; justify-content: center; cursor: pointer; }
+  /* The links become a fixed dropdown here, so they leave the flex row and
+     `space-between` is left sharing it between three items - which parks the
+     theme toggle in the middle of the header looking like a stray. Push it to
+     the right instead, so the two buttons read as one group. */
+  .nav { gap: 10px; }
+  .theme-toggle { margin-left: auto; }
 }
 @media (max-width: 560px) {
   body { font-size: 16px; }

@@ -1,9 +1,28 @@
-"""Generate website AI-effect example images from the sample dog photos, using
-the SAME bundled U2-Netp model + recipe the app uses (squash-resize 320,
-ImageNet normalize, min-max normalize output, bilinear upscale to soft alpha).
+"""Generate the website's AI-effect example images from the CC0 sample photo.
+
+The subject and its cut-out are the SAME pair the Play listing uses:
+`assets/store/samples/subject.jpg`, which is CC0 from Wikimedia Commons and
+recorded with its licence and source URL in `SOURCES.json`, and
+`subject-mask.png`, which is a **real output of the app's own AI Cut** kept from
+a device run. Two things follow from that, and both are the point:
+
+- **The landing page is commercial use of every pixel on it**, exactly as a Play
+  listing is. These images used to come from personal photographs in
+  `assets/branding/dog/`; which photograph is on the site is a decision that
+  belongs in version control.
+- **A fresh clone can regenerate them.** `assets/branding/dog/` is gitignored for
+  size, so the old default could not be reproduced by anyone who did not already
+  have the originals. `assets/store/samples/` is committed.
+
+Using the kept mask also means no model is run here at all - onnxruntime is only
+imported if you point the script at a directory of raw photos instead, which
+still works and still scores them:
+
+    python tool/gen_effects.py                      # CC0 sample + its real mask
+    python tool/gen_effects.py assets/branding/dog  # score a directory (needs ort)
 
 Outputs web-optimised images into website/assets/img/effects/.
-Run from repo root:  python <this>.py
+Run from the repo root.
 """
 
 import os
@@ -11,11 +30,13 @@ import sys
 import glob
 import numpy as np
 from PIL import Image, ImageFilter, ImageDraw
-import onnxruntime as ort
 
 ROOT = os.getcwd()
 MODEL = os.path.join(ROOT, "assets", "models", "u2netp.onnx")
 SRC_DIR = os.path.join(ROOT, "assets", "branding", "dog")
+SAMPLES = os.path.join(ROOT, "assets", "store", "samples")
+SAMPLE_PHOTO = os.path.join(SAMPLES, "subject.jpg")
+SAMPLE_MASK = os.path.join(SAMPLES, "subject-mask.png")
 OUT = os.path.join(ROOT, "website", "assets", "img", "effects")
 os.makedirs(OUT, exist_ok=True)
 
@@ -23,18 +44,35 @@ SIZE = 320
 MEAN = np.array([0.485, 0.456, 0.406], dtype=np.float32)
 STD = np.array([0.229, 0.224, 0.225], dtype=np.float32)
 
-_sess = ort.InferenceSession(MODEL, providers=["CPUExecutionProvider"])
-_in = _sess.get_inputs()[0].name
+_sess = None
+_in = None
+
+
+def _session():
+    """Load U2-Netp on first use.
+
+    Lazy because the default path does not need it: the committed mask is
+    already a model output, and importing onnxruntime to re-derive one would
+    make a dependency out of a step nobody runs.
+    """
+    global _sess, _in
+    if _sess is None:
+        import onnxruntime as ort
+
+        _sess = ort.InferenceSession(MODEL, providers=["CPUExecutionProvider"])
+        _in = _sess.get_inputs()[0].name
+    return _sess, _in
 
 
 def matte(im: Image.Image) -> Image.Image:
     """Return an 'L' soft alpha matte at im's size (app recipe)."""
     W, H = im.size
+    sess, name = _session()
     small = im.resize((SIZE, SIZE), Image.BILINEAR)  # squash (ignore aspect)
     arr = np.asarray(small, dtype=np.float32) / 255.0
     arr = (arr - MEAN) / STD
     chw = np.transpose(arr, (2, 0, 1))[None, ...].astype(np.float32)
-    out = _sess.run(None, {_in: chw})[0][0, 0]  # 320x320 sigmoid
+    out = sess.run(None, {name: chw})[0][0, 0]  # 320x320 sigmoid
     mn, mx = float(out.min()), float(out.max())
     out = (out - mn) / (mx - mn + 1e-8)
     m = Image.fromarray((out * 255).astype(np.uint8), "L")
@@ -202,10 +240,45 @@ def checkerboard(size, sq=24):
 PREFERRED = "photo_2026-07-24_11-13-17 (2).jpg"
 
 
+def pinned_sample():
+    """The CC0 subject and the app's own cut-out of it, or None if absent.
+
+    No scoring and no model: the mask is already what the model produced on a
+    device, and the selection heuristics below exist to choose *between* raw
+    photos, which is not a question when the photo is pinned.
+    """
+    if not (os.path.exists(SAMPLE_PHOTO) and os.path.exists(SAMPLE_MASK)):
+        return None
+    im = Image.open(SAMPLE_PHOTO).convert("RGB")
+    m = Image.open(SAMPLE_MASK).convert("RGBA").split()[3]
+    if m.size != im.size:
+        m = m.resize(im.size, Image.BILINEAR)
+    return im, m
+
+
 def main():
-    photos = sorted(glob.glob(os.path.join(SRC_DIR, "*.jpg")))
+    argv = [a for a in sys.argv[1:] if not a.startswith("-")]
+    src_dir = argv[0] if argv else None
+
+    if src_dir is None:
+        pinned = pinned_sample()
+        if pinned:
+            im, m = pinned
+            print(
+                "source: assets/store/samples/subject.jpg (CC0) + subject-mask.png"
+                "\n        the mask is a real AI Cut output - no model is run here"
+            )
+            build_outputs(im, m)
+            return
+        print(
+            f"{SAMPLE_PHOTO} / {SAMPLE_MASK} missing - falling back to {SRC_DIR}\n"
+            "(run: python tool/fetch_stock_photos.py fetch)"
+        )
+        src_dir = SRC_DIR
+
+    photos = sorted(glob.glob(os.path.join(src_dir, "*.jpg")))
     if not photos:
-        print("no source photos found in", SRC_DIR)
+        print("no source photos found in", src_dir)
         sys.exit(1)
     # Coverage alone picks photos whose matte is the right *size* but the wrong
     # *shape*: the winner used to be one where the model also grabbed a blurred
@@ -243,6 +316,11 @@ def main():
         f"(coverage={cov:.3f} solidity={sol:.3f} margin={mar * 100:.1f}%)"
     )
 
+    build_outputs(im, m)
+
+
+def build_outputs(im: Image.Image, m: Image.Image):
+    """Write the page's five composites plus the cut-out, from a photo + matte."""
     im = fit(im, 1200)
     m = m.resize(im.size, Image.BILINEAR)
     m = firm(m)

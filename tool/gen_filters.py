@@ -39,18 +39,31 @@ from PIL import Image
 
 ROOT = os.getcwd()
 MATRICES = os.path.join(ROOT, "build", "filters.json")
-SRC = os.path.join(ROOT, "assets", "branding", "dog", "photo_2026-07-24_11-13-17.jpg")
 WEB = os.path.join(ROOT, "website")
 OUT_FX = os.path.join(WEB, "assets", "img", "effects")
 INDEX = os.path.join(WEB, "index.html")
+
+# The gallery and demo photo. CC0 from Wikimedia Commons, recorded in
+# `assets/store/samples/SOURCES.json`, and the SAME frame the Play listing's
+# Effects screenshot is taken on - so the filter a visitor clicks here and the
+# filter they see in the store shot are the same look on the same photo.
+#
+# It is the landscape sample rather than the portrait subject because this
+# section is 16:9 throughout: a 3:4 photo cropped to a 16:9 band keeps a strip
+# across the middle, which on a portrait subject is the part without the face.
+# The before/after slider up in the hero is the other way round and takes the
+# portrait one (`gen_effects.py`); the README pins that at 3:4.
+SRC = os.path.join(ROOT, "assets", "store", "samples", "landscape.jpg")
 
 BEGIN = "<!-- BEGIN generated:filters -->"
 END = "<!-- END generated:filters -->"
 
 # The gallery photo. 16:9 so the stage stays a band rather than a wall on a
-# desktop-width page, and zoomed in so the subject reads at thumbnail size too.
+# desktop-width page. The source is already 3:2 landscape, so it needs no zoom
+# to fill the band - the old value existed to pull a subject out of a portrait
+# frame, and applied here it would throw away most of the picture.
 HERO = (1280, 720)
-HERO_CROP = dict(bias=0.42, zoom=1.45)
+HERO_CROP = dict(bias=0.5, zoom=1.0)
 # Effect demos share the gallery's aspect so the section reads as one set.
 FX = (960, 540)
 
@@ -114,14 +127,21 @@ def crop_to(im, size, bias=0.5, zoom=1.0):
     return im.crop((left, top, left + w, top + h)).resize(size, Image.LANCZOS)
 
 
-def on_panel(rgba, size, bg=(15, 27, 43), margin=0.11):
-    """Flatten an RGBA composite onto the site's panel colour, letterboxed.
+def on_panel(rgba, size, margin=0.11):
+    """Letterbox an RGBA composite into `size`, **keeping its alpha**.
 
     Trimmed to its own content first (shadow and contour included), so the
     subject fills the card the same way whichever photo the generator picked -
     the padding those routines need to draw into is working space, not framing.
     `margin` is the breathing room left around it, as a fraction of the longer
     side, which also guarantees the stroke never reaches the edge.
+
+    **The background is the page's job, not this file's.** These two used to be
+    flattened onto the old navy panel colour, which baked one theme into the
+    pixels: the app ships a light theme now and the site follows it, and a navy
+    rectangle sitting in a white card is not a thing CSS can undo. Transparent,
+    the card's own `--plate` shows through and the drop shadow has something to
+    fall on in both themes - which is the whole point of that demo.
     """
     bbox = rgba.getbbox()
     if bbox:
@@ -130,17 +150,22 @@ def on_panel(rgba, size, bg=(15, 27, 43), margin=0.11):
             max(0, bbox[0] - pad), max(0, bbox[1] - pad),
             min(rgba.width, bbox[2] + pad), min(rgba.height, bbox[3] + pad),
         ))
-    flat = Image.new("RGB", rgba.size, bg)
-    flat.paste(rgba, (0, 0), rgba)
-    flat.thumbnail(size, Image.LANCZOS)
-    out = Image.new("RGB", size, bg)
-    out.paste(flat, ((size[0] - flat.width) // 2, (size[1] - flat.height) // 2))
+    fitted = rgba.copy()
+    fitted.thumbnail(size, Image.LANCZOS)
+    out = Image.new("RGBA", size, (0, 0, 0, 0))
+    out.paste(fitted, ((size[0] - fitted.width) // 2, (size[1] - fitted.height) // 2))
     return out
 
 
 def save(im, name, quality=72):
     path = os.path.join(OUT_FX, name)
-    im.save(path, quality=quality, method=6)
+    # WebP carries alpha; `exact` keeps the fully-transparent pixels from having
+    # their (invisible) colour resampled into the visible edge, which on a
+    # feathered cut-out shows up as a dark halo along the silhouette.
+    if im.mode == "RGBA":
+        im.save(path, quality=quality, method=6, exact=True)
+    else:
+        im.save(path, quality=quality, method=6)
     print(f"  {name:24s} {os.path.getsize(path) // 1024:>4} KB")
 
 
@@ -198,7 +223,7 @@ DEFAULT_LOOK = "punch"
 
 # Bumped whenever the generated images change, so GitHub Pages' 4-hour cache
 # does not serve a stale tile against a new set of filters.
-ASSET_V = 3
+ASSET_V = 4
 
 
 def build_block(filters) -> str:

@@ -3,10 +3,13 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Chromis - AI photo editor for Android: cut-out, filters, layers &amp; collages</title>
-  <meta name="description" content="Free Android photo editor with on-device AI. One-tap background removal, tap-to-erase objects, 15 filters, HDR, vignette, shadows, blend modes, layers and photo-grid collages. Your photos never leave your phone.">
+  <title>Chromis - AI photo editor for Android: object removal, cut-out, layers &amp; collages</title>
+  <meta name="description" content="Free Android photo editor with on-device AI. Remove an object and the background is rebuilt behind it, cut out subjects in one tap, then stack layers with 14 filters, HDR, shadows and collages. Your photos never leave your phone.">
   <link rel="canonical" href="https://idct.tech/chromis/">
-  <meta name="theme-color" content="#0a1826">
+  <!-- One per scheme: the browser picks the matching one, so the URL bar tracks
+       the page instead of staying dark behind a white page. -->
+  <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
   <link rel="icon" type="image/png" sizes="32x32" href="assets/img/favicon-32.png?v=10">
   <link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png?v=10">
 
@@ -14,14 +17,46 @@
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://idct.tech/chromis/">
   <meta property="og:title" content="Chromis - AI photo editor for Android">
-  <meta property="og:description" content="One-tap background removal, 15 filters, HDR, shadows, blend modes, layers and collages - all on-device. Your photos never leave your phone.">
-  <meta property="og:image" content="https://idct.tech/chromis/assets/img/effects/dog-studio.jpg">
+  <meta property="og:description" content="Remove an object and the background is rebuilt behind it. One-tap cut-outs, 14 filters, HDR, shadows, blend modes, layers and collages - all on-device. Your photos never leave your phone.">
+  <meta property="og:image" content="https://idct.tech/chromis/assets/img/effects/dog-studio.jpg?v=7">
   <meta name="twitter:card" content="summary_large_image">
+
+  <!-- Theme, before the first paint. This has to be inline and it has to be
+       here: the stylesheet defaults to the system scheme, so a visitor who
+       PINNED the other one would otherwise get a full frame of the wrong theme
+       before the deferred script could set the attribute. Nothing else runs
+       this early, and a failure just leaves the system default. -->
+  <script>
+    try {
+      var t = localStorage.getItem('pe_theme');
+      if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+    } catch (e) {}
+  </script>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=10">
+  <link rel="stylesheet" href="styles.css?v=11">
+
+  <!-- Structured data: this page is about an app, and saying so in the form
+       search engines parse is the difference between a rich result and a blue
+       link. `offers` at 0 with an in-app purchase is what "free, ad-supported
+       with a one-time upgrade" actually is. -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Chromis: Ultimate Photo Editor",
+    "operatingSystem": "Android 8.0+",
+    "applicationCategory": "MultimediaApplication",
+    "url": "https://idct.tech/chromis/",
+    "downloadUrl": "https://play.google.com/store/apps/details?id=tech.idct.chromis",
+    "inLanguage": ["en", "pl", "de", "es", "fr", "cs"],
+    "description": "On-device AI photo editor for Android: object removal that rebuilds the background, one-tap cut-outs, layers, filters, text, comic bubbles and photo-grid collages. Nothing is uploaded.",
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+    "author": { "@type": "Organization", "name": "IDCT", "url": "https://idct.tech" }
+  }
+  </script>
 
   <!-- Analytics (Google Analytics 4). Replace G-XXXXXXXXXX with your Measurement ID.
        Loads ONLY after the visitor accepts analytics cookies (opt-in banner below),
@@ -50,11 +85,11 @@
         Chromis
       </a>
       <nav class="nav-links" id="navLinks">
+        <a href="#remove">Object removal</a>
         <a href="#effects">Effects</a>
         <a href="#features">Features</a>
         <a href="#grid">Collage</a>
         <a href="#screens">Screens</a>
-        <a href="#why">Why</a>
         <a href="#faq">FAQ</a>
         <a href="#contact">Contact</a>
         <a class="store-badge nav-cta" href="https://play.google.com/store/apps/details?id=tech.idct.chromis" rel="noopener" aria-label="Get Chromis on Google Play">
@@ -62,6 +97,11 @@
           <span class="store-badge-text"><span class="store-badge-sub">Get it on</span><span class="store-badge-name">Google Play</span></span>
         </a>
       </nav>
+      <button class="theme-toggle" id="themeToggle" type="button" hidden aria-label="Theme: follow system">
+        <svg class="i-sys" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8m-4-4v4"/></svg>
+        <svg class="i-light" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2v2.4M12 19.6V22M4.2 4.2l1.7 1.7M18.1 18.1l1.7 1.7M2 12h2.4M19.6 12H22M4.2 19.8l1.7-1.7M18.1 5.9l1.7-1.7"/></svg>
+        <svg class="i-dark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.5 14.3A8.6 8.6 0 1 1 9.7 3.5a6.9 6.9 0 0 0 10.8 10.8z"/></svg>
+      </button>
       <button class="nav-toggle" id="navToggle" aria-label="Toggle menu" aria-controls="navLinks" aria-expanded="false">☰</button>
     </div>
   </header>
@@ -73,23 +113,23 @@
         <div class="hero-copy">
           <p class="eyebrow">Free · On-device AI · Android</p>
           <h1>Erase the background.<br><span class="grad-text">Not your privacy.</span></h1>
-          <p class="lead">Cut out subjects, erase objects, then stack layers with filters, shadows and blend modes - powered by AI that runs entirely on your phone.</p>
+          <p class="lead">Cut out subjects, remove what you didn't want in the shot, then stack layers with filters, shadows and blend modes - powered by AI that runs entirely on your phone.</p>
           <div class="hero-cta" id="get">
-            <!-- Google Play badge (same style as idct.tech/sticker-maker).
-                 FINAL store link to be provided - swap the href here and on the
-                 header/CTA-band badges when it's ready. -->
+            <!-- Google Play badge (same style as idct.tech/sticker-maker). The
+                 same href appears on the header and CTA-band badges and in the
+                 nav of both legal pages - five places, not one. -->
             <a class="store-badge" href="https://play.google.com/store/apps/details?id=tech.idct.chromis" rel="noopener" aria-label="Get Chromis on Google Play">
               <svg class="ic" viewBox="0 0 512 512" fill="currentColor" aria-hidden="true" focusable="false"><path d="M325.3 234.3L104.6 13l280.8 161.2-60.1 60.1zM47 0C34 6.8 25.3 19.2 25.3 35.3v441.3c0 16.1 8.7 28.5 21.7 35.3l256.6-256L47 0zm425.2 225.6l-58.9-34.1-65.7 64.5 65.7 64.5 60.1-34.1c18-14.3 18-46.5-1.2-60.8zM104.6 499l280.8-161.2-60.1-60.1L104.6 499z"/></svg>
               <span class="store-badge-text"><span class="store-badge-sub">Get it on</span><span class="store-badge-name">Google Play</span></span>
             </a>
-            <a class="btn btn-ghost" href="#effects">See it in action</a>
+            <a class="btn btn-ghost" href="#remove">See it in action</a>
           </div>
-          <p class="hero-note"><strong>Coming soon</strong> to Google Play · Free, ad-supported · one-time upgrade removes ads.</p>
+          <p class="hero-note"><strong>Free</strong>, ad-supported · one-time upgrade removes ads · no account, ever.</p>
           <div class="trustbar">
             <span><i class="dot"></i>No uploads</span>
             <span><i class="dot"></i>No account</span>
             <span><i class="dot"></i>Editing works offline</span>
-            <span><i class="dot"></i>Free</span>
+            <span><i class="dot"></i>6 languages</span>
           </div>
         </div>
 
@@ -98,10 +138,10 @@
           <div class="ba" id="ba">
             <!-- Base layer (revealed on the right) = the AI result; the clipped
                  left layer = the original, so left reads "Before", right "After". -->
-            <img class="ba-before" src="assets/img/effects/dog-studio.webp?v=6" alt="The same photo with its background removed by on-device AI">
+            <img class="ba-before" src="assets/img/effects/dog-studio.webp?v=7" alt="The same photo with its background removed by on-device AI">
             <div class="ba-after">
               <div class="ba-after-inner">
-                <img src="assets/img/effects/dog-before.webp?v=6" alt="Original photo of a dog in a park">
+                <img src="assets/img/effects/dog-before.webp?v=7" alt="Original photo of a dog in a park">
               </div>
             </div>
             <div class="ba-handle"><div class="ba-knob" aria-hidden="true">⇄</div></div>
@@ -112,11 +152,48 @@
       </div>
     </section>
 
+    <!-- ===== Object removal (the 1.3.0 headline) ===== -->
+    <section class="section" id="remove">
+      <div class="wrap split">
+        <div class="phone">
+          <img src="assets/img/screens/objremove.webp?v=8" alt="The Remove object panel: a Background / Remove object pair above a Fill in / Erase chooser, with the line &quot;Fill rebuilds the background from the rest of the photo&quot;" width="620" height="1383" loading="lazy">
+        </div>
+        <div>
+          <p class="eyebrow">New · Object removal</p>
+          <h2>Take it out. Put the background back.</h2>
+          <p>Tap the thing you wish wasn't in the shot - a bin, a sign, a stranger at the edge of the frame - and it goes. The question most editors never answer is what goes <em>there</em>, and a transparent hole is not an answer. Chromis rebuilds the background behind it, on your phone.</p>
+          <ul class="why-list">
+            <li>
+              <span class="badge badge-violet">🪄</span>
+              <div>
+                <h3>Fill in, or Erase - you pick first</h3>
+                <p>The chooser sits at the top of the panel and <strong>Fill in is the default</strong>, because "remove this" means a closed background to nearly everybody. Erase is still one tap away when you actually want transparency.</p>
+              </div>
+            </li>
+            <li>
+              <span class="badge badge-violet">🧠</span>
+              <div>
+                <h3>A generative model, bundled</h3>
+                <p>Fill runs a 27 MB image-completion network that ships inside the app, so it works in flight mode. Where that can't help it falls back to a content-aware fill that always runs - the feature degrades instead of disappearing.</p>
+              </div>
+            </li>
+            <li>
+              <span class="badge badge-violet">🎯</span>
+              <div>
+                <h3>It knows what you pointed at</h3>
+                <p>A tap is turned into a selection by MobileSAM, so you get the whole object rather than a blob the size of your fingertip. Tapping your main subject is safely ignored, and undo brings anything back.</p>
+              </div>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
     <!-- ===== Effects: the live filter gallery ===== -->
     <section class="section" id="effects">
       <div class="wrap">
         <div class="section-head">
-          <p class="eyebrow">15 looks, one tap</p>
+          <p class="eyebrow">14 looks, one tap</p>
           <h2>Try the filters right here</h2>
           <p>These aren't mock-ups. Every look below is the app's own colour transform, lifted straight out of the source and handed to your browser - so what you pick here is exactly what your photo gets.</p>
         </div>
@@ -289,25 +366,25 @@
       <input class="fx-radio" type="radio" name="look" id="look-mono">
       <input class="fx-radio" type="radio" name="look" id="look-noir">
       <div class="fx-strip" role="group" aria-label="Photo looks">
-        <label class="fx-chip" for="look-none"><img src="assets/img/effects/look-tile.webp?v=3" alt="" width="260" height="260" loading="lazy"><span>Original</span></label>
-        <label class="fx-chip" for="look-vivid"><img src="assets/img/effects/look-tile.webp?v=3" alt="" width="260" height="260" loading="lazy" style="filter:url(#fx-vivid)"><span>Vivid</span></label>
-        <label class="fx-chip" for="look-punch"><img src="assets/img/effects/look-tile.webp?v=3" alt="" width="260" height="260" loading="lazy" style="filter:url(#fx-punch)"><span>Punch</span></label>
-        <label class="fx-chip" for="look-chrome"><img src="assets/img/effects/look-tile.webp?v=3" alt="" width="260" height="260" loading="lazy" style="filter:url(#fx-chrome)"><span>Chrome</span></label>
-        <label class="fx-chip" for="look-warm"><img src="assets/img/effects/look-tile.webp?v=3" alt="" width="260" height="260" loading="lazy" style="filter:url(#fx-warm)"><span>Warm</span></label>
-        <label class="fx-chip" for="look-cool"><img src="assets/img/effects/look-tile.webp?v=3" alt="" width="260" height="260" loading="lazy" style="filter:url(#fx-cool)"><span>Cool</span></label>
-        <label class="fx-chip" for="look-sunset"><img src="assets/img/effects/look-tile.webp?v=3" alt="" width="260" height="260" loading="lazy" style="filter:url(#fx-sunset)"><span>Sunset</span></label>
-        <label class="fx-chip" for="look-dawn"><img src="assets/img/effects/look-tile.webp?v=3" alt="" width="260" height="260" loading="lazy" style="filter:url(#fx-dawn)"><span>Dawn</span></label>
-        <label class="fx-chip" for="look-dusk"><img src="assets/img/effects/look-tile.webp?v=3" alt="" width="260" height="260" loading="lazy" style="filter:url(#fx-dusk)"><span>Dusk</span></label>
-        <label class="fx-chip" for="look-fade"><img src="assets/img/effects/look-tile.webp?v=3" alt="" width="260" height="260" loading="lazy" style="filter:url(#fx-fade)"><span>Fade</span></label>
-        <label class="fx-chip" for="look-matte"><img src="assets/img/effects/look-tile.webp?v=3" alt="" width="260" height="260" loading="lazy" style="filter:url(#fx-matte)"><span>Matte</span></label>
-        <label class="fx-chip" for="look-retro"><img src="assets/img/effects/look-tile.webp?v=3" alt="" width="260" height="260" loading="lazy" style="filter:url(#fx-retro)"><span>Retro</span></label>
-        <label class="fx-chip" for="look-sepia"><img src="assets/img/effects/look-tile.webp?v=3" alt="" width="260" height="260" loading="lazy" style="filter:url(#fx-sepia)"><span>Sepia</span></label>
-        <label class="fx-chip" for="look-mono"><img src="assets/img/effects/look-tile.webp?v=3" alt="" width="260" height="260" loading="lazy" style="filter:url(#fx-mono)"><span>Mono</span></label>
-        <label class="fx-chip" for="look-noir"><img src="assets/img/effects/look-tile.webp?v=3" alt="" width="260" height="260" loading="lazy" style="filter:url(#fx-noir)"><span>Noir</span></label>
+        <label class="fx-chip" for="look-none"><img src="assets/img/effects/look-tile.webp?v=4" alt="" width="260" height="260" loading="lazy"><span>Original</span></label>
+        <label class="fx-chip" for="look-vivid"><img src="assets/img/effects/look-tile.webp?v=4" alt="" width="260" height="260" loading="lazy" style="filter:url(#fx-vivid)"><span>Vivid</span></label>
+        <label class="fx-chip" for="look-punch"><img src="assets/img/effects/look-tile.webp?v=4" alt="" width="260" height="260" loading="lazy" style="filter:url(#fx-punch)"><span>Punch</span></label>
+        <label class="fx-chip" for="look-chrome"><img src="assets/img/effects/look-tile.webp?v=4" alt="" width="260" height="260" loading="lazy" style="filter:url(#fx-chrome)"><span>Chrome</span></label>
+        <label class="fx-chip" for="look-warm"><img src="assets/img/effects/look-tile.webp?v=4" alt="" width="260" height="260" loading="lazy" style="filter:url(#fx-warm)"><span>Warm</span></label>
+        <label class="fx-chip" for="look-cool"><img src="assets/img/effects/look-tile.webp?v=4" alt="" width="260" height="260" loading="lazy" style="filter:url(#fx-cool)"><span>Cool</span></label>
+        <label class="fx-chip" for="look-sunset"><img src="assets/img/effects/look-tile.webp?v=4" alt="" width="260" height="260" loading="lazy" style="filter:url(#fx-sunset)"><span>Sunset</span></label>
+        <label class="fx-chip" for="look-dawn"><img src="assets/img/effects/look-tile.webp?v=4" alt="" width="260" height="260" loading="lazy" style="filter:url(#fx-dawn)"><span>Dawn</span></label>
+        <label class="fx-chip" for="look-dusk"><img src="assets/img/effects/look-tile.webp?v=4" alt="" width="260" height="260" loading="lazy" style="filter:url(#fx-dusk)"><span>Dusk</span></label>
+        <label class="fx-chip" for="look-fade"><img src="assets/img/effects/look-tile.webp?v=4" alt="" width="260" height="260" loading="lazy" style="filter:url(#fx-fade)"><span>Fade</span></label>
+        <label class="fx-chip" for="look-matte"><img src="assets/img/effects/look-tile.webp?v=4" alt="" width="260" height="260" loading="lazy" style="filter:url(#fx-matte)"><span>Matte</span></label>
+        <label class="fx-chip" for="look-retro"><img src="assets/img/effects/look-tile.webp?v=4" alt="" width="260" height="260" loading="lazy" style="filter:url(#fx-retro)"><span>Retro</span></label>
+        <label class="fx-chip" for="look-sepia"><img src="assets/img/effects/look-tile.webp?v=4" alt="" width="260" height="260" loading="lazy" style="filter:url(#fx-sepia)"><span>Sepia</span></label>
+        <label class="fx-chip" for="look-mono"><img src="assets/img/effects/look-tile.webp?v=4" alt="" width="260" height="260" loading="lazy" style="filter:url(#fx-mono)"><span>Mono</span></label>
+        <label class="fx-chip" for="look-noir"><img src="assets/img/effects/look-tile.webp?v=4" alt="" width="260" height="260" loading="lazy" style="filter:url(#fx-noir)"><span>Noir</span></label>
       </div>
       <!-- END generated:filters -->
           <figure class="fx-stage">
-            <img class="fx-stage-img" src="assets/img/effects/look.webp?v=3" alt="A photo with the selected one-tap look applied" width="1280" height="720">
+            <img class="fx-stage-img" src="assets/img/effects/look.webp?v=4" alt="A photo with the selected one-tap look applied" width="1280" height="720">
             <figcaption></figcaption>
           </figure>
         </div>
@@ -326,26 +403,26 @@
         <div class="fx-cards">
           <figure class="fx-card fx-card--compare">
             <div class="fx-ba fx-ba--split">
-              <img src="assets/img/effects/fx-original.webp?v=5" alt="The photo before a vignette" width="960" height="540" loading="lazy">
-              <img class="fx-ba-top" src="assets/img/effects/fx-vignette.webp?v=5" alt="The same photo with a vignette darkening the corners" width="960" height="540" loading="lazy">
+              <img src="assets/img/effects/fx-original.webp?v=6" alt="The photo before a vignette" width="960" height="540" loading="lazy">
+              <img class="fx-ba-top" src="assets/img/effects/fx-vignette.webp?v=6" alt="The same photo with a vignette darkening the corners" width="960" height="540" loading="lazy">
               <span class="fx-ba-tag l">Before</span><span class="fx-ba-tag r">Vignette</span>
             </div>
             <figcaption><h3>Vignette</h3><p>Any colour, with size and softness. On a cut-out it follows the subject's silhouette instead of shading a rectangle behind it.</p></figcaption>
           </figure>
           <figure class="fx-card fx-card--compare">
             <div class="fx-ba fx-ba--split">
-              <img src="assets/img/effects/fx-hdr-before.webp?v=5" alt="The photo before HDR" width="960" height="540" loading="lazy">
-              <img class="fx-ba-top" src="assets/img/effects/fx-hdr.webp?v=5" alt="The same photo with the HDR effect lifting shadows and local contrast" width="960" height="540" loading="lazy">
+              <img src="assets/img/effects/fx-hdr-before.webp?v=6" alt="The photo before HDR" width="960" height="540" loading="lazy">
+              <img class="fx-ba-top" src="assets/img/effects/fx-hdr.webp?v=6" alt="The same photo with the HDR effect lifting shadows and local contrast" width="960" height="540" loading="lazy">
               <span class="fx-ba-tag l">Before</span><span class="fx-ba-tag r">HDR 100%</span>
             </div>
             <figcaption><h3>HDR</h3><p>Lifts shadows, holds the highlights, then adds local contrast - the look a phone camera's HDR mode gives you, on a slider.</p></figcaption>
           </figure>
           <figure class="fx-card">
-            <div class="fx-ba"><img src="assets/img/effects/fx-shadow.webp?v=5" alt="A cut-out subject casting a soft drop shadow" width="960" height="540" loading="lazy"></div>
+            <div class="fx-ba"><img src="assets/img/effects/fx-shadow.webp?v=6" alt="A cut-out subject casting a soft drop shadow" width="960" height="540" loading="lazy"></div>
             <figcaption><h3>Drop shadow</h3><p>Direction, distance, blur, spread, colour and opacity. It travels with the layer, so a rotated sticker keeps its shadow.</p></figcaption>
           </figure>
           <figure class="fx-card">
-            <div class="fx-ba"><img src="assets/img/effects/fx-contour.webp?v=5" alt="A cut-out subject with a thick white contour, sticker style" width="960" height="540" loading="lazy"></div>
+            <div class="fx-ba"><img src="assets/img/effects/fx-contour.webp?v=6" alt="A cut-out subject with a thick white contour, sticker style" width="960" height="540" loading="lazy"></div>
             <figcaption><h3>Contour</h3><p>A stroke grown out of the layer's own silhouette - the die-cut sticker edge. On text, the same control gives you an outline.</p></figcaption>
           </figure>
         </div>
@@ -361,9 +438,9 @@
           <p>The before/after at the top is a genuine result from the app's on-device model - no cloud, no touch-ups. Once your subject is free, put it on any backdrop or export it as a transparent PNG.</p>
         </div>
         <div class="stickers">
-          <figure class="sticker"><img src="assets/img/effects/dog-sunset.webp?v=6" alt="Dog cut-out on a sunset gradient background" width="900" height="1200" loading="lazy"><span>Sunset</span></figure>
-          <figure class="sticker"><img src="assets/img/effects/dog-pop.webp?v=6" alt="Dog cut-out on a bold cyan background" width="900" height="1200" loading="lazy"><span>Pop</span></figure>
-          <figure class="sticker"><img src="assets/img/effects/dog-checker.webp?v=6" alt="Dog cut-out shown on a checkerboard to prove transparency" width="900" height="1200" loading="lazy"><span>Transparent PNG</span></figure>
+          <figure class="sticker"><img src="assets/img/effects/dog-sunset.webp?v=7" alt="Dog cut-out on a sunset gradient background" width="900" height="1200" loading="lazy"><span>Sunset</span></figure>
+          <figure class="sticker"><img src="assets/img/effects/dog-pop.webp?v=7" alt="Dog cut-out on a bold cyan background" width="900" height="1200" loading="lazy"><span>Pop</span></figure>
+          <figure class="sticker"><img src="assets/img/effects/dog-checker.webp?v=7" alt="Dog cut-out shown on a checkerboard to prove transparency" width="900" height="1200" loading="lazy"><span>Transparent PNG</span></figure>
         </div>
       </div>
     </section>
@@ -372,7 +449,7 @@
     <section class="section" id="grid">
       <div class="wrap split split-rev">
         <div class="phone">
-          <img src="assets/img/screens/grid.webp?v=7" alt="A four-photo collage in a 2 by 2 grid, with the Photo grid panel showing count, layout and border controls" width="620" height="1383" loading="lazy">
+          <img src="assets/img/screens/grid.webp?v=8" alt="A four-photo collage in a 2 by 2 grid, with the Photo grid panel showing count, layout and border controls" width="620" height="1383" loading="lazy">
         </div>
         <div>
           <p class="eyebrow">Photo grid</p>
@@ -412,6 +489,43 @@
       </div>
     </section>
 
+    <!-- ===== Snapping + placement (new in 1.3.0) ===== -->
+    <section class="section" id="align">
+      <div class="wrap split">
+        <div class="phone">
+          <img src="assets/img/screens/cutout.webp?v=8" alt="A cut-out subject on the canvas with the Adjust panel below it, showing a Snap toggle switched on above a Scale slider" width="620" height="1383" loading="lazy">
+        </div>
+        <div>
+          <p class="eyebrow">New · Snap &amp; place</p>
+          <h2>Line things up without squinting</h2>
+          <p>Drag a layer and it settles onto the nearest alignment - the edges, the centres and the size of every other layer, and of the canvas itself - with a magenta guide showing exactly what it caught. Turn the toggle off and nothing moves but your finger.</p>
+          <ul class="why-list">
+            <li>
+              <span class="badge">📐</span>
+              <div>
+                <h3>Tilted layers line up too</h3>
+                <p>Alignment is measured along the layer's own axes, not the screen's, so two stickers at the same angle can be made genuinely flush. Carry one up against a neighbour a couple of degrees off and it takes that angle.</p>
+              </div>
+            </li>
+            <li>
+              <span class="badge">🎚️</span>
+              <div>
+                <h3>Sliders for the layer you can't grab</h3>
+                <p>Scale, Rotation, Horizontal and Vertical now drive <em>any</em> layer - a caption, a speech bubble, a photo. A sticker pinched down to a speck used to be smaller than a fingertip and stuck that way; now it is a slider.</p>
+              </div>
+            </li>
+            <li>
+              <span class="badge">↩️</span>
+              <div>
+                <h3>Nothing is a trap</h3>
+                <p>Rotation snaps to straight over the last couple of degrees, both placement sliders snap to dead centre, and every one of them is a single undo step.</p>
+              </div>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
     <!-- ===== Features ===== -->
     <section class="section" id="features">
       <div class="wrap">
@@ -428,12 +542,12 @@
           </article>
           <article class="feature">
             <div class="ic ic-pink">🎯</div>
-            <h3>Tap to erase objects</h3>
-            <p>Point at anything you don't want - a photobomber, a sign, a stray leash - and MobileSAM selects it to remove.</p>
+            <h3>Object removal that fills in</h3>
+            <p>Point at anything you don't want - a photobomber, a sign, a stray leash - and a bundled generative model rebuilds the background behind it.</p>
           </article>
           <article class="feature">
             <div class="ic ic-teal">🎞️</div>
-            <h3>15 filters, HDR &amp; vignette</h3>
+            <h3>14 filters, HDR &amp; vignette</h3>
             <p>One-tap looks with a strength slider, an HDR pass that lifts shadows and local contrast, and a vignette in any colour.</p>
           </article>
           <article class="feature">
@@ -462,6 +576,21 @@
             <p>Fine-tune light and colour, brush away stray pixels by hand, and crop the canvas freeform or to any ratio.</p>
           </article>
           <article class="feature">
+            <div class="ic ic-pink">📐</div>
+            <h3>Snapping &amp; placement</h3>
+            <p>Layers settle onto each other's edges, centres and size with a guide showing the catch - and Scale, Rotation and the two placement sliders drive any layer at all.</p>
+          </article>
+          <article class="feature">
+            <div class="ic ic-teal">🌗</div>
+            <h3>Light and dark</h3>
+            <p>Pure black on OLED so the pixels are genuinely off, pure white that stays readable in daylight. Follows your phone, or pin either one.</p>
+          </article>
+          <article class="feature">
+            <div class="ic ic-violet">🌍</div>
+            <h3>Six languages</h3>
+            <p>English, Polish, German, Spanish, French and Czech - the whole app, not just the menus. Follows your phone or set it in Settings.</p>
+          </article>
+          <article class="feature">
             <div class="ic ic-cyan">📤</div>
             <h3>Export with transparency</h3>
             <p>Save or share as a transparent PNG, JPG or WebP at full size or a fraction of it - straight to your gallery or any app.</p>
@@ -474,7 +603,7 @@
     <section class="section" id="why">
       <div class="wrap split">
         <div class="phone">
-          <img src="assets/img/screens/home.webp?v=7" alt="Chromis home screen with a New project card, Open a photo card and three recent projects" width="620" height="1383" loading="lazy">
+          <img src="assets/img/screens/home.webp?v=8" alt="Chromis home screen with a New project card, Open a photo card and three recent projects" width="620" height="1383" loading="lazy">
         </div>
         <div>
           <p class="eyebrow">Why Chromis</p>
@@ -516,54 +645,54 @@
         </div>
         <div class="shots">
           <figure class="shot">
-            <div class="phone"><img src="assets/img/screens/effects.webp?v=7" alt="Effects panel with a live filter strip, the Vivid look selected, a strength slider and an HDR slider" width="620" height="1383" loading="lazy"></div>
+            <div class="phone"><img src="assets/img/screens/objremove.webp?v=8" alt="The Remove object panel with a Fill in and Erase chooser below the AI Background Removal heading" width="620" height="1383" loading="lazy"></div>
+            <figcaption>
+              <h3>Remove object</h3>
+              <p>Fill in, or erase</p>
+            </figcaption>
+          </figure>
+          <figure class="shot">
+            <div class="phone"><img src="assets/img/screens/effects.webp?v=8" alt="Effects panel with a live filter strip, the Vivid look selected, a strength slider and an HDR slider" width="620" height="1383" loading="lazy"></div>
             <figcaption>
               <h3>Effects</h3>
               <p>Filters, HDR &amp; vignette</p>
             </figcaption>
           </figure>
           <figure class="shot">
-            <div class="phone"><img src="assets/img/screens/grid.webp?v=7" alt="A four-photo collage in a 2 by 2 grid with the Photo grid panel open" width="620" height="1383" loading="lazy"></div>
+            <div class="phone"><img src="assets/img/screens/grid.webp?v=8" alt="A four-photo collage in a 2 by 2 grid with the Photo grid panel open" width="620" height="1383" loading="lazy"></div>
             <figcaption>
               <h3>Photo grid</h3>
               <p>Collages with draggable dividers</p>
             </figcaption>
           </figure>
           <figure class="shot">
-            <div class="phone"><img src="assets/img/screens/cutout.webp?v=7" alt="The AI Cut sheet offering the built-in engine or U squared Net" width="620" height="1383" loading="lazy"></div>
+            <div class="phone"><img src="assets/img/screens/cutout.webp?v=8" alt="A finished AI cut-out on a transparent canvas, with the Snap toggle and Scale slider in the Adjust panel below" width="620" height="1383" loading="lazy"></div>
             <figcaption>
               <h3>AI Cut</h3>
-              <p>Background &amp; object removal</p>
+              <p>One tap, then snap it into place</p>
             </figcaption>
           </figure>
           <figure class="shot">
-            <div class="phone"><img src="assets/img/screens/layers.webp?v=7" alt="Layers panel listing four photo layers with thumbnails" width="620" height="1383" loading="lazy"></div>
+            <div class="phone"><img src="assets/img/screens/layers.webp?v=8" alt="Layers panel listing four photo layers with thumbnails" width="620" height="1383" loading="lazy"></div>
             <figcaption>
               <h3>Layers</h3>
               <p>Stack, merge &amp; flatten</p>
             </figcaption>
           </figure>
           <figure class="shot">
-            <div class="phone"><img src="assets/img/screens/adjust.webp?v=7" alt="Adjust panel with brightness, contrast, saturation and hue sliders" width="620" height="1383" loading="lazy"></div>
+            <div class="phone"><img src="assets/img/screens/bubble.webp?v=8" alt="The Comic bubble panel with Speech, Thought and Shout shapes, a caption field and a font strip" width="620" height="1383" loading="lazy"></div>
             <figcaption>
-              <h3>Adjust</h3>
-              <p>Light, colour &amp; crop</p>
-            </figcaption>
-          </figure>
-          <figure class="shot">
-            <div class="phone"><img src="assets/img/screens/home.webp?v=7" alt="Home screen with three recent projects" width="620" height="1383" loading="lazy"></div>
-            <figcaption>
-              <h3>Home</h3>
-              <p>Your projects, auto-saved</p>
+              <h3>Text &amp; bubbles</h3>
+              <p>Captions and comic shapes</p>
             </figcaption>
           </figure>
         </div>
 
         <figure class="shot-wide">
-          <img src="assets/img/screens/landscape.webp?v=7" alt="The editor in landscape: a vertical tool rail on the left, the Effects panel beside it, and the photo filling the rest of the screen" width="1240" height="556" loading="lazy">
+          <img src="assets/img/screens/landscape.webp?v=8" alt="The editor on a tablet: a vertical tool rail on the left, the full Effects panel beside it, and the photo filling the rest of the screen" width="1240" height="775" loading="lazy">
           <figcaption>
             <h3>Turn your phone. Or bring a tablet.</h3>
-            <p>In landscape the dock becomes a rail down the left edge and the tool panel folds away, so the photo gets the room it deserves. Tablets get the same layout with a wider canvas.</p>
+            <p>In landscape the dock becomes a rail down the left edge and the tool panel folds away, so the photo gets the room it deserves. Tablets get the same layout with a wider canvas - this is a 10-inch one.</p>
           </figcaption>
         </figure>
       </div>
@@ -587,11 +716,23 @@
           </details>
           <details>
             <summary>Does the AI need an internet connection?</summary>
-            <p>No. The AI models run locally, so cut-outs and object removal work fully offline. A connection is only used to load ads.</p>
+            <p>No. Every model is bundled in the app - the cut-out networks, the tap-to-select one and the generative fill - so cut-outs and object removal work fully offline. A connection is only used to load ads.</p>
+          </details>
+          <details>
+            <summary>What's the difference between Fill in and Erase?</summary>
+            <p><strong>Fill in</strong> rebuilds the background where the object was, using the rest of the photo, so removing someone from a beach leaves beach. <strong>Erase</strong> cuts the object to transparency instead, which is what you want when you're about to drop the result onto a different backdrop. The chooser is at the top of the Remove object panel and Fill in is the default; either way, undo brings the object back.</p>
+          </details>
+          <details>
+            <summary>What languages does the app speak?</summary>
+            <p>English, Polish, German, Spanish, French and Czech - the whole interface, not just the menus. It follows your phone's language by default, and Settings has a picker if you'd rather pin one. Each language is listed in its own script, so you can always find your way back.</p>
+          </details>
+          <details>
+            <summary>Does it have a light theme?</summary>
+            <p>Yes, and a dark one, and it follows your phone unless you pin either in Settings. Dark is pure black rather than a dark grey, which on an OLED screen means those pixels are genuinely switched off; light is pure white so it stays readable in daylight.</p>
           </details>
           <details>
             <summary>Are the filters on this page the real ones?</summary>
-            <p>Yes. The 15 looks in the gallery above are the app's own colour matrices, exported from the source and applied by your browser - not screenshots or approximations. A build step regenerates them from the code, and a test renders every look both ways and compares the pixels, so the page can't drift from the app.</p>
+            <p>Yes. The 14 looks in the gallery above are the app's own colour matrices, exported from the source and applied by your browser - not screenshots or approximations. A build step regenerates them from the code, and a test renders every look both ways and compares the pixels, so the page can't drift from the app.</p>
           </details>
           <details>
             <summary>Can I change a collage's layout after the photos are in?</summary>
@@ -655,7 +796,7 @@
         <div class="cta-band">
           <img class="cta-icon" src="assets/img/icon-full.png?v=10" width="104" height="104" alt="" loading="lazy">
           <h2>Ready to make something?</h2>
-          <p>Cut-outs, filters, layers and collages - free, on-device and private. Coming soon to Google Play.</p>
+          <p>Object removal, cut-outs, filters, layers and collages - free, on-device and private.</p>
           <a class="store-badge" href="https://play.google.com/store/apps/details?id=tech.idct.chromis" rel="noopener" aria-label="Get Chromis on Google Play">
             <svg class="ic" viewBox="0 0 512 512" fill="currentColor" aria-hidden="true" focusable="false"><path d="M325.3 234.3L104.6 13l280.8 161.2-60.1 60.1zM47 0C34 6.8 25.3 19.2 25.3 35.3v441.3c0 16.1 8.7 28.5 21.7 35.3l256.6-256L47 0zm425.2 225.6l-58.9-34.1-65.7 64.5 65.7 64.5 60.1-34.1c18-14.3 18-46.5-1.2-60.8zM104.6 499l280.8-161.2-60.1-60.1L104.6 499z"/></svg>
             <span class="store-badge-text"><span class="store-badge-sub">Get it on</span><span class="store-badge-name">Google Play</span></span>
@@ -675,10 +816,11 @@
         <div class="footer-cols">
           <div class="footer-col">
             <h4>Product</h4>
+            <a href="#remove">Object removal</a>
             <a href="#effects">Effects</a>
-            <a href="#features">Features</a>
+            <a href="#align">Snap &amp; place</a>
             <a href="#grid">Collage</a>
-        <a href="#screens">Screens</a>
+            <a href="#screens">Screens</a>
             <a href="#faq">FAQ</a>
             <a href="#get">Get the app</a>
           </div>
@@ -711,6 +853,34 @@
   </div>
 
   <script>
+    // Theme toggle: System -> Light -> Dark -> System.
+    //
+    // "System" is the absence of the attribute, not a third value written into
+    // it, so the stylesheet's prefers-color-scheme rule stays in charge and a
+    // visitor who never touches this control has nothing stored about them.
+    // The button is revealed here rather than in the markup: without JS it
+    // would be a control that does nothing.
+    (function () {
+      var btn = document.getElementById('themeToggle');
+      if (!btn) return;
+      var root = document.documentElement;
+      var order = [null, 'light', 'dark'];
+      var labels = { 'null': 'Theme: follow system', light: 'Theme: light', dark: 'Theme: dark' };
+      function apply(v) {
+        if (v) root.setAttribute('data-theme', v); else root.removeAttribute('data-theme');
+        btn.setAttribute('aria-label', labels[String(v)]);
+        btn.title = labels[String(v)];
+        try { v ? localStorage.setItem('pe_theme', v) : localStorage.removeItem('pe_theme'); } catch (e) {}
+      }
+      var current = root.getAttribute('data-theme') || null;
+      apply(current);
+      btn.hidden = false;
+      btn.addEventListener('click', function () {
+        current = order[(order.indexOf(current) + 1) % order.length];
+        apply(current);
+      });
+    })();
+
     // Mobile nav
     (function () {
       var t = document.getElementById('navToggle'), l = document.getElementById('navLinks');

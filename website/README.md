@@ -1,8 +1,8 @@
 # Chromis - website
 
 Static marketing site for the Chromis Android app. Plain HTML/CSS +
-a little vanilla JS, no build step. Matches the app's dark theme and palette
-(`lib/core/theme/app_colors.dart`).
+a little vanilla JS, no build step. Matches the app's palette and BOTH its
+themes (`lib/core/theme/app_palette.dart`).
 
 ```
 website/
@@ -20,6 +20,33 @@ website/
     │                         #   vignette/HDR/shadow/contour demos
     └── screens/              # real app screenshots (WebP)
 ```
+
+## Light and dark
+
+The site follows the visitor's system theme and a header toggle can pin either,
+which is the same three states as the app's Settings - System / Light / Dark.
+"System" is stored as the ABSENCE of `data-theme` on `<html>`, not as a third
+value, so a visitor who never touches the control has nothing stored about them
+and the stylesheet's `prefers-color-scheme` rule stays in charge.
+
+Three things in `styles.css` that are easy to get wrong:
+
+- **The light block is written twice** - once under `@media
+  (prefers-color-scheme: light)`, once as `:root[data-theme="light"]`.
+  `light-dark()` would fold them into one, and in a browser that does not know
+  that function *every* custom property resolves to nothing, which is an
+  unstyled page rather than a stale-looking one.
+- **`data-theme` is set by an inline script in the `<head>`**, before the
+  stylesheet. The deferred script at the end of the body would be a frame too
+  late, and a visitor who pinned the opposite theme would see it flash.
+- **Anything drawn ON a photograph takes `--on-glass`, not `--text`.** A
+  photo has no theme, but the translucent pill behind the label does - it is
+  the page's own colour at low alpha - so the two have to flip together or a
+  black pill lands on a white page with white text on it.
+
+`--plate` is deliberately lighter than every other dark surface: the drop-shadow
+demo is a black shadow, and on a near-black plate that card shows nothing at
+all.
 
 ## The brand marks are generated
 
@@ -100,31 +127,31 @@ drawn around it.
 
 ## Screenshots
 
-`tool/gen_screens.py <dir>` turns raw `adb exec-out screencap` PNGs into the
-WebP set in `assets/img/screens/`: it downscales to ~2x the rendered size and
-encodes. The `SHOTS` map at the top names each source file and its output, and
-it is the same directory `tool/gen_store_screens.py` builds the Play listing
-from - one capture session feeds both.
+`python tool/gen_screens.py` turns the capture session into the WebP set in
+`assets/img/screens/`: it downscales to ~2x the rendered size and encodes. It
+reads `build/shots-i18n/en/<profile>/`, which is what
+`tool/capture_store_shots.py` writes and what `tool/gen_store_screens.py`
+composes the Play listing from - **one capture session feeds both**, so a
+screenshot here and the same screenshot on Play cannot be of two different
+builds. The `SHOTS` map at the top of the script names each capture and its
+output.
 
-Capture with the **Pro entitlement set** so no ad is on screen anywhere (see
-[docs/ship-checklist.md](../docs/ship-checklist.md#listing-graphics) for the one
-`adb` line that sets it). Home used to lose its bottom 12% to a crop because a
-test ad sat there; with Pro there is nothing to crop, which is why every phone
-shot is now the full 620x1383 and the `height` attributes in `index.html` had to
-follow. **If a capture is re-taken without Pro, the crop has to come back** - a
-house ad is not landing-page material.
+The six phone shots go out at 620x1383 and the wide one is the **10-inch
+tablet** at 1240x775 - both form factors show the rail-plus-folding-panel
+landscape layout, and 16:10 is a better block on the page than a phone on its
+side at 2.23:1. Changing which capture feeds the wide slot changes its aspect,
+so the `height` attribute in `index.html` has to follow.
 
-The emulator's status bar is worth taming first, or the shots carry whatever
-notification icon happened to be up that day:
+Capture with the **Pro entitlement set** so no ad is on screen anywhere -
+`python tool/capture_store_shots.py prepare <profile>` does it, along with
+disabling the Play Store so the entitlement is not revoked a second after
+launch. Nothing here crops, because with Pro there is nothing to crop. **If a
+capture is ever re-taken without Pro the images are wrong in a way a crop cannot
+fix**: the editor's rail grows a Go Pro entry that pushes every tool down one
+slot, so the script's tap tables open the wrong panels.
 
-```bash
-adb shell settings put global sysui_demo_allowed 1
-adb shell am broadcast -a com.android.systemui.demo -e command enter
-adb shell am broadcast -a com.android.systemui.demo -e command clock -e hhmm 0941
-adb shell am broadcast -a com.android.systemui.demo -e command battery -e level 100 -e plugged false
-adb shell am broadcast -a com.android.systemui.demo -e command network -e wifi show -e level 4
-adb shell am broadcast -a com.android.systemui.demo -e command notifications -e visible false
-```
+`capture_store_shots.py prepare` also tames the status bar, so the shots do not
+carry whatever notification icon happened to be up that day.
 
 ## Checking a change
 
@@ -166,18 +193,37 @@ Guards that remain in place:
   aspect ratio (`dog-before.webp` / `dog-studio.webp`). Keep new
   slider images at 3:4 so the reveal stays pixel-aligned.
 - The download CTAs use a **Google Play badge** (`.store-badge`, matching
-  idct.tech/sticker-maker). Its `href` is a placeholder Play URL for this app id
-  (`play.google.com/store/apps/details?id=tech.idct.chromis`). When the final
-  store link is provided, replace that URL on every `.store-badge` - header, hero,
-  CTA band, and the nav on both legal pages. A "Coming soon to Google Play" note
-  sits under the hero badge until launch.
+  idct.tech/sticker-maker), pointing at
+  `play.google.com/store/apps/details?id=tech.idct.chromis`. It appears four
+  times - header, hero, CTA band, and the nav on both legal pages - so a change
+  of URL is a change in five places.
+- The **"coming soon" wording is gone** from the hero note and the CTA band. It
+  outlived the launch by a release, which is the usual fate of a date written
+  into prose: nothing breaks and no test goes red, the page just quietly says
+  something untrue. Prefer copy that does not need a launch to become
+  accurate.
 
 ## The AI example images
 
-`assets/img/effects/dog-*` are generated from the sample photos with the app's
-own bundled model (`assets/models/u2netp.onnx`) using the same recipe the app
-uses (squash-resize 320², ImageNet normalize, min-max normalize, bilinear
-upscale to a soft alpha). Regenerate with `tool/gen_effects.py`.
+**The photographs are CC0 and committed.** `assets/store/samples/` holds them,
+with each one's title, licence and Wikimedia Commons URL in `SOURCES.json` - the
+same set the Play listing uses. A landing page is commercial use of every pixel
+on it, exactly as a store listing is, so which photograph is on it belongs in
+version control; these used to come from personal photos in
+`assets/branding/dog/`, which is gitignored for size and therefore could not be
+regenerated by anyone who did not already have the originals.
+
+`assets/img/effects/dog-*` are composited from `samples/subject.jpg` and
+`samples/subject-mask.png`, and **that mask is a real output of the app's own AI
+Cut**, kept from a device run rather than drawn by hand. So no model runs in the
+generator at all: `tool/gen_effects.py` only composites. Point it at a directory
+of raw photos instead (`python tool/gen_effects.py assets/branding/dog`) and it
+falls back to scoring them through the bundled U²-Netp, which is what it used to
+do always and which is the only path that needs `onnxruntime`.
+
+The filter gallery and the vignette/HDR demos take `samples/landscape.jpg`
+instead - that whole section is 16:9, and a 3:4 portrait cropped to a 16:9 band
+keeps the strip without the subject's face in it.
 
 The page serves the `.webp` siblings (`gen_filters.py` writes them); the `.jpg`
 originals stay because `og:image` points at one and not every link scraper
@@ -190,9 +236,9 @@ a page, so a deploy can skip both.
 GitHub Pages serves CSS and images with a long cache (`Cache-Control: max-age=14400`
 = 4 h). After you change `styles.css` or an image, **bump the `?v=N` query** on
 its `<link>` / `<img>` reference so browsers fetch the new file instead of a
-stale cached copy. `styles.css` and the brand marks are at `?v=10`, the
-screenshots at `?v=4`; the generated filter tiles use `ASSET_V` in
-`tool/gen_filters.py`. The HTML pages revalidate quickly, so the new versioned
+stale cached copy. `styles.css` is at `?v=11`, the brand marks at `?v=10`, the
+screenshots at `?v=8`, the AI composites at `?v=7` and the painted-effect demos
+at `?v=6`; the generated filter tiles use `ASSET_V` in `tool/gen_filters.py`. The HTML pages revalidate quickly, so the new versioned
 URLs propagate on the next visit. (Grep the HTML rather than trusting this line -
 if the two ever disagree, the HTML is the truth.)
 

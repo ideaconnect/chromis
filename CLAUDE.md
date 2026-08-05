@@ -844,7 +844,12 @@ the devices are re-run independently.
   control - a description telling a Polish reader about "Vivid" is naming a
   button that says "Żywy". The label match is stem-based and case-folded on
   purpose: the copy is prose, so Polish writes "od Mnożenia" and Spanish
-  lowercases "cuadrado" mid-sentence.
+  lowercases "cuadrado" mid-sentence. **It counts the website too**, because
+  the landing page describes the same enums and drifted the same way - it
+  advertised "15 filters" for two releases while the listing said 14, both
+  describing one `PhotoFilter`. The site match is `<n> <word>`, not `str(n) in
+  page`: the page is full of unrelated integers (image widths, "2 to 5 photos",
+  the model's size in MB) and a bare substring test passes on any of them.
 - `tool/store_copy.py` - the captions are **painted into** the images, so a line
   that is too long does not wrap or ellipsize, it runs off the edge or into the
   phone beside it. Same offline TTF measurement as `tool/measure_labels.py`, for
@@ -862,7 +867,37 @@ capture session also had and which the six sets therefore keep.
 Plain HTML/CSS - no Jekyll, no build. `.github/workflows/pages.yml` uploads the
 folder as-is on any push touching `website/**`, publishing it at
 **idct.tech/chromis/**. Pages there are flat files: `index.html`, `privacy.html`,
-`terms.html`.
+`terms.html`. **The folder is uploaded as-is**, so anything left in it ships -
+a scratch probe copy of a page is a live URL and a duplicate of the listing.
+
+**The site has both themes, because the app does**, and the palette is the app's
+neutral one rather than the mockup's navy - a landing page whose job is to look
+like the product cannot be a shade the product refuses. It follows
+`prefers-color-scheme` and a header toggle pins either, which is the app's
+System / Light / Dark. Four things in there that a redesign would break:
+
+- **"System" is the ABSENCE of `data-theme` on `<html>`**, not a third value, so
+  the media query stays in charge and a visitor who never touched the toggle has
+  nothing stored about them. Same rule as the app's `themeMode` key, which is
+  removed rather than written as null.
+- **The light block is written twice** - once under the media query, once as
+  `:root[data-theme="light"]`. `light-dark()` folds them into one and is the
+  obvious cleanup, but in a browser that does not know that function *every*
+  custom property resolves to nothing: an unstyled page, not a stale-looking one.
+- **`data-theme` is applied by an inline script in the `<head>`**, before the
+  stylesheet. The script at the end of the body is a frame too late and a pinned
+  theme flashes the other one first.
+- **Anything drawn ON a photograph reads `--on-glass`, not `--text`.** A photo
+  has no theme - the same reason `AppScrim` exists in the app - but the
+  translucent pill behind the label is the page's own colour, so the two flip
+  together or a white-on-black pill lands on a white page.
+
+The screenshots and the AI example images are **generated from the same capture
+session and the same CC0 photographs as the Play listing** (`tool/gen_screens.py`
+reads `build/shots-i18n/`, `tool/gen_effects.py` reads `assets/store/samples/`).
+A landing page is commercial use of every pixel on it exactly as a listing is;
+these used to be personal photos out of a gitignored directory, which also meant
+a fresh clone could not regenerate them.
 
 **`website/sitemap.xml` is hand-maintained and must always be correct.** Unlike
 the other IDCT sites - helena and gentastic generate theirs from a Liquid loop,
