@@ -569,6 +569,12 @@ class AppLocalizationsPl extends AppLocalizations {
   String get rotation => 'Obrót';
 
   @override
+  String get horizontal => 'Poziomo';
+
+  @override
+  String get vertical => 'Pionowo';
+
+  @override
   String get brightness => 'Jasność';
 
   @override

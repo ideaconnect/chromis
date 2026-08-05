@@ -165,6 +165,8 @@
   "croppedTo": "Wykadrowano do {width}×{height}",
   "scale": "Skala",
   "rotation": "Obrót",
+  "horizontal": "Poziomo",
+  "vertical": "Pionowo",
   "brightness": "Jasność",
   "contrast": "Kontrast",
   "saturation": "Nasycenie",

@@ -165,6 +165,8 @@
   "croppedTo": "Toile recadrée en {width}×{height}",
   "scale": "Échelle",
   "rotation": "Rotation",
+  "horizontal": "Horizontal",
+  "vertical": "Vertical",
   "brightness": "Luminosité",
   "contrast": "Contraste",
   "saturation": "Saturation",

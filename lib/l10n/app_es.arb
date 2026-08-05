@@ -165,6 +165,8 @@
   "croppedTo": "Lienzo recortado a {width}×{height}",
   "scale": "Escala",
   "rotation": "Rotación",
+  "horizontal": "Horizontal",
+  "vertical": "Vertical",
   "brightness": "Brillo",
   "contrast": "Contraste",
   "saturation": "Saturación",

@@ -568,6 +568,12 @@ class AppLocalizationsDe extends AppLocalizations {
   String get rotation => 'Drehung';
 
   @override
+  String get horizontal => 'Horizontal';
+
+  @override
+  String get vertical => 'Vertikal';
+
+  @override
   String get brightness => 'Helligkeit';
 
   @override

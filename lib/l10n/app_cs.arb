@@ -165,6 +165,8 @@
   "croppedTo": "Oříznuto na {width}×{height}",
   "scale": "Měřítko",
   "rotation": "Otočení",
+  "horizontal": "Vodorovně",
+  "vertical": "Svisle",
   "brightness": "Jas",
   "contrast": "Kontrast",
   "saturation": "Sytost",

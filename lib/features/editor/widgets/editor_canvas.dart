@@ -15,6 +15,7 @@ import '../../../core/theme/app_tokens.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/checkerboard.dart';
 import '../../../l10n/app_localizations.dart';
+import '../layer_bounds.dart';
 import '../layer_scale_curve.dart';
 import '../state/editor_controller.dart';
 import '../state/editor_state.dart';
@@ -656,47 +657,17 @@ class _EditorCanvasState extends ConsumerState<EditorCanvas> {
     return Size(size.width / own * scale, size.height / own * scale);
   }
 
-  /// The layer's bounding size in 512-logical units, including its own scale.
-  /// Image layers shrink to their BoxFit.contain content rect (once the header
-  /// dims are cached) so a letterboxed photo doesn't blanket the canvas and
-  /// block taps on the layer underneath (#74).
-  Size _sizeOf(Layer layer) {
-    final s = layer.transform.scale;
-    return switch (layer) {
-      ImageLayer(:final assetPath, :final cropRect) => () {
-        const box = 440.0;
-        final dims = _imageDims[assetPath];
-        if (dims == null || dims.width <= 0 || dims.height <= 0) {
-          return Size(box * s, box * s);
-        }
-        // Aspect of the visible (cropped) content, so hit-box + selection frame
-        // track a per-layer crop (full crop → the source aspect, unchanged).
-        final ar =
-            (cropRect.width * dims.width) / (cropRect.height * dims.height);
-        return ar >= 1
-            ? Size(box * s, box / ar * s)
-            : Size(box * ar * s, box * s);
-      }(),
-      BubbleLayer() => kBubbleBaseSize * s,
-      TextLayer() => () {
-        final tp = TextPainter(
-          text: TextSpan(
-            text: layer.text.isEmpty ? ' ' : layer.text,
-            style: TextStyle(
-              fontFamily: layer.fontFamily,
-              fontSize: layer.fontSize,
-              height: 1,
-              letterSpacing: 1,
-            ),
-          ),
-          textDirection: TextDirection.ltr,
-        )..layout();
-        final size = Size(tp.width * s, tp.height * s);
-        tp.dispose();
-        return size;
-      }(),
-    };
-  }
+  /// The layer's bounding size in canvas-logical units, including its own
+  /// scale. Image layers shrink to their BoxFit.contain content rect (once the
+  /// header dims are cached) so a letterboxed photo doesn't blanket the canvas
+  /// and block taps on the layer underneath (#74).
+  ///
+  /// The formula lives in `layer_bounds.dart` because the Adjust panel's
+  /// placement sliders measure the layer the same way - see [layerLogicalSize].
+  Size _sizeOf(Layer layer) => layerLogicalSize(
+    layer,
+    imagePixels: layer is ImageLayer ? _imageDims[layer.assetPath] : null,
+  );
 
   // ------------------------------------------------------------ selection UI
   Widget _selectionOverlay(Layer layer, double scale) {

@@ -96,11 +96,16 @@ void main() {
     transform: LayerTransform(scale: scale, rotation: rotation),
   );
 
-  BubbleLayer bubble({double scale = 1}) => BubbleLayer(
+  BubbleLayer bubble({double scale = 1, Offset? position}) => BubbleLayer(
     id: 'bub',
     name: 'Bubble',
     text: 'Hi',
-    transform: LayerTransform(scale: scale),
+    transform: LayerTransform(
+      scale: scale,
+      // LayerTransform's own default is the legacy 512² canvas's centre, which
+      // is off-centre on the 1080² one Project.empty makes.
+      position: position ?? const Offset(540, 540),
+    ),
   );
 
   ImageLayer photo({String? cellId, LayerTransform? transform}) => ImageLayer(
@@ -118,6 +123,8 @@ void main() {
 
     expect(sliderFor('Scale'), findsOneWidget);
     expect(sliderFor('Rotation'), findsOneWidget);
+    expect(sliderFor('Horizontal'), findsOneWidget);
+    expect(sliderFor('Vertical'), findsOneWidget);
     expect(sliderFor('Opacity'), findsOneWidget);
     // The pixel half of Adjust stays a photo's own.
     expect(find.text('Brightness'), findsNothing);
@@ -184,6 +191,63 @@ void main() {
     expect(layerOf(container).transform.rotation, closeTo(-math.pi, 0.001));
   });
 
+  testWidgets('half a turn stays on the end the drag arrived at', (
+    tester,
+  ) async {
+    // -180° and 180° are one rotation, so the layer cannot say which end of the
+    // slider the finger is on and the panel has to remember. It used to wrap
+    // both to 180: dragging to the LEFT end wrote -π and the thumb teleported
+    // to the right end mid-drag, reading "180°" for a layer the user had just
+    // turned the other way.
+    final container = await pumpEditor(
+      tester,
+      withLayers([caption()]),
+      select: 'txt',
+    );
+
+    await tester.drag(sliderFor('Rotation'), const Offset(-2000, 0));
+    await tester.pump();
+    expect(layerOf(container).transform.rotation, closeTo(-math.pi, 0.001));
+    expect(find.text('-180°'), findsOneWidget);
+    expect(
+      tester.widget<Slider>(sliderFor('Rotation')).value,
+      -180,
+      reason: 'the thumb must stay under the finger, not hop to the far end',
+    );
+
+    await tester.drag(sliderFor('Rotation'), const Offset(2000, 0));
+    await tester.pump();
+    expect(layerOf(container).transform.rotation, closeTo(math.pi, 0.001));
+    expect(find.text('180°'), findsOneWidget);
+    expect(tester.widget<Slider>(sliderFor('Rotation')).value, 180);
+  });
+
+  testWidgets('a rotation from anywhere else drops the remembered end', (
+    tester,
+  ) async {
+    // The remembered reading is about ONE drag, and it is sticky enough to lie
+    // if it outlives the value it described - a pinch on the canvas, or an
+    // undo, must put the readout back on the layer's own angle.
+    final container = await pumpEditor(
+      tester,
+      withLayers([caption()]),
+      select: 'txt',
+    );
+    await tester.drag(sliderFor('Rotation'), const Offset(-2000, 0));
+    await tester.pump();
+    expect(find.text('-180°'), findsOneWidget);
+
+    container
+        .read(editorControllerProvider.notifier)
+        .updateTransform(
+          'txt',
+          const LayerTransform(rotation: 400 * math.pi / 180),
+        );
+    await tester.pump();
+    expect(find.text('-180°'), findsNothing);
+    expect(find.text('40°'), findsOneWidget);
+  });
+
   testWidgets('the Rotation slider cannot leave a layer a hair off level', (
     tester,
   ) async {
@@ -242,9 +306,170 @@ void main() {
     await pumpEditor(tester, withLayers([photo()]), select: 'img');
     expect(sliderFor('Scale'), findsOneWidget);
     expect(sliderFor('Rotation'), findsOneWidget);
+    expect(sliderFor('Horizontal'), findsOneWidget);
+    expect(sliderFor('Vertical'), findsOneWidget);
     expect(find.text('Crop photo'), findsOneWidget);
     expect(find.text('Brightness'), findsOneWidget);
     expect(find.text('Opacity'), findsOneWidget);
+  });
+
+  // ------------------------------------------------- Horizontal / Vertical
+  //
+  // A bubble is the layer whose size is a plain constant (kBubbleBaseSize,
+  // 210×168 at scale 1) - no font metrics, no image header - so the exact
+  // position each end of the bar must produce can be written down here rather
+  // than recomputed from the code under test.
+  const canvas = 1080.0; // Project.empty's default, square.
+  const centre = canvas / 2;
+  const travelX = (canvas + 210) / 2;
+  const travelY = (canvas + 168) / 2;
+
+  testWidgets('100% is the offset that puts the layer just off the canvas', (
+    tester,
+  ) async {
+    final container = await pumpEditor(
+      tester,
+      withLayers([bubble()]),
+      select: 'bub',
+    );
+
+    await tester.drag(sliderFor('Horizontal'), const Offset(2000, 0));
+    await tester.pump();
+    expect(
+      layerOf(container).transform.position.dx,
+      closeTo(centre + travelX, 0.5),
+      reason: 'the bubble\'s left edge lands exactly on the canvas right edge',
+    );
+    expect(
+      layerOf(container).transform.position.dx - 105,
+      closeTo(canvas, 0.5),
+    );
+
+    await tester.drag(sliderFor('Horizontal'), const Offset(-4000, 0));
+    await tester.pump();
+    expect(
+      layerOf(container).transform.position.dx,
+      closeTo(centre - travelX, 0.5),
+    );
+    expect(
+      layerOf(container).transform.position.dx + 105,
+      closeTo(0, 0.5),
+      reason: 'and its right edge on the canvas left edge, going the other way',
+    );
+  });
+
+  testWidgets('Vertical is measured against the layer\'s own height', (
+    tester,
+  ) async {
+    // Not the same travel as Horizontal: the bubble is wider than it is tall,
+    // so it leaves the canvas sooner going up than going sideways. A slider
+    // that used one number for both would overshoot on the short axis.
+    final container = await pumpEditor(
+      tester,
+      withLayers([bubble()]),
+      select: 'bub',
+    );
+
+    await tester.drag(sliderFor('Vertical'), const Offset(2000, 0));
+    await tester.pump();
+    final t = layerOf(container).transform;
+    expect(t.position.dy, closeTo(centre + travelY, 0.5));
+    expect(t.position.dy - 84, closeTo(canvas, 0.5));
+    expect(
+      t.position.dx,
+      centre,
+      reason: 'one axis at a time - Vertical must not move the layer sideways',
+    );
+  });
+
+  testWidgets('the travel grows with the layer, so 100% is always outside', (
+    tester,
+  ) async {
+    // The same 100% has to mean a different distance for a layer three times
+    // the size, or a scaled-up layer would still be half on screen at the end
+    // of the bar.
+    final container = await pumpEditor(
+      tester,
+      withLayers([bubble(scale: 3)]),
+      select: 'bub',
+    );
+
+    await tester.drag(sliderFor('Horizontal'), const Offset(2000, 0));
+    await tester.pump();
+    expect(
+      layerOf(container).transform.position.dx - 105 * 3,
+      closeTo(canvas, 0.5),
+    );
+  });
+
+  testWidgets('a layer parked off-canvas reads past the end of the bar', (
+    tester,
+  ) async {
+    // Dragging a layer clean off the canvas is ordinary, so the readout stays
+    // the true percentage and only the THUMB pins to the end - the same trade
+    // the Scale slider makes. A clamped readout would say "100%" for a layer
+    // three canvases away and make the slider look broken when it moved it.
+    await pumpEditor(
+      tester,
+      withLayers([bubble(position: const Offset(2000, 540))]),
+      select: 'bub',
+    );
+    // (2000 - 540) / 645 = 226%.
+    expect(find.text('226%'), findsOneWidget);
+    expect(tester.widget<Slider>(sliderFor('Horizontal')).value, 100);
+  });
+
+  testWidgets('the placement sliders snap to dead centre', (tester) async {
+    final container = await pumpEditor(
+      tester,
+      withLayers([bubble()]),
+      select: 'bub',
+    );
+    // Off-centre first, so a slider that did nothing at all would fail this.
+    await tester.drag(sliderFor('Horizontal'), const Offset(2000, 0));
+    await tester.pump();
+
+    final rect = tester.getRect(sliderFor('Horizontal'));
+    var sawCentre = false;
+    for (var dx = -8.0; dx <= 8.0; dx++) {
+      await tester.tapAt(Offset(rect.center.dx + dx, rect.center.dy));
+      await tester.pump();
+      final offset = layerOf(container).transform.position.dx - centre;
+      if (offset == 0) {
+        sawCentre = true;
+      } else {
+        expect(
+          offset.abs(),
+          greaterThanOrEqualTo(travelX * 0.02),
+          reason: '$dx px from the middle left the layer $offset off centre',
+        );
+      }
+    }
+    expect(sawCentre, isTrue, reason: 'the sweep must cross the middle');
+  });
+
+  testWidgets('a covered layer is moved by the slider, not by the drag', (
+    tester,
+  ) async {
+    // The reason these exist: the canvas hit-test gives a drag to the TOPMOST
+    // layer under the finger, so a layer sitting beneath a big photo cannot be
+    // dragged out from under it. The panel addresses the selected layer, so
+    // what covers it has no say.
+    final container = await pumpEditor(
+      tester,
+      withLayers([bubble(), photo()]),
+      select: 'bub',
+    );
+
+    await tester.drag(sliderFor('Horizontal'), const Offset(2000, 0));
+    await tester.pump();
+    final layers = container.read(editorControllerProvider).layers;
+    expect(layers.first.transform.position.dx, closeTo(centre + travelX, 0.5));
+    expect(
+      layers.last.transform.position,
+      const Offset(256, 256),
+      reason: 'the photo on top of it must not move',
+    );
   });
 
   testWidgets('a photo filling a grid cell is placed by the cell', (
@@ -264,6 +489,8 @@ void main() {
 
     expect(sliderFor('Scale'), findsNothing);
     expect(sliderFor('Rotation'), findsNothing);
+    expect(sliderFor('Horizontal'), findsNothing);
+    expect(sliderFor('Vertical'), findsNothing);
     expect(find.text('Brightness'), findsOneWidget);
     expect(find.text('Opacity'), findsOneWidget);
   });
@@ -313,6 +540,8 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(sliderFor('Scale'), findsOneWidget);
     expect(sliderFor('Rotation'), findsOneWidget);
+    expect(sliderFor('Horizontal'), findsOneWidget);
+    expect(sliderFor('Vertical'), findsOneWidget);
   });
 }
 

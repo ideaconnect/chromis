@@ -128,8 +128,9 @@ it has to live inside one recorded picture, and `Opacity`/`ColorFiltered`/
 ### Layer placement
 
 **Adjust is a panel for any layer, not only a photo.** Its top half - Scale,
-Rotation, Opacity - reads `Layer.transform` through `updateTransform`, so it
-works on a caption or a bubble; the crop button and the four colour sliders
+Rotation, Horizontal, Vertical, Opacity - reads `Layer.transform` through
+`updateTransform`, so it works on a caption or a bubble; the crop button and the
+four colour sliders
 reach pixels and stay an `ImageLayer`'s alone (`_photoAdjustments`). It answered
 anything else with an empty hint before, which left one state with **no way
 out**: the canvas hit box IS the layer, so a caption or bubble created small -
@@ -159,12 +160,64 @@ the canvas ACCUMULATES it across pinches and a layer really can sit at 400°, an
 it snaps to straight over the last couple of degrees, which a slider cannot hit
 on purpose.
 
-**A photo that fills a grid cell gets neither slider.** `_clampToCell` keeps a
+**Half a turn is the one angle the layer cannot describe, so the panel
+remembers it.** -180° and 180° are the same rotation and both ends of the
+slider, so wrapping alone had to pick one - and picking 180 meant a drag to the
+LEFT end wrote -π and then watched the thumb teleport to the right end under
+the finger, reading "180°" for a layer just turned the other way. Which of the
+two equal readings to show is a fact about the drag rather than about the
+layer, so `_setRotation` records the exact radians it wrote alongside the
+degrees it was showing, and `_rotationDegreesOf` shows that reading back for as
+long as the layer still holds exactly those radians. The match is **bit-exact**
+on purpose: `updateTransform` stores the double untouched, whereas comparing
+the two as *angles* would be at its least reliable at exactly ±180, where a
+1e-13 rounding step crosses the wrap and reads as a 360° disagreement. Anything
+else that moves the layer - a pinch, an undo, another layer selected - fails
+the match and falls back to the wrapped angle, which is what keeps a sticky
+reading from outliving the value it described.
+
+**Horizontal and Vertical exist because the canvas hands a drag to the TOPMOST
+layer under the finger.** A layer beneath a bigger one therefore cannot be
+dragged out from under it - the hit test never reaches it - and that is a second
+version of the same trap Scale was added for: every gesture on the canvas is
+routed by the layer's own hit box, so any layer the hit box cannot deliver is
+stranded. The panel addresses the *selected* layer, so neither the layer's size
+nor what covers it has any say.
+
+**100% is the offset at which the layer has just left the canvas: half the
+canvas plus half the layer** (`placementTravel`). Two things follow from
+choosing that over a plain fraction of the canvas. The bar covers everywhere the
+layer can be *seen* and stops where it cannot, rather than spending its ends on
+offsets that are all equally invisible; and the travel has to be measured per
+layer, because a caption needs a few percent past the edge to be gone and a
+full-bleed photo needs nearly a whole canvas more. Both ends snap to dead centre
+over the last couple of percent, for the same reason Rotation snaps to straight.
+
+**A layer parked off-canvas reads past ±100 and only the thumb pins to the
+end.** Dragging a layer clean off the canvas is ordinary, not a corner case, so
+the readout stays the true percentage (`LabeledSlider` clamps the `Slider`'s own
+value) - the same trade the Scale slider makes. A clamped readout would say
+"100%" for a layer three canvases away and then look broken when it moved.
+
+**How big a layer is has ONE answer: `layerLogicalSize` in
+`features/editor/layer_bounds.dart`.** The canvas hit-tests and draws the
+selection frame with it and the placement sliders derive their travel from it,
+and a hit box and a slider that measured the layer differently would be two
+answers with nothing to reconcile them. The photo's pixel size that feeds it is
+cached twice - once in `EditorCanvas`, once in `_EditorScreenState` - and that
+is fine where a second copy of the formula would not be: a file's dimensions
+cannot disagree between two readers. Until the header lands (or for a file that
+will not decode) a photo measures as the full `kLayerFitBoxSide` square, which
+rounds the answer UP, and up is the safe direction for both callers - a hit box
+too big is still grabbable, and travel too long still reaches off-canvas.
+
+**A photo that fills a grid cell gets none of the four.** `_clampToCell` keeps a
 cell photo covering its cell, because one shrunk aside leaves a hole in the
 collage that reads as a bug; a slider would be a second path to that state with
-none of the clamp. Nothing is lost - a cell photo fills its cell, so it is never
-the layer you cannot touch. Captions and bubbles in a cell keep the sliders:
-they are never clamped there, only clipped.
+none of the clamp - and Horizontal/Vertical would be the *most* direct one.
+Nothing is lost - a cell photo fills its cell, so it is never the layer you
+cannot touch or the one hiding under another. Captions and bubbles in a cell
+keep the sliders: they are never clamped there, only clipped.
 
 ### Object removal: which pixels, and what goes there
 

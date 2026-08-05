@@ -300,6 +300,14 @@
   "@rotation": {
     "description": "Adjust panel slider: the selected layer's angle, in degrees."
   },
+  "horizontal": "Horizontal",
+  "@horizontal": {
+    "description": "Adjust panel slider: moves the selected layer left/right. 0% is the centre of the canvas, ±100% is just off its left/right edge."
+  },
+  "vertical": "Vertical",
+  "@vertical": {
+    "description": "Adjust panel slider: moves the selected layer up/down. 0% is the centre of the canvas, ±100% is just off its top/bottom edge."
+  },
   "brightness": "Brightness",
   "contrast": "Contrast",
   "saturation": "Saturation",

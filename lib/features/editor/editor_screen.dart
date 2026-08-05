@@ -54,6 +54,7 @@ import '../segmentation/mask_store.dart';
 import '../segmentation/seg_model.dart';
 import '../segmentation/segmentation_engine.dart';
 import '../segmentation/segmentation_registry.dart';
+import 'layer_bounds.dart';
 import 'layer_scale_curve.dart';
 import 'mask_mapper.dart';
 import 'services/image_import.dart';
@@ -762,21 +763,145 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     return deg > 180 ? deg - 360 : deg;
   }
 
+  // Half a turn is the one angle the layer cannot describe: -180° and 180° are
+  // the same picture and both ends of the slider, so [_degreesOf] has to pick
+  // one - and picking 180 meant a drag to the LEFT end wrote -π and then saw
+  // the thumb teleport to the right end under the finger, reading "180°". The
+  // model is right and there is nothing to fix in it; which of the two readings
+  // to show is a fact about the drag, so the panel remembers it: the exact
+  // radians it last wrote, and the degrees it was showing when it wrote them.
+  //
+  // Bit-exact on purpose. `updateTransform` stores the double untouched, so the
+  // match is reliable - whereas comparing the two as ANGLES would be at its
+  // least reliable at exactly ±180, where a 1e-13 rounding step crosses the
+  // wrap and reads as a 360° disagreement.
+  String? _rotationSliderLayerId;
+  double? _rotationSliderRadians;
+  double _rotationSliderDegrees = 0;
+
+  /// The degrees to show for [layer]: the reading this panel wrote, for as long
+  /// as the layer still holds exactly what it wrote. A pinch, an undo, a
+  /// different layer - anything else that moves it - fails the match and falls
+  /// back to the wrapped angle.
+  double _rotationDegreesOf(Layer layer) =>
+      layer.id == _rotationSliderLayerId &&
+          layer.transform.rotation == _rotationSliderRadians
+      ? _rotationSliderDegrees
+      : _degreesOf(layer.transform.rotation);
+
+  void _setRotation(Layer layer, double degrees) {
+    // Snapped to straight over the last couple of degrees: a caption a hair off
+    // level reads as a mistake rather than a choice, and a slider cannot be
+    // nudged to an exact value the way a field can.
+    final snapped = degrees.abs() < 2 ? 0.0 : degrees;
+    final radians = snapped * math.pi / 180;
+    setState(() {
+      _rotationSliderLayerId = layer.id;
+      _rotationSliderDegrees = snapped;
+      _rotationSliderRadians = radians;
+    });
+    _controller.updateTransform(
+      layer.id,
+      layer.transform.copyWith(rotation: radians),
+    );
+  }
+
   // The scale range and the slider's curve live in layer_scale_curve.dart, so
   // the pinch gesture and this slider read the same numbers instead of each
   // keeping their own copy.
 
-  /// Scale + rotation for the selected layer, whatever its type.
+  /// Source pixel size per photo assetPath, read from the encoded header, so
+  /// the placement sliders can measure a photo layer the way the canvas does.
   ///
-  /// The canvas can already pinch-zoom and twist a layer, but a caption or a
-  /// bubble created small - or scaled down by accident - is the one thing a
-  /// finger cannot get back: the hit box IS the layer, so past a certain size
-  /// there is nothing left to grab and the layer is stranded on the canvas. A
-  /// slider does not depend on the layer's size, so it is always a way in.
-  List<Widget> _placementSliders(Layer layer) {
+  /// This is a second cache of the same numbers `EditorCanvas` keeps, and that
+  /// is fine where a second copy of the FORMULA would not be: a file's
+  /// dimensions cannot disagree between two readers, whereas "how big is this
+  /// layer" written twice can - which is why that half lives in
+  /// [layerLogicalSize] and not here. Until it lands a photo measures as the
+  /// full fit box, exactly as it does for hit-testing.
+  final Map<String, Size> _photoPixels = {};
+  final Set<String> _photoPixelsLoading = {};
+
+  void _ensurePhotoPixels(String path) {
+    if (_photoPixels.containsKey(path) || !_photoPixelsLoading.add(path)) {
+      return;
+    }
+    unawaited(() async {
+      try {
+        final size = await MaskStore.decodeImageSize(path);
+        if (mounted) setState(() => _photoPixels[path] = size);
+      } catch (_) {
+        // Unreadable file - keep the fit-box fallback, and don't retry.
+        if (mounted) _photoPixels[path] = Size.zero;
+      } finally {
+        _photoPixelsLoading.remove(path);
+      }
+    }());
+  }
+
+  /// Moves [layer] to [percent] of the way off the canvas along one axis - see
+  /// [placementTravel]. [axisX] picks the axis.
+  void _setPlacement(Layer layer, double percent, {required bool axisX}) {
+    final project = ref.read(editorControllerProvider).project;
+    final travel = _placementTravelOf(layer, project, axisX: axisX);
+    // Snapped to centred over the last couple of percent, for the same reason
+    // Rotation snaps to straight: dead-centre is a value a user asks for by
+    // name and a slider cannot hit on purpose.
+    final snapped = percent.abs() < 2 ? 0.0 : percent;
+    final centre = project.canvasCenter;
+    final offset = snapped / 100 * travel;
+    _controller.updateTransform(
+      layer.id,
+      layer.transform.copyWith(
+        position: axisX
+            ? Offset(centre.dx + offset, layer.transform.position.dy)
+            : Offset(layer.transform.position.dx, centre.dy + offset),
+      ),
+    );
+  }
+
+  double _placementTravelOf(
+    Layer layer,
+    Project project, {
+    required bool axisX,
+  }) {
+    if (layer is ImageLayer) _ensurePhotoPixels(layer.assetPath);
+    final size = layerLogicalSize(
+      layer,
+      imagePixels: layer is ImageLayer ? _photoPixels[layer.assetPath] : null,
+    );
+    return axisX
+        ? placementTravel(project.canvasWidth.toDouble(), size.width)
+        : placementTravel(project.canvasHeight.toDouble(), size.height);
+  }
+
+  /// Placement for the selected layer, whatever its type: scale, rotation and
+  /// where it sits.
+  ///
+  /// The canvas can already drag, pinch-zoom and twist a layer, but every one
+  /// of those goes through the layer's own hit box - which is the whole problem
+  /// they leave behind. A layer created small, or pinched down by accident, has
+  /// nothing left to grab; a layer under a bigger one gets its drags stolen by
+  /// the layer on top, because the topmost hit wins and the one you want is
+  /// underneath. Sliders answer both: they address the SELECTED layer, so
+  /// neither its size nor what covers it has any say.
+  List<Widget> _placementSliders(Layer layer, Project project) {
     final id = layer.id;
     final t = layer.transform;
-    final degrees = _degreesOf(t.rotation);
+    final degrees = _rotationDegreesOf(layer);
+    final centre = project.canvasCenter;
+    // 100% is the offset at which the layer has just left the canvas, so the
+    // bar spans everywhere it can be seen and stops where it cannot. A layer
+    // dragged further out than that reads past ±100 and the thumb pins to the
+    // end (LabeledSlider clamps it), the same trade the Scale slider makes.
+    final xPercent =
+        (t.position.dx - centre.dx) /
+        _placementTravelOf(layer, project, axisX: true) *
+        100;
+    final yPercent =
+        (t.position.dy - centre.dy) /
+        _placementTravelOf(layer, project, axisX: false) *
+        100;
     return [
       LabeledSlider(
         label: _l10n.scale,
@@ -801,13 +926,27 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         max: 180,
         accent: context.colors.teal,
         valueLabel: '${degrees.round()}°',
-        onChanged: (v) => _controller.updateTransform(
-          id,
-          // Snapped to straight over the last couple of degrees: a caption a
-          // hair off level reads as a mistake rather than a choice, and a
-          // slider cannot be nudged to an exact value the way a field can.
-          t.copyWith(rotation: (v.abs() < 2 ? 0.0 : v) * math.pi / 180),
-        ),
+        onChanged: (v) => _setRotation(layer, v),
+        onChangeEnd: _endSliderEdit,
+      ),
+      LabeledSlider(
+        label: _l10n.horizontal,
+        value: xPercent,
+        min: -100,
+        max: 100,
+        accent: context.colors.teal,
+        valueLabel: '${xPercent.round()}%',
+        onChanged: (v) => _setPlacement(layer, v, axisX: true),
+        onChangeEnd: _endSliderEdit,
+      ),
+      LabeledSlider(
+        label: _l10n.vertical,
+        value: yPercent,
+        min: -100,
+        max: 100,
+        accent: context.colors.teal,
+        valueLabel: '${yPercent.round()}%',
+        onChanged: (v) => _setPlacement(layer, v, axisX: false),
         onChangeEnd: _endSliderEdit,
       ),
     ];
@@ -887,7 +1026,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         // so the one button in the panel stays at the top of it rather than
         // splitting the slider stack in two.
         if (photo != null) ..._cropControls(photo),
-        if (placeable) ..._placementSliders(selected),
+        if (placeable) ..._placementSliders(selected, editor.project),
         if (photo != null) ..._colorSliders(photo),
         LabeledSlider(
           label: _l10n.opacity,

@@ -1096,6 +1096,18 @@ abstract class AppLocalizations {
   /// **'Rotation'**
   String get rotation;
 
+  /// Adjust panel slider: moves the selected layer left/right. 0% is the centre of the canvas, ±100% is just off its left/right edge.
+  ///
+  /// In en, this message translates to:
+  /// **'Horizontal'**
+  String get horizontal;
+
+  /// Adjust panel slider: moves the selected layer up/down. 0% is the centre of the canvas, ±100% is just off its top/bottom edge.
+  ///
+  /// In en, this message translates to:
+  /// **'Vertical'**
+  String get vertical;
+
   /// No description provided for @brightness.
   ///
   /// In en, this message translates to:

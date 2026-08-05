@@ -565,6 +565,12 @@ class AppLocalizationsCs extends AppLocalizations {
   String get rotation => 'Otočení';
 
   @override
+  String get horizontal => 'Vodorovně';
+
+  @override
+  String get vertical => 'Svisle';
+
+  @override
   String get brightness => 'Jas';
 
   @override

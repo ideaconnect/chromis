@@ -165,6 +165,8 @@
   "croppedTo": "Zugeschnitten auf {width}×{height}",
   "scale": "Skalierung",
   "rotation": "Drehung",
+  "horizontal": "Horizontal",
+  "vertical": "Vertikal",
   "brightness": "Helligkeit",
   "contrast": "Kontrast",
   "saturation": "Sättigung",
