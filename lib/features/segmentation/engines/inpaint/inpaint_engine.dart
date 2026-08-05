@@ -64,6 +64,7 @@ class InpaintEngine {
           pre.width,
           pre.height,
           pre.box,
+          pre.window,
         ),
       );
     } catch (e, stack) {
@@ -99,22 +100,102 @@ InpaintBox inpaintLetterbox(int w, int h) {
   return (x: (_side - lw) ~/ 2, y: (_side - lh) ~/ 2, w: lw, h: lh);
 }
 
+/// The crop of the photo the model is shown, in image pixels.
+typedef InpaintWindow = ({int x, int y, int w, int h});
+
+/// Context kept around the object, as a fraction of its longer side.
+const _windowMargin = 0.5;
+
+/// A square-ish crop around the marked region, clamped to the photo.
+///
+/// The model input is a fixed 512², so feeding it the WHOLE photo is what
+/// decides how many pixels the object actually gets: a person filling 7% of a
+/// 2048 px frame is synthesized ~64 px wide and then blown back up. Cropping to
+/// a window first measured ~90 px for the same run - and since the crop is
+/// square it also fills the 512 field instead of wasting it on letterbox bars.
+///
+/// Pure geometry - covered by test/inpaint_letterbox_test.dart.
+InpaintWindow inpaintWindow(
+  int imageW,
+  int imageH,
+  int bx,
+  int by,
+  int bw,
+  int bh,
+) {
+  final longer = bw > bh ? bw : bh;
+  final margin = (longer * _windowMargin).round();
+  var side = longer + 2 * margin;
+  if (side > imageW) side = imageW;
+  if (side > imageH) side = imageH;
+  final cx = bx + bw ~/ 2;
+  final cy = by + bh ~/ 2;
+  final x = (cx - side ~/ 2).clamp(0, imageW - side);
+  final y = (cy - side ~/ 2).clamp(0, imageH - side);
+  return (x: x, y: y, w: side, h: side);
+}
+
+/// Bounding box of the marked region in IMAGE pixels, or null if nothing is
+/// marked. The mask is routinely a different resolution than the photo.
+({int x, int y, int w, int h})? inpaintRegionBox(
+  AlphaMask region,
+  int imageW,
+  int imageH,
+) {
+  var x0 = region.width, y0 = region.height, x1 = -1, y1 = -1;
+  for (var y = 0; y < region.height; y++) {
+    final row = y * region.width;
+    for (var x = 0; x < region.width; x++) {
+      if (region.alpha[row + x] <= 128) continue;
+      if (x < x0) x0 = x;
+      if (x > x1) x1 = x;
+      if (y < y0) y0 = y;
+      if (y > y1) y1 = y;
+    }
+  }
+  if (x1 < 0) return null;
+  final sx = imageW / region.width;
+  final sy = imageH / region.height;
+  final ax = (x0 * sx).floor().clamp(0, imageW - 1);
+  final ay = (y0 * sy).floor().clamp(0, imageH - 1);
+  final bx = ((x1 + 1) * sx).ceil().clamp(1, imageW);
+  final by = ((y1 + 1) * sy).ceil().clamp(1, imageH);
+  return (x: ax, y: ay, w: bx - ax, h: by - ay);
+}
+
 /// Builds the MI-GAN 4-channel input from the source bytes + region mask.
 ///
-/// The photo is *letterboxed* into the square 512 field (fit-contain, centered)
-/// rather than squished, so the model sees undistorted geometry. Padding around
-/// the photo is edge-replicated and always marked "keep" (never treated as a
-/// hole to synthesize).
-({Float32List input, int width, int height, InpaintBox box}) _preprocess(
-  Uint8List imageBytes,
-  AlphaMask region,
-) {
+/// The model sees a square WINDOW around the object rather than the whole
+/// photo ([inpaintWindow]) - at a fixed 512² input that is what decides how
+/// many pixels the object itself gets. The window is letterboxed fit-contain
+/// into the field (it is only non-square where it was clamped to the photo's
+/// edge), so geometry is never distorted; padding is edge-replicated and always
+/// marked "keep" so it is never treated as a hole.
+({
+  Float32List input,
+  int width,
+  int height,
+  InpaintBox box,
+  InpaintWindow window,
+})
+_preprocess(Uint8List imageBytes, AlphaMask region) {
   final src = img.decodeImage(imageBytes)!;
   final w = src.width, h = src.height;
-  final box = inpaintLetterbox(w, h);
+  final bbox = inpaintRegionBox(region, w, h);
+  final window = bbox == null
+      ? (x: 0, y: 0, w: w, h: h)
+      : inpaintWindow(w, h, bbox.x, bbox.y, bbox.w, bbox.h);
+  final cropped = img.copyCrop(
+    src,
+    x: window.x,
+    y: window.y,
+    width: window.w,
+    height: window.h,
+  );
+  final box = inpaintLetterbox(window.w, window.h);
   final lx = box.x, ly = box.y, lw = box.w, lh = box.h;
   final fitted = img.copyResize(
-    src,
+    cropped,
     width: lw,
     height: lh,
     interpolation: img.Interpolation.average,
@@ -125,11 +206,14 @@ InpaintBox inpaintLetterbox(int w, int h) {
   for (var i = 0; i < plane; i++) {
     final x = i % _side, y = i ~/ _side;
     final inside = x >= lx && x < lx + lw && y >= ly && y < ly + lh;
-    // Edge-replicate outside the photo so padding is neutral known context.
+    // Edge-replicate outside the window so padding is neutral known context.
     final fx = (x - lx).clamp(0, lw - 1);
     final fy = (y - ly).clamp(0, lh - 1);
-    final rx = (fx * region.width) ~/ lw;
-    final ry = (fy * region.height) ~/ lh;
+    // Window pixel -> image pixel -> mask pixel.
+    final ix = window.x + (fx * window.w) ~/ lw;
+    final iy = window.y + (fy * window.h) ~/ lh;
+    final rx = ((ix * region.width) ~/ w).clamp(0, region.width - 1);
+    final ry = ((iy * region.height) ~/ h).clamp(0, region.height - 1);
     final keep = (inside && region.alpha[ry * region.width + rx] > 128)
         ? 0.0
         : 1.0;
@@ -139,12 +223,12 @@ InpaintBox inpaintLetterbox(int w, int h) {
     input[2 * plane + i] = (rgba[o + 1] / 127.5 - 1.0) * keep;
     input[3 * plane + i] = (rgba[o + 2] / 127.5 - 1.0) * keep;
   }
-  return (input: input, width: w, height: h, box: box);
+  return (input: input, width: w, height: h, box: box, window: window);
 }
 
 /// Composites the model's fill (cropped out of the letterboxed 512 field and
-/// upscaled) over the full-res original, only inside the region, and
-/// PNG-encodes the result.
+/// scaled back to the window) over the full-res original, only inside the
+/// region, and PNG-encodes the result.
 Uint8List _postprocess(
   Float32List flat,
   Uint8List imageBytes,
@@ -152,6 +236,7 @@ Uint8List _postprocess(
   int width,
   int height,
   InpaintBox box,
+  InpaintWindow window,
 ) {
   const plane = _side * _side;
   final fillRgba = Uint8List(plane * 4);
@@ -164,8 +249,8 @@ Uint8List _postprocess(
     fillRgba[o + 2] = chan(2);
     fillRgba[o + 3] = 255;
   }
-  // Crop the fill back to the letterboxed photo area (undoing the fit-contain
-  // padding from _preprocess), then upscale that to the full resolution.
+  // Crop the fill back to the letterboxed area (undoing the fit-contain padding
+  // from _preprocess), then scale it to the window.
   final fillCrop = img.copyCrop(
     img.Image.fromBytes(
       width: _side,
@@ -179,19 +264,32 @@ Uint8List _postprocess(
     width: box.w,
     height: box.h,
   );
-  final filledFull = img.copyResize(fillCrop, width: width, height: height);
+  // CUBIC, explicitly. `copyResize` defaults to Interpolation.nearest, and this
+  // is an UPscale from 512 to the window's real size - nearest turns the
+  // model's output into hard rectangular blocks, which is what shipped and what
+  // looked like "the fill is terrible quality". The downscale above already
+  // passed `average`; only the way back up was left on the default.
+  final filledWindow = img.copyResize(
+    fillCrop,
+    width: window.w,
+    height: window.h,
+    interpolation: img.Interpolation.cubic,
+  );
   final src = img.decodeImage(imageBytes)!;
   final base = src.getBytes(order: img.ChannelOrder.rgba);
-  final fill = filledFull.getBytes(order: img.ChannelOrder.rgba);
-  for (var y = 0; y < height; y++) {
-    for (var x = 0; x < width; x++) {
-      final rx = (x * region.width) ~/ width;
-      final ry = (y * region.height) ~/ height;
+  final fill = filledWindow.getBytes(order: img.ChannelOrder.rgba);
+  // Only the window can contain marked pixels - it was built around their
+  // bounding box - so walk it rather than the whole photo.
+  for (var y = window.y; y < window.y + window.h; y++) {
+    for (var x = window.x; x < window.x + window.w; x++) {
+      final rx = ((x * region.width) ~/ width).clamp(0, region.width - 1);
+      final ry = ((y * region.height) ~/ height).clamp(0, region.height - 1);
       if (region.alpha[ry * region.width + rx] > 128) {
         final o = (y * width + x) * 4;
-        base[o] = fill[o];
-        base[o + 1] = fill[o + 1];
-        base[o + 2] = fill[o + 2]; // keep the original alpha
+        final f = ((y - window.y) * window.w + (x - window.x)) * 4;
+        base[o] = fill[f];
+        base[o + 1] = fill[f + 1];
+        base[o + 2] = fill[f + 2]; // keep the original alpha
       }
     }
   }

@@ -40,9 +40,7 @@ void main() {
   test('a model that cannot be opened falls through instead of throwing', () {
     // This is what makes the gate unnecessary: an absent or unloadable asset is
     // already reported as null, not as an exception the caller must catch.
-    final engine = InpaintEngine(
-      () async => throw StateError('no such asset'),
-    );
+    final engine = InpaintEngine(() async => throw StateError('no such asset'));
     expect(
       engine.inpaint(photo(), AlphaMask.filled(64, 64, 255)),
       completion(isNull),
