@@ -70,6 +70,7 @@ class AppPalette {
     required this.brightness,
     required this.pageBackground,
     required this.background,
+    required this.chrome,
     required this.panel,
     required this.card,
     required this.cardAlt,
@@ -110,6 +111,20 @@ class AppPalette {
   // Surfaces, darkest to lightest in [dark] and the reverse in [light].
   final Color pageBackground;
   final Color background;
+
+  /// The editor's own chrome - the tool panel and the landscape rail. It is the
+  /// PAGE's colour, which is the whole point: those are the largest persistent
+  /// surfaces in the app, so on an AMOLED panel they are the pixels worth
+  /// switching off, and on an IPS panel they are the ones that must not read as
+  /// grey. It can be, because it sits directly on the page with a hairline
+  /// along its edge.
+  ///
+  /// [panel] cannot, and that is why these are two tokens rather than one. A
+  /// sheet or a dialog floats over a scrim, and a scrim over black is still
+  /// black - a pure-black sheet would have no edge at all. It stays one step
+  /// off the page so it reads as something laid on top.
+  final Color chrome;
+
   final Color panel;
   final Color card;
   final Color cardAlt;
@@ -194,14 +209,17 @@ class AppPalette {
 
   Color accent(ToolAccent a) => accents[a]!;
 
-  /// True black at the bottom, so an AMOLED panel can switch those pixels off,
-  /// with neutral greys above it for the panels and cards. Nothing is tinted:
-  /// a photo editor's chrome should not push a colour cast onto the image it
-  /// is framing.
+  /// True black wherever the page is, so an AMOLED panel can switch those
+  /// pixels off, with neutral greys above it only for things that float. That
+  /// now includes the editor's tool panel ([chrome]), which is the largest
+  /// persistent surface in the app and was the last big grey field left.
+  /// Nothing is tinted: a photo editor's chrome should not push a colour cast
+  /// onto the image it is framing.
   static const AppPalette dark = AppPalette(
     brightness: Brightness.dark,
     pageBackground: Color(0xFF000000),
     background: Color(0xFF000000),
+    chrome: Color(0xFF000000),
     panel: Color(0xFF101013),
     card: Color(0xFF121215),
     cardAlt: Color(0xFF1A1A1F),
@@ -212,9 +230,12 @@ class AppPalette {
     textSecondary: Color(0xFFB6BAC2),
     textMuted: Color(0xFF8C919B),
     textFaint: Color(0xFF6E7480),
-    border: Color(0x14FFFFFF), // ~8% white
-    borderFaint: Color(0x0FFFFFFF), // ~6% white
-    borderStrong: Color(0x38FFFFFF), // ~22% white
+    // A step up from where these were. With the page, the chrome and the dock
+    // all at the same black, the hairline IS the edge - there is no longer a
+    // fill difference behind it doing half the work.
+    border: Color(0x1FFFFFFF), // ~12% white
+    borderFaint: Color(0x17FFFFFF), // ~9% white
+    borderStrong: Color(0x3DFFFFFF), // ~24% white
     onAccent: Color(0xFF08090C),
     neutralButton: Color(0xFF1A1A1F),
     checkerBase: Color(0xFF1B1B20),
@@ -235,29 +256,43 @@ class AppPalette {
     rose: Color(0xFFF08AA0),
   );
 
-  /// White cards on a light grey page - the arrangement every other light
-  /// Android app uses, so a photo still reads as the brightest thing on screen.
+  /// Pure white pages, not the light grey every other Android app uses.
+  ///
+  /// The grey was the safe choice and the wrong one here: IPS is the panel this
+  /// theme exists for, and a 94%-white field is exactly what an IPS panel turns
+  /// muddy the moment there is daylight on it - the greys wash together and the
+  /// whole app reads dirty. White has nowhere to fall to. It also means a photo
+  /// is no longer the brightest thing on screen, which is the trade: the app
+  /// gets its structure from hairlines and recessed controls instead of from a
+  /// step in surface brightness.
+  ///
+  /// That is why [inputField] is NOT white any more. On a grey page a white
+  /// field read as a field by being brighter than everything around it; on a
+  /// white page the same colour is invisible, so it has to recede instead.
   ///
   /// The accents are the same hues at roughly half the luminance. They were
   /// picked against white, not eyeballed: each clears 4.5:1 there, which is
   /// what lets the same token be an icon, a border and a button fill.
   static const AppPalette light = AppPalette(
     brightness: Brightness.light,
-    pageBackground: Color(0xFFEDEFF3),
-    background: Color(0xFFF4F5F8),
+    pageBackground: Color(0xFFFFFFFF),
+    background: Color(0xFFFFFFFF),
+    chrome: Color(0xFFFFFFFF),
     panel: Color(0xFFFFFFFF),
     card: Color(0xFFFFFFFF),
-    cardAlt: Color(0xFFECEEF3),
-    inputField: Color(0xFFFFFFFF),
+    cardAlt: Color(0xFFEDEFF4),
+    inputField: Color(0xFFF2F4F8),
     chipSurface: Color(0xFFECEEF3),
     elevated: Color(0xFFE4E7EC),
     textPrimary: Color(0xFF14161A),
     textSecondary: Color(0xFF4A515B),
     textMuted: Color(0xFF5F656E),
     textFaint: Color(0xFF7B828D),
-    border: Color(0x1F000000), // ~12% black
-    borderFaint: Color(0x14000000), // ~8% black
-    borderStrong: Color(0x40000000), // ~25% black
+    // Stronger than they were, for the same reason as [dark]'s: a white card on
+    // a white page has only its hairline to say where it ends.
+    border: Color(0x29000000), // ~16% black
+    borderFaint: Color(0x1F000000), // ~12% black
+    borderStrong: Color(0x4D000000), // ~30% black
     onAccent: Color(0xFFFFFFFF),
     neutralButton: Color(0xFFE3E6EC),
     checkerBase: Color(0xFFE2E5EA),
@@ -288,6 +323,7 @@ class AppPalette {
       brightness: t < 0.5 ? a.brightness : b.brightness,
       pageBackground: c(a.pageBackground, b.pageBackground),
       background: c(a.background, b.background),
+      chrome: c(a.chrome, b.chrome),
       panel: c(a.panel, b.panel),
       card: c(a.card, b.card),
       cardAlt: c(a.cardAlt, b.cardAlt),

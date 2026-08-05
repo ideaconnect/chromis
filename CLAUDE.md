@@ -27,8 +27,29 @@ so they cannot drift into being two designs.
 
 The surfaces are **neutral**, not the mockup's navy. That navy was a bad fit at
 both ends: on AMOLED it lights every pixel for a colour that was pure
-decoration, and on IPS it greys out in daylight. Dark bottoms out at true black,
-light tops out at white. The **accents vary too** - the brand hues read on black
+decoration, and on IPS it greys out in daylight.
+
+**Every surface that covers the screen is pure `#000000` or pure `#FFFFFF`** -
+`pageBackground`, `background` and `chrome`, asserted by `appearance_test.dart`.
+This is a hardware requirement, not a preference, and it is the one thing no
+contrast check can catch: a near-black is perfectly legible and still keeps an
+AMOLED pixel lit, and a 94% white is legible and still turns muddy on IPS in
+daylight, which is what the light theme's grey page used to do. The trade is
+that structure now comes from hairlines and recessed controls rather than from a
+step in surface brightness - so **`inputField` is no longer white in light**
+(a white field on a white page is not a field), and the border tokens are a step
+stronger in both themes.
+
+**`chrome` and `panel` are two tokens because one of them cannot be the page's
+colour.** `chrome` is the editor's tool panel and landscape rail: the largest
+persistent surfaces in the app, sitting directly on the page with a hairline
+along the edge, so they take the page's colour and are exactly the pixels worth
+switching off. `panel` is sheets, dialogs and the drawer, and it must stay one
+step off - a sheet floats over a scrim, and **a scrim over black is still
+black**, so a pure-black sheet would have no edge at all. Verified on device,
+not reasoned about: the screenshots are the reason `panel` did not follow.
+
+The **accents vary too** - the brand hues read on black
 and wash out on white, so the light palette carries darkened variants. That is
 what lets `onAccent` be one token: a filled accent button is bright-on-dark-ink
 in dark and deep-on-white-ink in light, and callers need not know which.
@@ -115,10 +136,25 @@ out**: the canvas hit box IS the layer, so a caption or bubble created small -
 or pinched down by accident - is smaller than a finger and cannot be grabbed to
 be made big again. A slider does not depend on the layer's size.
 
-`_minLayerScale`/`_maxLayerScale` are the pinch gesture's own clamp
-(`EditorCanvas._onScaleUpdate`), duplicated deliberately so the two ways of
-resizing a layer cannot disagree about how small or large one may get - change
-one and change the other. Rotation is shown wrapped into (-180°, 180°] because
+`layer_scale_curve.dart` holds the scale range and the slider's mapping.
+`kMinLayerScale`/`kMaxLayerScale` are read by BOTH the slider and the pinch
+gesture's clamp (`EditorCanvas._onScaleUpdate`) - they used to be duplicated
+with a comment saying to change both, which is a rule a compiler cannot enforce;
+a gesture that reached a size the slider refuses to represent would be a state
+with no way back.
+
+**The Scale slider is a curve, not a linear range, and it is driven in
+bar-position space (0…1) rather than in percent.** Linear over 20…600% put 100%
+at 14% of the bar: the entire shrink range was narrower than the thumb, so
+making a layer *smaller* by a controlled amount was guesswork, while four fifths
+of the bar went to enlarging - the direction a finger can already do comfortably
+by pinching. `kScaleUnityAt` puts unity at a quarter and the exponent is
+*derived* from it, so the range and the unity point cannot drift apart. The
+readout stays the true percentage; `LabeledSlider` now also feeds `valueLabel`
+to `semanticFormatterCallback`, because otherwise a screen reader announces the
+thumb's position - "25%" for a layer at 100%.
+
+Rotation is shown wrapped into (-180°, 180°] because
 the canvas ACCUMULATES it across pinches and a layer really can sit at 400°, and
 it snaps to straight over the last couple of degrees, which a slider cannot hit
 on purpose.

@@ -96,6 +96,15 @@ class LabeledSlider extends StatelessWidget {
             min: min,
             max: max,
             divisions: divisions,
+            // Without this a screen reader announces the thumb's position in
+            // the range as a percentage, which is only the same thing as the
+            // value by coincidence - and for Scale it is not: that slider is
+            // driven in bar-position space over a curve, so a layer at 100%
+            // would be read out as "25%". [valueLabel] is the number on
+            // screen, so it is the one to say.
+            semanticFormatterCallback: valueLabel == null
+                ? null
+                : (_) => valueLabel!,
             onChanged: onChanged,
             onChangeEnd: onChangeEnd,
           ),

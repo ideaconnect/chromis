@@ -159,6 +159,53 @@ void main() {
       expect(AppPalette.dark.isLight, isFalse);
     });
 
+    test('the surfaces that cover the screen are pure black / pure white', () {
+      // The panel-specific requirement, and the one nothing else can catch: a
+      // near-black or near-white is legible, passes every contrast check here,
+      // and still fails the hardware. AMOLED only switches a pixel off at
+      // exactly #000000, and on IPS a 94% white is what turns muddy in
+      // daylight - which is what the light theme's grey page used to do.
+      //
+      // `chrome` is in the list because the editor's tool panel is the largest
+      // persistent surface in the app. `panel` is deliberately NOT: a sheet
+      // floats over a scrim the same colour as the page, so pure black would
+      // leave it with no edge at all.
+      for (final (name, colour) in [
+        ('pageBackground', AppPalette.dark.pageBackground),
+        ('background', AppPalette.dark.background),
+        ('chrome', AppPalette.dark.chrome),
+      ]) {
+        expect(
+          colour,
+          const Color(0xFF000000),
+          reason: 'dark $name must be pure black for AMOLED',
+        );
+      }
+      for (final (name, colour) in [
+        ('pageBackground', AppPalette.light.pageBackground),
+        ('background', AppPalette.light.background),
+        ('chrome', AppPalette.light.chrome),
+      ]) {
+        expect(
+          colour,
+          const Color(0xFFFFFFFF),
+          reason: 'light $name must be pure white for IPS',
+        );
+      }
+      // And the corollary: a control that used to read by being brighter than
+      // a grey page has to stop being white, or it disappears.
+      expect(
+        AppPalette.light.inputField,
+        isNot(AppPalette.light.background),
+        reason: 'a white field on a white page is not a field',
+      );
+      expect(
+        AppPalette.dark.panel,
+        isNot(AppPalette.dark.background),
+        reason: 'a sheet needs an edge; the scrim behind it is already black',
+      );
+    });
+
     for (final (name, palette) in [
       ('dark', AppPalette.dark),
       ('light', AppPalette.light),
@@ -166,10 +213,15 @@ void main() {
       test('$name text is readable on every surface it lands on', () {
         final surfaces = {
           'background': palette.background,
+          'pageBackground': palette.pageBackground,
+          'chrome': palette.chrome,
           'panel': palette.panel,
           'card': palette.card,
           'cardAlt': palette.cardAlt,
           'chipSurface': palette.chipSurface,
+          // A field and a PillChip both carry a label on this, and light's is
+          // no longer white - it had to recede once the page became white.
+          'inputField': palette.inputField,
           'elevated': palette.elevated,
         };
         // 4.5:1 is the WCAG AA floor for body text; textFaint is only ever a

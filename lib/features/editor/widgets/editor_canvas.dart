@@ -15,6 +15,7 @@ import '../../../core/theme/app_tokens.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/checkerboard.dart';
 import '../../../l10n/app_localizations.dart';
+import '../layer_scale_curve.dart';
 import '../state/editor_controller.dart';
 import '../state/editor_state.dart';
 import '../state/editor_tool.dart';
@@ -539,7 +540,11 @@ class _EditorCanvasState extends ConsumerState<EditorCanvas> {
     final layer = editor.layers.where((l) => l.id == id).firstOrNull;
     var next = LayerTransform(
       position: start.position + delta,
-      scale: (start.scale * d.scale).clamp(0.2, 6.0),
+      // Shared with the Adjust panel's Scale slider rather than repeated, so
+      // the two ways of resizing a layer cannot disagree about how small or
+      // large one may get - a gesture that reached a size the slider refuses
+      // to represent would be a state with no way back.
+      scale: (start.scale * d.scale).clamp(kMinLayerScale, kMaxLayerScale),
       rotation: start.rotation + d.rotation,
     );
     if (layer != null) {

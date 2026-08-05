@@ -54,6 +54,7 @@ import '../segmentation/mask_store.dart';
 import '../segmentation/seg_model.dart';
 import '../segmentation/segmentation_engine.dart';
 import '../segmentation/segmentation_registry.dart';
+import 'layer_scale_curve.dart';
 import 'mask_mapper.dart';
 import 'services/image_import.dart';
 import 'services/layer_flattener.dart';
@@ -578,7 +579,10 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       width: double.infinity,
       constraints: BoxConstraints(maxHeight: maxHeight),
       decoration: BoxDecoration(
-        color: context.colors.panel,
+        // `chrome`, not `panel`: this is the largest persistent surface in the
+        // app, so it takes the page's own colour - pure black on AMOLED, pure
+        // white on IPS - and gets its edge from the hairline below.
+        color: context.colors.chrome,
         border: Border(top: BorderSide(color: context.colors.border)),
         borderRadius: BorderRadius.vertical(
           top: Radius.circular(tokens.radiusPanel),
@@ -609,7 +613,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
   Widget _sidePanel(EditorState editor) {
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: context.colors.panel,
+        color: context.colors.chrome,
         border: Border(right: BorderSide(color: context.colors.border)),
       ),
       child: Column(
@@ -758,11 +762,9 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     return deg > 180 ? deg - 360 : deg;
   }
 
-  /// The pinch gesture's own scale clamp (`EditorCanvas._onScaleUpdate`). The
-  /// sliders share it so the two ways of resizing a layer cannot disagree about
-  /// how small or large one may get.
-  static const double _minLayerScale = 0.2;
-  static const double _maxLayerScale = 6.0;
+  // The scale range and the slider's curve live in layer_scale_curve.dart, so
+  // the pinch gesture and this slider read the same numbers instead of each
+  // keeping their own copy.
 
   /// Scale + rotation for the selected layer, whatever its type.
   ///
@@ -778,13 +780,18 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     return [
       LabeledSlider(
         label: _l10n.scale,
-        value: t.scale * 100,
-        min: _minLayerScale * 100,
-        max: _maxLayerScale * 100,
+        // Driven in bar-position space rather than in percent, because the
+        // mapping is a curve - see [_scaleUnityAt]. The readout stays the real
+        // percentage, which is the number anyone actually wants.
+        value: sliderFromLayerScale(t.scale),
+        min: 0,
+        max: 1,
         accent: context.colors.teal,
         valueLabel: '${(t.scale * 100).round()}%',
-        onChanged: (v) =>
-            _controller.updateTransform(id, t.copyWith(scale: v / 100)),
+        onChanged: (v) => _controller.updateTransform(
+          id,
+          t.copyWith(scale: layerScaleFromSlider(v)),
+        ),
         onChangeEnd: _endSliderEdit,
       ),
       LabeledSlider(
