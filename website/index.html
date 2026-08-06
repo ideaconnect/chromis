@@ -33,9 +33,12 @@
     } catch (e) {}
   </script>
 
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <!-- The typefaces are served from this origin, not from fonts.googleapis.com:
+       that was a request to Google on every page load, before the cookie banner
+       and whatever the visitor answered it. Preloaded because they are now on
+       the critical path and the stylesheet only discovers them one hop in. -->
+  <link rel="preload" href="assets/fonts/manrope.woff2?v=1" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="assets/fonts/space-grotesk.woff2?v=1" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="styles.css?v=11">
 
   <!-- Structured data: this page is about an app, and saying so in the form
@@ -81,7 +84,7 @@
   <header class="site-header">
     <div class="wrap nav">
       <a class="brand" href="index.html">
-        <img src="assets/img/logo.png?v=10" alt="Chromis logo">
+        <img src="assets/img/logo.png?v=10" alt="">
         Chromis
       </a>
       <nav class="nav-links" id="navLinks">
@@ -164,21 +167,21 @@
           <p>Tap the thing you wish wasn't in the shot - a bin, a sign, a stranger at the edge of the frame - and it goes. The question most editors never answer is what goes <em>there</em>, and a transparent hole is not an answer. Chromis rebuilds the background behind it, on your phone.</p>
           <ul class="why-list">
             <li>
-              <span class="badge badge-violet">🪄</span>
+              <span class="badge badge-violet" aria-hidden="true">🪄</span>
               <div>
                 <h3>Fill in, or Erase - you pick first</h3>
                 <p>The chooser sits at the top of the panel and <strong>Fill in is the default</strong>, because "remove this" means a closed background to nearly everybody. Erase is still one tap away when you actually want transparency.</p>
               </div>
             </li>
             <li>
-              <span class="badge badge-violet">🧠</span>
+              <span class="badge badge-violet" aria-hidden="true">🧠</span>
               <div>
                 <h3>A generative model, bundled</h3>
                 <p>Fill runs a 27 MB image-completion network that ships inside the app, so it works in flight mode. Where that can't help it falls back to a content-aware fill that always runs - the feature degrades instead of disappearing.</p>
               </div>
             </li>
             <li>
-              <span class="badge badge-violet">🎯</span>
+              <span class="badge badge-violet" aria-hidden="true">🎯</span>
               <div>
                 <h3>It knows what you pointed at</h3>
                 <p>A tap is turned into a selection by MobileSAM, so you get the whole object rather than a blob the size of your fingertip. Tapping your main subject is safely ignored, and undo brings anything back.</p>
@@ -398,7 +401,7 @@
         <div class="section-head">
           <p class="eyebrow">Beyond colour</p>
           <h2>Depth, glow and grit</h2>
-          <p>Vignette, HDR, drop shadow and contour are painted rather than tinted - and they stack on top of any filter, on any layer.</p>
+          <p>Vignette, HDR, drop shadow and contour are painted rather than tinted, and they stack on top of any filter. Shadow and contour go on any layer; vignette and HDR reach into pixels, so those two belong to a photo.</p>
         </div>
         <div class="fx-cards">
           <figure class="fx-card fx-card--compare">
@@ -407,7 +410,7 @@
               <img class="fx-ba-top" src="assets/img/effects/fx-vignette.webp?v=6" alt="The same photo with a vignette darkening the corners" width="960" height="540" loading="lazy">
               <span class="fx-ba-tag l">Before</span><span class="fx-ba-tag r">Vignette</span>
             </div>
-            <figcaption><h3>Vignette</h3><p>Any colour, with size and softness. On a cut-out it follows the subject's silhouette instead of shading a rectangle behind it.</p></figcaption>
+            <figcaption><h3>Vignette</h3><p>Nine colours, with size and softness. On a cut-out it follows the subject's silhouette instead of shading a rectangle behind it.</p></figcaption>
           </figure>
           <figure class="fx-card fx-card--compare">
             <div class="fx-ba fx-ba--split">
@@ -457,28 +460,28 @@
           <p>A grid is a partition of the canvas, not a separate kind of document - so a cell is just a window onto the same editor. Cut out a subject, stack a filter, drop in text: every tool works inside a cell exactly as it does anywhere else.</p>
           <ul class="why-list">
             <li>
-              <span class="badge badge-violet">🧩</span>
+              <span class="badge badge-violet" aria-hidden="true">🧩</span>
               <div>
                 <h3>18 layouts, 2 to 5 photos</h3>
                 <p>Four ways to place two photos, four for three, five each for four and five - named the way you'd describe them: Side by side, Big left, 2 over 3. Swap layout at the same count and photo N stays in cell N.</p>
               </div>
             </li>
             <li>
-              <span class="badge badge-violet">↔️</span>
+              <span class="badge badge-violet" aria-hidden="true">↔️</span>
               <div>
                 <h3>A divider moves two cells</h3>
                 <p>Drag one and it trades space between exactly those two neighbours - every other cell keeps its rect. No cell shrinks past 12% of its split, and the whole drag is a single undo.</p>
               </div>
             </li>
             <li>
-              <span class="badge badge-violet">🖼️</span>
+              <span class="badge badge-violet" aria-hidden="true">🖼️</span>
               <div>
                 <h3>The border is the background</h3>
                 <p>Gaps and the outer frame are the fill showing through, not a stroke laid over your photos. One Border slider from 0 to 80 px sets both, Corners runs 0 to 60 px, and there are nine preset colours.</p>
               </div>
             </li>
             <li>
-              <span class="badge badge-violet">🔓</span>
+              <span class="badge badge-violet" aria-hidden="true">🔓</span>
               <div>
                 <h3>Nothing is locked in</h3>
                 <p>Count, layout, border, corners and colour stay in the Grid panel for the life of the project. Dropping to fewer photos does remove the ones in the cells that go - and one undo brings them back.</p>
@@ -498,24 +501,24 @@
         <div>
           <p class="eyebrow">New · Snap &amp; place</p>
           <h2>Line things up without squinting</h2>
-          <p>Drag a layer and it settles onto the nearest alignment - the edges, the centres and the size of every other layer, and of the canvas itself - with a magenta guide showing exactly what it caught. Turn the toggle off and nothing moves but your finger.</p>
+          <p>Drag a layer and it settles onto the nearest alignment - the edges and centres of every other layer, and of the canvas itself - with a guide line showing exactly what it caught. Pinch instead and it will match a neighbour's size as well; a plain drag never resizes anything. Turn the toggle off and nothing moves but your finger.</p>
           <ul class="why-list">
             <li>
-              <span class="badge">📐</span>
+              <span class="badge" aria-hidden="true">📐</span>
               <div>
                 <h3>Tilted layers line up too</h3>
                 <p>Alignment is measured along the layer's own axes, not the screen's, so two stickers at the same angle can be made genuinely flush. Carry one up against a neighbour a couple of degrees off and it takes that angle.</p>
               </div>
             </li>
             <li>
-              <span class="badge">🎚️</span>
+              <span class="badge" aria-hidden="true">🎚️</span>
               <div>
                 <h3>Sliders for the layer you can't grab</h3>
                 <p>Scale, Rotation, Horizontal and Vertical now drive <em>any</em> layer - a caption, a speech bubble, a photo. A sticker pinched down to a speck used to be smaller than a fingertip and stuck that way; now it is a slider.</p>
               </div>
             </li>
             <li>
-              <span class="badge">↩️</span>
+              <span class="badge" aria-hidden="true">↩️</span>
               <div>
                 <h3>Nothing is a trap</h3>
                 <p>Rotation snaps to straight over the last couple of degrees, both placement sliders snap to dead centre, and every one of them is a single undo step.</p>
@@ -536,62 +539,62 @@
         </div>
         <div class="features">
           <article class="feature">
-            <div class="ic ic-cyan">🪄</div>
+            <div class="ic ic-cyan" aria-hidden="true">🪄</div>
             <h3>One-tap background removal</h3>
             <p>On-device AI finds your subject and cuts it out cleanly - Google ML Kit with a bundled U²-Netp model as a universal fallback.</p>
           </article>
           <article class="feature">
-            <div class="ic ic-pink">🎯</div>
+            <div class="ic ic-pink" aria-hidden="true">🎯</div>
             <h3>Object removal that fills in</h3>
             <p>Point at anything you don't want - a photobomber, a sign, a stray leash - and a bundled generative model rebuilds the background behind it.</p>
           </article>
           <article class="feature">
-            <div class="ic ic-teal">🎞️</div>
+            <div class="ic ic-teal" aria-hidden="true">🎞️</div>
             <h3>14 filters, HDR &amp; vignette</h3>
-            <p>One-tap looks with a strength slider, an HDR pass that lifts shadows and local contrast, and a vignette in any colour.</p>
+            <p>One-tap looks with a strength slider, an HDR pass that lifts shadows and local contrast, and a vignette in any of nine colours.</p>
           </article>
           <article class="feature">
-            <div class="ic ic-violet">🌓</div>
+            <div class="ic ic-violet" aria-hidden="true">🌓</div>
             <h3>Shadow, contour &amp; blend</h3>
             <p>Give any layer a directional drop shadow and a die-cut contour, then composite it with 16 blend modes - Multiply through Luminosity.</p>
           </article>
           <article class="feature">
-            <div class="ic ic-indigo">🗂️</div>
+            <div class="ic ic-indigo" aria-hidden="true">🗂️</div>
             <h3>Layers, merge &amp; flatten</h3>
             <p>Stack, move, scale and rotate freely. Merge two layers or flatten the lot into one photo - each a single undo step.</p>
           </article>
           <article class="feature">
-            <div class="ic ic-green">🧩</div>
+            <div class="ic ic-green" aria-hidden="true">🧩</div>
             <h3>Photo grid collages</h3>
             <p>Two to five photos across 18 layouts. Drag the dividers, restyle the border, and keep using every other tool inside a cell.</p>
           </article>
           <article class="feature">
-            <div class="ic ic-orange">💬</div>
+            <div class="ic ic-orange" aria-hidden="true">💬</div>
             <h3>Text &amp; comic bubbles</h3>
             <p>Captions in bold display fonts with their own outline and shadow, plus rotatable, re-tailed speech bubbles.</p>
           </article>
           <article class="feature">
-            <div class="ic ic-amber">🎚️</div>
+            <div class="ic ic-amber" aria-hidden="true">🎚️</div>
             <h3>Adjust, erase &amp; crop</h3>
             <p>Fine-tune light and colour, brush away stray pixels by hand, and crop the canvas freeform or to any ratio.</p>
           </article>
           <article class="feature">
-            <div class="ic ic-pink">📐</div>
+            <div class="ic ic-pink" aria-hidden="true">📐</div>
             <h3>Snapping &amp; placement</h3>
-            <p>Layers settle onto each other's edges, centres and size with a guide showing the catch - and Scale, Rotation and the two placement sliders drive any layer at all.</p>
+            <p>Layers settle onto each other's edges and centres with a guide showing the catch, and a pinch matches size too - and Scale, Rotation and the two placement sliders drive a caption or a bubble, not just a photo.</p>
           </article>
           <article class="feature">
-            <div class="ic ic-teal">🌗</div>
+            <div class="ic ic-teal" aria-hidden="true">🌗</div>
             <h3>Light and dark</h3>
             <p>Pure black on OLED so the pixels are genuinely off, pure white that stays readable in daylight. Follows your phone, or pin either one.</p>
           </article>
           <article class="feature">
-            <div class="ic ic-violet">🌍</div>
+            <div class="ic ic-violet" aria-hidden="true">🌍</div>
             <h3>Six languages</h3>
             <p>English, Polish, German, Spanish, French and Czech - the whole app, not just the menus. Follows your phone or set it in Settings.</p>
           </article>
           <article class="feature">
-            <div class="ic ic-cyan">📤</div>
+            <div class="ic ic-cyan" aria-hidden="true">📤</div>
             <h3>Export with transparency</h3>
             <p>Save or share as a transparent PNG, JPG or WebP at full size or a fraction of it - straight to your gallery or any app.</p>
           </article>
@@ -610,21 +613,21 @@
           <h2>Powerful edits, nothing to hide</h2>
           <ul class="why-list">
             <li>
-              <span class="badge">🔒</span>
+              <span class="badge" aria-hidden="true">🔒</span>
               <div>
                 <h3>Private by design</h3>
                 <p>Background removal, object erase, adjustments - it all happens on your device. Your photos never leave your phone unless you choose to share them.</p>
               </div>
             </li>
             <li>
-              <span class="badge">🎁</span>
+              <span class="badge" aria-hidden="true">🎁</span>
               <div>
                 <h3>Free to use</h3>
                 <p>Every editing tool is free, supported by ads. Prefer a clean canvas? One small one-time purchase removes ads for good.</p>
               </div>
             </li>
             <li>
-              <span class="badge">🚀</span>
+              <span class="badge" aria-hidden="true">🚀</span>
               <div>
                 <h3>No account, works offline</h3>
                 <p>No sign-up and no login. Because the AI runs locally, editing keeps working even without a connection.</p>
@@ -716,7 +719,7 @@
           </details>
           <details>
             <summary>Does the AI need an internet connection?</summary>
-            <p>No. Every model is bundled in the app - the cut-out networks, the tap-to-select one and the generative fill - so cut-outs and object removal work fully offline. A connection is only used to load ads.</p>
+            <p>Almost never. The models that do the work ship inside the app - the U²-Netp cut-out, the tap-to-select network and the generative fill - so removing a background or an object works in flight mode. The one exception is the <em>other</em> cut-out engine, Android's own ML Kit, which fetches its model through Play services the first time it runs; the bundled one is there for exactly that case, and the app falls back to it. Otherwise a connection is for ads, purchases and the consent form.</p>
           </details>
           <details>
             <summary>What's the difference between Fill in and Erase?</summary>
@@ -744,7 +747,7 @@
           </details>
           <details>
             <summary>Which Android versions are supported?</summary>
-            <p>Android 8.0 (Oreo) and newer. Object removal works best on devices with a bit more RAM; background removal runs everywhere.</p>
+            <p>Android 8.0 (Oreo) and newer. Tap-to-select object removal asks for 2.5 GB of RAM or more - under that the app declines to offer it rather than risk being killed mid-edit, and the simpler selection still works. Background removal runs everywhere.</p>
           </details>
           <details>
             <summary>Is there an iPhone version?</summary>
@@ -810,12 +813,12 @@
     <div class="wrap">
       <div class="footer-grid">
         <div class="footer-brand">
-          <a class="brand" href="index.html"><img src="assets/img/logo.png?v=10" alt="Chromis logo"> Chromis</a>
+          <a class="brand" href="index.html"><img src="assets/img/logo.png?v=10" alt=""> Chromis</a>
           <p>A free, on-device AI photo editor for Android. Cut out backgrounds, stack layers, add filters and build collages - without your photos ever leaving your phone.</p>
         </div>
         <div class="footer-cols">
           <div class="footer-col">
-            <h4>Product</h4>
+            <h3>Product</h3>
             <a href="#remove">Object removal</a>
             <a href="#effects">Effects</a>
             <a href="#align">Snap &amp; place</a>
@@ -825,12 +828,17 @@
             <a href="#get">Get the app</a>
           </div>
           <div class="footer-col">
-            <h4>Legal</h4>
+            <h3>Legal</h3>
             <a href="privacy.html">Privacy Policy</a>
             <a href="terms.html">Terms of Use</a>
+            <!-- The OFL requires its text to travel with the font it covers, and
+                 self-hosting the two faces makes this page a redistributor. The
+                 files sit beside the woff2s; this is what makes them findable. -->
+            <a href="assets/fonts/OFL-Manrope.txt">Manrope licence</a>
+            <a href="assets/fonts/OFL-SpaceGrotesk.txt">Space Grotesk licence</a>
           </div>
           <div class="footer-col">
-            <h4>Connect</h4>
+            <h3>Connect</h3>
             <a href="#contact">Contact</a>
             <a href="https://idct.tech" rel="noopener">idct.tech</a>
           </div>
@@ -866,13 +874,44 @@
       var root = document.documentElement;
       var order = [null, 'light', 'dark'];
       var labels = { 'null': 'Theme: follow system', light: 'Theme: light', dark: 'Theme: dark' };
+      // The two <meta name="theme-color"> tags are chosen by prefers-color-scheme,
+      // which does not know about a pinned theme - so pinning light on a phone
+      // set to dark left a black URL bar above a white page. While a theme is
+      // pinned we disable the media-scoped pair and add one plain tag that wins;
+      // going back to System removes it and hands control back to the media
+      // queries. Anything here failing must not take the toggle down with it.
+      var metas = [].slice.call(document.querySelectorAll('meta[name=theme-color][media]'));
+      var pinned = null;
+      function paintChrome(v) {
+        try {
+          metas.forEach(function (m) {
+            // Stash the ORIGINAL media only once. Pinning twice in a row would
+            // otherwise stash 'not all' over it, and going back to System would
+            // then "restore" the disabled state and never follow the OS again.
+            if (v) { if (!m.getAttribute('data-media')) m.setAttribute('data-media', m.media); m.media = 'not all'; }
+            else if (m.getAttribute('data-media')) { m.media = m.getAttribute('data-media'); }
+          });
+          if (!v) { if (pinned) { pinned.parentNode.removeChild(pinned); pinned = null; } return; }
+          if (!pinned) {
+            pinned = document.createElement('meta');
+            pinned.name = 'theme-color';
+            document.head.appendChild(pinned);
+          }
+          pinned.setAttribute('content', v === 'light' ? '#ffffff' : '#000000');
+        } catch (e) {}
+      }
       function apply(v) {
         if (v) root.setAttribute('data-theme', v); else root.removeAttribute('data-theme');
         btn.setAttribute('aria-label', labels[String(v)]);
         btn.title = labels[String(v)];
+        paintChrome(v);
         try { v ? localStorage.setItem('pe_theme', v) : localStorage.removeItem('pe_theme'); } catch (e) {}
       }
-      var current = root.getAttribute('data-theme') || null;
+      // Normalised on read: anything other than the two we write is treated as
+      // System, so a hand-edited or future data-theme value cannot produce an
+      // aria-label of "undefined" and a button with no icon.
+      var current = root.getAttribute('data-theme');
+      if (order.indexOf(current) === -1) current = null;
       apply(current);
       btn.hidden = false;
       btn.addEventListener('click', function () {

@@ -887,10 +887,24 @@ System / Light / Dark. Four things in there that a redesign would break:
 - **`data-theme` is applied by an inline script in the `<head>`**, before the
   stylesheet. The script at the end of the body is a frame too late and a pinned
   theme flashes the other one first.
-- **Anything drawn ON a photograph reads `--on-glass`, not `--text`.** A photo
-  has no theme - the same reason `AppScrim` exists in the app - but the
-  translucent pill behind the label is the page's own colour, so the two flip
-  together or a white-on-black pill lands on a white page.
+- **A label pill drawn ON a photograph is OPAQUE (`--pill`), not glass.** A
+  photo has no theme - the same reason `AppScrim` exists in the app - and a
+  *translucent* pill's effective background is whatever the photo is behind it,
+  so its contrast is unknowable: measured, accent text on the old 66%/72% glass
+  ran from 9.7:1 down to 2.4:1 and failed in BOTH themes. `--glass-strong`
+  survives for the sticky header alone, which sits on the page's own colour.
+- **`--border` and `--border-ui` are two tokens because WCAG 1.4.11 governs only
+  the second.** A card hairline at 1.3:1 is fine; the edge that tells you where a
+  text field is must reach 3:1.
+
+**The site contacts nobody until consent.** The two typefaces were being pulled
+from `fonts.googleapis.com` on every page load - before the cookie banner and
+whatever the visitor answered it - which on a privacy-branded page was the one
+request a Decline could not stop. `tool/gen_web_fonts.py` subsets them out of
+`assets/fonts/` (already in the repo, OFL, redistribution permitted) to 57 KB of
+self-hosted woff2. Keep it that way: anything new that reaches another host is
+either gated behind consent or self-hosted, and `privacy.html` states the
+guarantee.
 
 The screenshots and the AI example images are **generated from the same capture
 session and the same CC0 photographs as the Play listing** (`tool/gen_screens.py`

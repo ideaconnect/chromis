@@ -19,9 +19,12 @@
     } catch (e) {}
   </script>
 
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <!-- The typefaces are served from this origin, not from fonts.googleapis.com:
+       that was a request to Google on every page load, before the cookie banner
+       and whatever the visitor answered it. Preloaded because they are now on
+       the critical path and the stylesheet only discovers them one hop in. -->
+  <link rel="preload" href="assets/fonts/manrope.woff2?v=1" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="assets/fonts/space-grotesk.woff2?v=1" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="styles.css?v=11">
 
   <!-- Analytics (GA4) - replace G-XXXXXXXXXX with your Measurement ID. Loads only
@@ -46,7 +49,7 @@
   <header class="site-header">
     <div class="wrap nav">
       <a class="brand" href="index.html">
-        <img src="assets/img/logo.png?v=10" alt="Chromis logo">
+        <img src="assets/img/logo.png?v=10" alt="">
         Chromis
       </a>
       <nav class="nav-links" id="navLinks">
@@ -72,7 +75,7 @@
   <main>
     <article class="wrap legal">
       <h1>Privacy Policy</h1>
-      <p class="updated">Last updated: 27 July 2026</p>
+      <p class="updated">Last updated: 6 August 2026</p>
 
       <p>This Privacy Policy explains how the <strong>Chromis</strong> Android app (the “App”) and the website at this domain (the “Site”) handle information. Both are operated by <strong>IDCT · Bartosz Pachołek</strong> (“we”, “us”). We built Chromis to be private by design.</p>
 
@@ -116,11 +119,14 @@
 
       <h3>2.4 Permissions</h3>
       <ul>
-        <li><strong>Photos / media</strong> - the App requests <strong>no</strong> photo or storage permission. You choose an image through the Android system photo picker, which hands the App that one picture and nothing else, and exports are written back through the system media store. The App never has access to your photo library.</li>
+        <li><strong>Photos / media</strong> - the App requests <strong>no permission to read</strong> your photos. You choose an image through the Android system photo picker, which hands the App that one picture and nothing else, so the App never has access to your photo library. <strong>Saving</strong> a finished image to your gallery asks for the storage permission on <strong>Android 9 and below only</strong>, because those versions have no permissionless way to write to the shared Pictures folder; it is requested at the moment of your first save, never at launch, and on Android 10 and newer nothing is asked at all.</li>
         <li><strong>Internet &amp; advertising ID</strong> - used by AdMob and Play Billing as described above. No other network use.</li>
       </ul>
 
       <h2>3. Data collected by this website</h2>
+      <div class="callout">
+        <p><strong>This page loads nothing from anyone else.</strong> The fonts and every image are served from this domain, so opening the Site makes <em>no</em> third-party request at all until you choose otherwise. Analytics is the only one there is, and it is off until you accept it.</p>
+      </div>
       <h3>3.1 Analytics</h3>
       <p>The Site uses <strong>Google Analytics 4</strong> to understand aggregate traffic (pages viewed, approximate region, device type, referrer). Analytics uses cookies and a persistent identifier, IP addresses are handled by Google Analytics per its configuration, and data is shared with Google - so it is <strong>not fully anonymous</strong>.</p>
       <p>Analytics is <strong>off by default</strong>. We ask for your consent with a cookie banner and only load Google Analytics after you click <em>Accept</em>; for visitors in the EEA, UK and Switzerland this opt-in happens before any analytics cookie is set. You can change your choice at any time by clearing this site’s cookies / local storage, and you can also install the <a href="https://tools.google.com/dlpage/gaoptout" rel="noopener">Google Analytics opt-out add-on</a>. See <a href="https://policies.google.com/privacy" rel="noopener">Google’s Privacy Policy</a>.</p>
@@ -185,13 +191,44 @@
       var root = document.documentElement;
       var order = [null, 'light', 'dark'];
       var labels = { 'null': 'Theme: follow system', light: 'Theme: light', dark: 'Theme: dark' };
+      // The two <meta name="theme-color"> tags are chosen by prefers-color-scheme,
+      // which does not know about a pinned theme - so pinning light on a phone
+      // set to dark left a black URL bar above a white page. While a theme is
+      // pinned we disable the media-scoped pair and add one plain tag that wins;
+      // going back to System removes it and hands control back to the media
+      // queries. Anything here failing must not take the toggle down with it.
+      var metas = [].slice.call(document.querySelectorAll('meta[name=theme-color][media]'));
+      var pinned = null;
+      function paintChrome(v) {
+        try {
+          metas.forEach(function (m) {
+            // Stash the ORIGINAL media only once. Pinning twice in a row would
+            // otherwise stash 'not all' over it, and going back to System would
+            // then "restore" the disabled state and never follow the OS again.
+            if (v) { if (!m.getAttribute('data-media')) m.setAttribute('data-media', m.media); m.media = 'not all'; }
+            else if (m.getAttribute('data-media')) { m.media = m.getAttribute('data-media'); }
+          });
+          if (!v) { if (pinned) { pinned.parentNode.removeChild(pinned); pinned = null; } return; }
+          if (!pinned) {
+            pinned = document.createElement('meta');
+            pinned.name = 'theme-color';
+            document.head.appendChild(pinned);
+          }
+          pinned.setAttribute('content', v === 'light' ? '#ffffff' : '#000000');
+        } catch (e) {}
+      }
       function apply(v) {
         if (v) root.setAttribute('data-theme', v); else root.removeAttribute('data-theme');
         btn.setAttribute('aria-label', labels[String(v)]);
         btn.title = labels[String(v)];
+        paintChrome(v);
         try { v ? localStorage.setItem('pe_theme', v) : localStorage.removeItem('pe_theme'); } catch (e) {}
       }
-      var current = root.getAttribute('data-theme') || null;
+      // Normalised on read: anything other than the two we write is treated as
+      // System, so a hand-edited or future data-theme value cannot produce an
+      // aria-label of "undefined" and a button with no icon.
+      var current = root.getAttribute('data-theme');
+      if (order.indexOf(current) === -1) current = null;
       apply(current);
       btn.hidden = false;
       btn.addEventListener('click', function () {

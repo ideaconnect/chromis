@@ -21,6 +21,36 @@ website/
     └── screens/              # real app screenshots (WebP)
 ```
 
+## The fonts are ours, and that is the point
+
+Manrope and Space Grotesk are served from this domain, not from
+`fonts.googleapis.com`. That was a request to Google - IP, user agent, referrer -
+on **every page load, fired before the cookie banner and regardless of what the
+visitor answered it**. On a site whose whole claim is that the app talks to
+nobody, it was the one thing on the page a Decline could not switch off.
+
+`python tool/gen_web_fonts.py` subsets both from `assets/fonts/` (they are
+already in the repo, under the OFL, which permits redistribution) to
+`website/assets/fonts/*.woff2`: 295 KB of TTF becomes **57 KB**, less than the
+round trip it replaces. Re-run it if the families change or the copy starts
+using a character outside its range - the range is enumerated at the top of that
+script rather than guessed, so a missing glyph falls back to the system stack
+instead of erroring.
+
+The `@font-face` blocks declare `font-weight` as a **range**, because these are
+variable fonts with the `wght` axis kept. Pin a single instance and every other
+weight the CSS asks for is rendered as a synthetic smear.
+
+**The OFL texts ship beside them and are linked from the footer.** Serving a font
+makes this page a redistributor, and the licence requires its text to travel with
+the font it covers - present on disk is the obligation, linked is what makes it
+findable. `gen_web_fonts.py` does not copy them; if a face is ever added, copy its
+`OFL-*.txt` out of `assets/fonts/` by hand and add the footer link.
+
+**The page now makes no third-party request at all** until a visitor accepts
+analytics. `privacy.html` says so; keep that true, and if anything is ever added
+that reaches another host, either gate it behind consent or self-host it.
+
 ## Light and dark
 
 The site follows the visitor's system theme and a header toggle can pin either,
@@ -47,6 +77,19 @@ Three things in `styles.css` that are easy to get wrong:
 `--plate` is deliberately lighter than every other dark surface: the drop-shadow
 demo is a black shadow, and on a near-black plate that card shows nothing at
 all.
+
+**A label pill drawn on a photograph is opaque (`--pill`), not glass.** This one
+was measured, not eyeballed: translucent, a pill's effective background is
+whatever the photo happens to be behind it, so its contrast is unknowable - the
+accent text on the old 66%/72% glass ranged from 9.7:1 down to **2.4:1**, and it
+failed in *both* themes (dark over a pale photo, light over a dark one). Solid,
+the number is one we can hold. `--glass-strong` survives only for the sticky
+header, which sits on the page's own colour and so composites predictably.
+
+**`--border` and `--border-ui` are two tokens because WCAG 1.4.11 governs only
+the second.** A decorative card hairline at 1.3:1 is fine; the edge that tells
+you where a text field is has to reach 3:1, and `--border-ui` is the alpha that
+does, computed rather than chosen.
 
 ## The brand marks are generated
 

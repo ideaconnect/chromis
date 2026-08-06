@@ -1,3 +1,35 @@
+/* The two typefaces are SELF-HOSTED, and that is a privacy decision.
+
+   They used to come from fonts.googleapis.com, which is a request to Google -
+   carrying the visitor's IP, user agent and referrer - on every page load,
+   fired before the cookie banner and regardless of what the visitor answered.
+   On a site whose whole claim is that the app talks to nobody, that was the one
+   thing on the page a Decline could not switch off. Both faces are already in
+   this repo under the SIL Open Font License, which permits redistribution, so
+   self-hosting costs only bytes - and subset (tool/gen_web_fonts.py) the pair
+   is 57 KB, less than the round trip it replaces.
+
+   `font-weight` is a RANGE, not a value: these are variable fonts with the
+   wght axis kept, so one file serves every weight the page asks for and the
+   browser drives the axis from the ordinary font-weight property. Pinning a
+   single instance would have every other weight rendered as a synthetic smear.
+   `font-display: swap` keeps text visible while they load, which matters more
+   now that the bytes are ours to serve. */
+@font-face {
+  font-family: "Manrope";
+  src: url("assets/fonts/manrope.woff2?v=1") format("woff2");
+  font-weight: 200 800;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Space Grotesk";
+  src: url("assets/fonts/space-grotesk.woff2?v=1") format("woff2");
+  font-weight: 300 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 /* Chromis - website styles.
    Palette + type mirror the app (lib/core/theme/app_palette.dart):
    neutral surfaces, cyan/pink/green accents, Space Grotesk + Manrope.
@@ -48,7 +80,13 @@
   --orange: #f0885a;
   --indigo: #6c7fe0;
 
+  /* Decorative hairlines and INTERACTIVE boundaries are two tokens, because
+     1.4.11 only governs the second. --border at 0.12/0.14 measures 1.27:1 and
+     1.38:1 against the page - fine for a card edge nobody has to find, and not
+     fine for the edge that tells you where a text field is. --border-ui is the
+     alpha that reaches 3:1, computed rather than eyeballed. */
   --border: rgba(255, 255, 255, 0.12);
+  --border-ui: rgba(255, 255, 255, 0.38);
   --border-faint: rgba(255, 255, 255, 0.07);
   --tint-hi: rgba(255, 255, 255, 0.045);
   --tint-lo: rgba(255, 255, 255, 0.012);
@@ -56,12 +94,18 @@
   --hover-fill: rgba(255, 255, 255, 0.09);
   --ghost-fill: rgba(255, 255, 255, 0.05);
   --faq-fill: rgba(255, 255, 255, 0.025);
-  /* Translucent chrome: the scrim under the sticky header and every pill that
-     sits ON a photo. Both are the page's own colour at low alpha, so they must
-     flip with the theme - a black pill on a white page reads as a hole. */
-  --glass: rgba(0, 0, 0, 0.66);
+  /* A label pill drawn ON a photograph is OPAQUE, and that is a contrast
+     decision rather than a look. Translucent, its effective background is
+     whatever the photo happens to be under it, so the ratio is unknowable:
+     measured, accent text on the old 66%/72% glass ran from 9.7:1 down to
+     2.4:1 depending on the pixels behind it, and it failed in BOTH themes -
+     dark over a pale photo, light over a dark one. Solid, the ratio is a number
+     we can hold, and the accents clear 4.5:1 against it by construction.
+     `--glass-strong` survives for the sticky header alone, which sits on the
+     page's own colour and so composites predictably. */
+  --pill: #101013;
+  --on-pill: #f4f5f7;
   --glass-strong: rgba(0, 0, 0, 0.78);
-  --on-glass: #f4f5f7;
   /* The device bezel the screenshots sit in, and the plate the cut-out demos
      are composited onto (those two images carry alpha - see gen_filters.py). */
   --device: linear-gradient(160deg, #24242b, #0c0c0f);
@@ -70,6 +114,7 @@
      plate the whole point of that card is invisible. It reads as a studio
      backdrop rather than as a panel, which is what it is. */
   --plate: #2c2c33;
+  --icon-shadow: rgba(0, 0, 0, 0.5);
   /* Ink on a filled accent. One token, because a filled button is
      bright-on-dark-ink in dark and deep-on-white-ink in light and no caller
      should have to know which - the same trade `onAccent` makes in the app. */
@@ -106,17 +151,18 @@
   --muted: #5f6070;
   --faint: #5c5d6b;
 
-  --cyan: #0a7d95;
+  --cyan: #0b7288;
   --cyan-light: #086477;
   --pink: #b4405f;
   --green: #0d7a5f;
-  --teal: #0a7d95;
+  --teal: #0b7288;
   --violet: #4d5cc4;
   --amber: #7d5806;
   --orange: #a8471f;
   --indigo: #4453bb;
 
   --border: rgba(0, 0, 0, 0.14);
+  --border-ui: rgba(0, 0, 0, 0.44);
   --border-faint: rgba(0, 0, 0, 0.08);
   --tint-hi: rgba(0, 0, 0, 0.035);
   --tint-lo: rgba(0, 0, 0, 0.008);
@@ -124,11 +170,12 @@
   --hover-fill: rgba(0, 0, 0, 0.07);
   --ghost-fill: rgba(0, 0, 0, 0.04);
   --faq-fill: rgba(0, 0, 0, 0.02);
-  --glass: rgba(255, 255, 255, 0.72);
+  --pill: #ffffff;
+  --on-pill: #0c0c10;
   --glass-strong: rgba(255, 255, 255, 0.84);
-  --on-glass: #0c0c10;
   --device: linear-gradient(160deg, #e7e7ee, #cfcfda);
   --plate: #ebebf0;
+  --icon-shadow: rgba(15, 20, 30, 0.22);
   --on-accent: #ffffff;
   --glow-1: rgba(10, 125, 149, 0.10);
   --glow-2: rgba(180, 64, 95, 0.07);
@@ -151,17 +198,19 @@
     --muted: #5f6070;
     --faint: #5c5d6b;
 
-    --cyan: #0a7d95;
+    --cyan: #0b7288;
     --cyan-light: #086477;
     --pink: #b4405f;
     --green: #0d7a5f;
-    --teal: #0a7d95;
+    --teal: #0b7288;
     --violet: #4d5cc4;
     --amber: #7d5806;
     --orange: #a8471f;
     --indigo: #4453bb;
 
     --border: rgba(0, 0, 0, 0.14);
+    --border-ui: rgba(0, 0, 0, 0.44);
+  --border-ui: rgba(0, 0, 0, 0.44);
     --border-faint: rgba(0, 0, 0, 0.08);
     --tint-hi: rgba(0, 0, 0, 0.035);
     --tint-lo: rgba(0, 0, 0, 0.008);
@@ -169,11 +218,12 @@
     --hover-fill: rgba(0, 0, 0, 0.07);
     --ghost-fill: rgba(0, 0, 0, 0.04);
     --faq-fill: rgba(0, 0, 0, 0.02);
-    --glass: rgba(255, 255, 255, 0.72);
+    --pill: #ffffff;
+    --on-pill: #0c0c10;
     --glass-strong: rgba(255, 255, 255, 0.84);
-    --on-glass: #0c0c10;
     --device: linear-gradient(160deg, #e7e7ee, #cfcfda);
     --plate: #ebebf0;
+    --icon-shadow: rgba(15, 20, 30, 0.22);
     --on-accent: #ffffff;
     --glow-1: rgba(10, 125, 149, 0.10);
     --glow-2: rgba(180, 64, 95, 0.07);
@@ -264,7 +314,7 @@ img { max-width: 100%; height: auto; display: block; }
   box-shadow: 0 12px 30px color-mix(in srgb, var(--cyan) 30%, transparent);
 }
 .btn-primary:hover { transform: translateY(-2px); color: var(--on-accent); box-shadow: 0 16px 38px color-mix(in srgb, var(--cyan) 42%, transparent); }
-.btn-ghost { background: var(--ghost-fill); border-color: var(--border); color: var(--text); }
+.btn-ghost { background: var(--ghost-fill); border-color: var(--border-ui); color: var(--text); }
 .btn-ghost:hover { background: var(--hover-fill); color: var(--text); transform: translateY(-2px); }
 .btn .sub { font-family: var(--font-body); font-weight: 500; font-size: 0.72rem; opacity: 0.85; display: block; line-height: 1; margin-top: 2px; }
 .btn-store { padding: 0.7em 1.3em; text-align: left; }
@@ -317,7 +367,7 @@ img { max-width: 100%; height: auto; display: block; }
 .theme-toggle {
   display: inline-grid; place-items: center;
   width: 38px; height: 38px; flex: 0 0 auto; padding: 0;
-  border: 1px solid var(--border); border-radius: 11px;
+  border: 1px solid var(--border-ui); border-radius: 11px;
   background: var(--ghost-fill); color: var(--text-2); cursor: pointer;
   transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
 }
@@ -351,7 +401,11 @@ img { max-width: 100%; height: auto; display: block; }
   box-shadow: var(--shadow);
   border: 1px solid var(--border);
   user-select: none;
-  touch-action: none;
+  /* pan-y, not none. `none` made the biggest element on a phone a dead zone for
+     scrolling: a thumb swiping up anywhere on the hero image got a horizontal
+     wipe and the page stayed put. pan-y gives the vertical gesture back to the
+     page and keeps the horizontal one for the slider. */
+  touch-action: pan-y;
   line-height: 0;
   aspect-ratio: 3 / 4;
   background: var(--panel);
@@ -366,15 +420,15 @@ img { max-width: 100%; height: auto; display: block; }
 .ba-handle::before { content: ""; position: absolute; top: 0; bottom: 0; width: 2px; background: rgba(255, 255, 255, 0.9); }
 .ba-knob {
   width: 42px; height: 42px; border-radius: 50%;
-  background: var(--glass-strong); backdrop-filter: blur(4px);
-  border: 2px solid var(--on-glass);
-  display: flex; align-items: center; justify-content: center; color: var(--on-glass);
+  background: var(--pill);
+  border: 2px solid var(--on-pill);
+  display: flex; align-items: center; justify-content: center; color: var(--on-pill);
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4); position: relative; z-index: 2;
 }
 .ba-tag {
   position: absolute; bottom: 14px; font-family: var(--font-display); font-size: 0.72rem;
   font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; padding: 5px 11px;
-  border-radius: 999px; background: var(--glass); color: var(--on-glass); backdrop-filter: blur(4px);
+  border-radius: 999px; background: var(--pill); color: var(--on-pill); backdrop-filter: blur(4px);
   line-height: 1; border: 1px solid var(--border);
 }
 .ba-tag-l { left: 14px; }
@@ -403,8 +457,8 @@ img { max-width: 100%; height: auto; display: block; }
 .fx-stage figcaption {
   position: absolute; left: 16px; bottom: 16px; line-height: 1;
   font-family: var(--font-display); font-weight: 600; font-size: 0.82rem;
-  letter-spacing: 0.08em; text-transform: uppercase; color: var(--on-glass);
-  background: var(--glass); backdrop-filter: blur(4px);
+  letter-spacing: 0.08em; text-transform: uppercase; color: var(--on-pill);
+  background: var(--pill); backdrop-filter: blur(4px);
   border: 1px solid var(--border); border-radius: 999px; padding: 7px 14px;
 }
 /* The label text itself comes from the generated `::after` content, one rule
@@ -440,8 +494,12 @@ img { max-width: 100%; height: auto; display: block; }
   line-height: 1.2;
 }
 .fx-chip:hover img { transform: translateY(-2px); }
-.fx-radio:focus-visible + .fx-strip .fx-chip img,
-.fx-strip .fx-chip:focus-within img { outline: 2px solid var(--cyan-light); }
+/* `+` only ever matched the LAST radio (the one adjacent to the strip), and
+   when it did it ringed all fifteen chips at once. `:has()` scopes the ring to
+   the chip whose own radio has focus, which is the only one a keyboard user is
+   on. */
+.fx-strip .fx-chip:has(:focus-visible) img,
+.fx-strip .fx-chip:focus-within img { outline: 2px solid var(--cyan-light); outline-offset: 2px; }
 .fx-note { margin-top: 18px; font-size: 0.92rem; color: var(--muted); text-align: center; }
 
 /* ---------- Painted effects (vignette / HDR / shadow / contour) ---------- */
@@ -478,7 +536,7 @@ img { max-width: 100%; height: auto; display: block; }
   position: absolute; bottom: 10px; z-index: 2; line-height: 1;
   font-family: var(--font-display); font-size: 0.66rem; font-weight: 600;
   letter-spacing: 0.09em; text-transform: uppercase; padding: 5px 9px;
-  border-radius: 999px; background: var(--glass); color: var(--on-glass);
+  border-radius: 999px; background: var(--pill); color: var(--on-pill);
   border: 1px solid var(--border); backdrop-filter: blur(4px);
 }
 .fx-ba-tag.l { left: 10px; }
@@ -507,8 +565,8 @@ img { max-width: 100%; height: auto; display: block; }
 .sticker img { width: 100%; height: 100%; object-fit: cover; }
 .sticker span {
   position: absolute; left: 12px; bottom: 12px; font-family: var(--font-display); font-size: 0.78rem;
-  font-weight: 600; padding: 5px 10px; border-radius: 999px; background: var(--glass);
-  color: var(--on-glass); backdrop-filter: blur(4px); border: 1px solid var(--border); line-height: 1;
+  font-weight: 600; padding: 5px 10px; border-radius: 999px; background: var(--pill);
+  color: var(--on-pill); backdrop-filter: blur(4px); border: 1px solid var(--border); line-height: 1;
 }
 
 /* ---------- Feature cards ---------- */
@@ -611,7 +669,7 @@ img { max-width: 100%; height: auto; display: block; }
    rounded tile. */
 .cta-icon {
   width: 104px; height: 104px; display: block; margin: 0 auto 20px;
-  filter: drop-shadow(0 14px 26px rgba(0, 0, 0, 0.5));
+  filter: drop-shadow(0 14px 26px var(--icon-shadow));
 }
 
 /* ---------- Contact form ---------- */
@@ -620,10 +678,18 @@ img { max-width: 100%; height: auto; display: block; }
 .form .row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .form label { font-size: 0.85rem; color: var(--text-2); font-weight: 600; display: block; margin-bottom: 6px; font-family: var(--font-display); }
 .form input, .form textarea {
-  width: 100%; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  width: 100%; background: var(--card); border: 1px solid var(--border-ui); border-radius: var(--radius-sm);
   color: var(--text); font-family: var(--font-body); font-size: 1rem; padding: 13px 15px; transition: border-color 0.15s ease;
 }
-.form input:focus, .form textarea:focus { outline: none; border-color: var(--cyan); }
+/* A 1px border changing hue is not a focus indicator - it fails 2.4.11 and it
+   is invisible to anyone who cannot separate the two hues. A real ring, on the
+   whole set of controls, and only for keyboard focus so a mouse click does not
+   draw one. */
+.form input:focus-visible, .form textarea:focus-visible,
+a:focus-visible, button:focus-visible, summary:focus-visible, .fx-chip:focus-visible {
+  outline: 2px solid var(--cyan); outline-offset: 2px; border-radius: 4px;
+}
+.form input:focus, .form textarea:focus { border-color: var(--cyan); }
 .form textarea { resize: vertical; min-height: 130px; }
 .form button { justify-content: center; margin-top: 4px; }
 .form-note { font-size: 0.85rem; color: var(--muted); margin: 10px 0 0; }
@@ -638,7 +704,7 @@ img { max-width: 100%; height: auto; display: block; }
 .footer-brand .brand { margin-bottom: 12px; }
 .footer-brand p { font-size: 0.92rem; color: var(--muted); }
 .footer-cols { display: flex; gap: 60px; flex-wrap: wrap; }
-.footer-col h4 { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.14em; color: var(--faint); margin-bottom: 14px; }
+.footer-col h3 { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.14em; color: var(--faint); margin-bottom: 14px; }
 .footer-col a { display: block; color: var(--text-2); font-size: 0.94rem; margin-bottom: 9px; font-weight: 500; }
 .footer-bottom { margin-top: 40px; padding-top: 22px; border-top: 1px solid var(--border-faint); display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; font-size: 0.86rem; color: var(--faint); }
 
@@ -667,11 +733,15 @@ img { max-width: 100%; height: auto; display: block; }
   .hero-visual { max-width: 380px; margin: 0 auto; width: 100%; }
   .split { grid-template-columns: 1fr; gap: 36px; }
   .features { grid-template-columns: repeat(2, 1fr); }
-  .nav-links { position: fixed; inset: 68px 0 auto 0; flex-direction: column; gap: 0; background: var(--surface); border-bottom: 1px solid var(--border); padding: 8px 22px 18px; transform: translateY(-140%); transition: transform 0.25s ease; align-items: stretch; }
-  .nav-links.open { transform: translateY(0); }
+  .nav-links { position: fixed; inset: 68px 0 auto 0; flex-direction: column; gap: 0; background: var(--surface); border-bottom: 1px solid var(--border); padding: 8px 22px 18px; transform: translateY(-140%); transition: transform 0.25s ease, visibility 0.25s; align-items: stretch;
+    /* Off-screen is not closed. Without this the eight links stay focusable
+       while aria-expanded says false, so a keyboard tab walks into a menu that
+       is not on screen. */
+    visibility: hidden; }
+  .nav-links.open { transform: translateY(0); visibility: visible; }
   .nav-links a { padding: 13px 0; border-bottom: 1px solid var(--border-faint); }
   .nav-links .nav-cta { margin-top: 12px; text-align: center; border-bottom: none; }
-  .nav-toggle { display: inline-flex; background: none; border: 1px solid var(--border); border-radius: 10px; width: 42px; height: 42px; color: var(--text); align-items: center; justify-content: center; cursor: pointer; }
+  .nav-toggle { display: inline-flex; background: none; border: 1px solid var(--border-ui); border-radius: 10px; width: 42px; height: 42px; color: var(--text); align-items: center; justify-content: center; cursor: pointer; }
   /* The links become a fixed dropdown here, so they leave the flex row and
      `space-between` is left sharing it between three items - which parks the
      theme toggle in the middle of the header looking like a stray. Push it to
