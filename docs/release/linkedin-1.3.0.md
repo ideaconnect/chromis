@@ -29,33 +29,42 @@ LinkedIn suppresses reach on posts carrying an outbound link in the body.
 
 ## The post
 
-> "Remove object" used to cut a transparent hole in the photo.
+Announcement-led rather than a story: what shipped, what is in it, what it
+costs, where it is going. LinkedIn renders no markdown, so there is no bold and
+no bullet glyph in the text below - the numbering and the line breaks are the
+whole structure.
+
+> Chromis 1.3.0 is out on Google Play.
 >
-> People filed that as a bug. They were right — nobody taps "remove" and means "make a hole".
+> What's new:
 >
-> Taking something out of a photo is two questions. *Which pixels* was answered a long time ago. *What goes there* never was.
+> 1. Object removal now fills the background back in. The panel opens with a Fill in / Erase choice and Fill is the default. Two tiers sit behind that one word: a bundled generative model (MI-GAN, about 28 MB, MIT-licensed) runs first, and a pure-Dart content-aware fill catches what it can't. Which one ran is never shown — it was never a decision worth handing to anyone. The model is in the APK, so the fill needs no network and the photo has nowhere to go.
 >
-> Chromis 1.3.0 answers it. The panel now opens with a choice — Fill in or Erase — and Fill is the default, because "remove object" means a closed background to nearly everyone who taps it.
+> 2. Snapping. Drag a layer and it settles onto the nearest edge or centre — of every other visible layer, and of the canvas — with a guide showing what it caught. It measures in the layer's own frame rather than in bounding boxes, so two layers tilted to the same angle come out genuinely flush instead of corner-adjacent. It's a toggle in Adjust, on by default.
 >
-> Behind that one word sit two tiers. A bundled generative model runs first, and a pure-Dart content-aware fill catches what it can't. Which one ran is never shown, because it was never a decision worth handing to anyone — and having a floor is what lets Fill be offered at all, rather than only on the devices where the big model is happy.
+> 3. Placement sliders for a caption or a speech bubble, not just a photo. Scale, Rotation, Horizontal, Vertical. The canvas hit box IS the layer, so a caption pinched down by accident was smaller than a finger, and with a photo underneath there was nothing left to grab.
 >
-> The picture is the real output, not a mock-up. The head, the post and the handle of a lakeside tower viewer, taken out one at a time, and the background rebuilt from the rest of the photo.
+> 4. Pure black and pure white surfaces. Dark is true black rather than a dark grey, so an OLED pixel that should be off is off, and light is pure white so it stays readable outdoors.
 >
-> The model ships inside the app — MI-GAN, about 28 MB, MIT-licensed — so the fill needs no network and the photo has nowhere to go. That is the part I actually care about. "On-device AI" is easy to put in a store listing and hard for anyone to check; a model you can point at inside the APK is the version of it that can be checked.
+> The before/after above is real output rather than a mock-up: a lakeside tower viewer taken out, and the background rebuilt from the rest of the photo.
 >
-> Two more things in this release, both closing bad states rather than adding features.
+> Chromis is free and ad-supported, with one optional purchase that removes the ads and unlocks nothing else, because nothing else is locked. No account, on-device AI, nothing uploaded.
 >
-> Snapping. Drag a layer and it settles onto the nearest edge or centre — of every other visible layer, and of the canvas — with a guide showing what it caught. It measures in the layer's own frame rather than in bounding boxes, which is the only way two layers tilted to the same angle come out genuinely flush instead of merely corner-adjacent.
+> It's a slow project with a stubborn goal: to become the best photo editor on Google Play. 1.3.0 is one step of that.
 >
-> Placement sliders for a caption or a speech bubble, not just a photo. The canvas hit box IS the layer, so a caption pinched down by accident was smaller than a finger — and with a photo underneath it, there was nothing left to grab. A slider doesn't care how big the layer is.
->
-> Free and ad-supported on Google Play. Link in the first comment.
+> https://play.google.com/store/apps/details?id=tech.idct.chromis
 >
 > \#Android #Flutter #OnDeviceAI #PhotoEditing #ComputerVision
 
-**First comment:**
+**No hex codes in the body.** `#000000` reads as a hashtag on LinkedIn - it
+would render as a link and drag the post into a nonsense feed. The line says
+"true black" instead.
 
-> https://play.google.com/store/apps/details?id=tech.idct.chromis
+**A note on the link.** It is in the body because that is what was asked for.
+LinkedIn does throttle reach on posts carrying an outbound link; the usual
+workaround is to move it to the first comment and say "link in comments". If
+reach matters more than the click being one tap away, do that instead - the
+post reads fine with the last line removed.
 
 ---
 

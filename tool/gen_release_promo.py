@@ -67,8 +67,13 @@ SOCIAL = ROOT / "assets/store/social"
 BEFORE = ROOT / "assets/store/samples/landscape.jpg"
 AFTER = SOCIAL / "fill-after.png"
 
-VERSION = "UPDATE 1.3.0"
-HEADLINE = ["Remove it.", "Keep the view."]
+# The square announces, then explains: at 82pt "Chromis 1.3.0 is out." is 797 of
+# the 1056px it has, so it takes one line and gives the height back to the
+# before/after. The landscape column is only 540px wide, so there it breaks in
+# two - the same words, not different ones, or the pair stops being one campaign.
+VERSION = "WHAT'S NEW"
+HEADLINE = "Chromis 1.3.0 is out."
+HEADLINE_WRAPPED = ["Chromis 1.3.0", "is out."]
 SUB = "Object removal now rebuilds the background behind what you take out."
 # Under the pair. It does NOT count taps and does NOT say "flight mode", and
 # both omissions are deliberate. Object removal sits behind the shared AI ad
@@ -211,10 +216,10 @@ def square() -> Image.Image:
     W = H = 1200
     canvas = np.asarray(background().convert("RGB")).copy()[: H * SS, : W * SS]
 
-    pair_w, gap = 528, 24
+    pair_w, gap = 552, 24
     pair_h = round(pair_w * (CROP[3] - CROP[1]) / (CROP[2] - CROP[0]))
     left = (W - (2 * pair_w + gap)) // 2
-    top = 596
+    top = 548
 
     for i, src in enumerate((BEFORE, AFTER)):
         art = premultiplied(panel(src, s(pair_w), s(pair_h)))
@@ -231,14 +236,13 @@ def square() -> Image.Image:
               font=font("assets/fonts/Manrope-Variable.ttf", 24, 700), fill=CYAN)
 
     hf = font("assets/fonts/SpaceGrotesk-Variable.ttf", 82, 700)
-    for i, line in enumerate(HEADLINE):
-        fits(draw, line, hf, s(W - 144), "headline line %d" % (i + 1))
-        draw.text((s(72), s(240 + i * 92)), line, font=hf, fill=TEXT_PRIMARY)
-    draw.rounded_rectangle((s(78), s(456), s(162), s(464)), radius=s(4), fill=CYAN)
+    fits(draw, HEADLINE, hf, s(W - 144), "headline")
+    draw.text((s(72), s(240)), HEADLINE, font=hf, fill=TEXT_PRIMARY)
+    draw.rounded_rectangle((s(78), s(370), s(162), s(378)), radius=s(4), fill=CYAN)
 
     sf = font("assets/fonts/Manrope-Variable.ttf", 31, 500)
     fits(draw, SUB, sf, s(W - 144), "subtitle")
-    draw.text((s(72), s(492)), SUB, font=sf, fill=TEXT_SECONDARY)
+    draw.text((s(72), s(406)), SUB, font=sf, fill=TEXT_SECONDARY)
 
     for i, text in enumerate((TAG_BEFORE, TAG_AFTER)):
         tag(draw, s(left + i * (pair_w + gap) + 16), s(top + pair_h - 56), text,
@@ -246,10 +250,14 @@ def square() -> Image.Image:
 
     cf = font("assets/fonts/Manrope-Variable.ttf", 27, 500)
     fits(draw, CAPTION, cf, s(W - 144), "caption")
-    draw.text((s(W // 2), s(top + pair_h + 44)), CAPTION, font=cf,
+    caption_y = top + pair_h + 44
+    draw.text((s(W // 2), s(caption_y)), CAPTION, font=cf,
               fill=TEXT_SECONDARY, anchor="mm")
 
-    chips(draw, s(1078), s(W // 2), s(W - 120))
+    # Centred in the space left under the caption: 96px above, 96px below.
+    chips_y = 1056
+    assert caption_y + 24 < chips_y, "the caption runs into the chip row"
+    chips(draw, s(chips_y), s(W // 2), s(W - 120))
 
     arr = canvas.copy()
     over(arr, premultiplied(layer), 0, 0)
@@ -286,7 +294,7 @@ def landscape() -> Image.Image:
               font=font("assets/fonts/Manrope-Variable.ttf", 22, 700), fill=CYAN)
 
     hf = font("assets/fonts/SpaceGrotesk-Variable.ttf", 62, 700)
-    for i, line in enumerate(HEADLINE):
+    for i, line in enumerate(HEADLINE_WRAPPED):
         fits(draw, line, hf, col, "landscape headline line %d" % (i + 1))
         draw.text((s(62), s(206 + i * 70)), line, font=hf, fill=TEXT_PRIMARY)
     draw.rounded_rectangle((s(66), s(360), s(140), s(367)), radius=s(3), fill=CYAN)
