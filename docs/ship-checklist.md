@@ -149,17 +149,35 @@ python tool/store_copy.py             # every caption line fits the width it is
 ```
 
 **Social graphics** are separate from the listing and live in
-`assets/store/social/`, both 1200x1200 and both generated from the same English
-captures the listing uses, so nothing in them is a mock-up:
+`assets/store/social/`, all generated from the same English captures, CC0 sample
+photos and bundled models the listing uses, so nothing in them is a mock-up:
 
 | File | Generator | What it is for |
 |---|---|---|
 | `linkedin-promo.png` | `tool/gen_social_promo.py` | the app in general; does not change per release |
-| `linkedin-update-1-2-0.png` | `tool/gen_update_promo.py` | what 1.2.0 added |
+| `linkedin-update-1-2-0.png` | `tool/gen_update_promo.py` | what 1.2.0 added (six languages) |
+| `linkedin-update-1-3-0{,-landscape}.png` | `tool/gen_release_promo.py` | what 1.3.0 added (generative fill) |
+| `fill-after.png` | `tool/gen_fill_demo.py` | the fill result the 1.3.0 art is built on |
 
-The update one reads three *different* languages' captures. Copy it to a new
-`gen_update_promo.py`-shaped file per release rather than editing this one, or
-the graphic for the last release stops being reproducible.
+Each release gets its OWN generator file rather than an edit to the last one, or
+the graphic for the previous release stops being reproducible. What the
+composition should be is a per-release decision: 1.2.0 was three phones in three
+languages because its news was on the screen; 1.3.0 is a before/after because
+its news is what happens to the photo, and a phone bezel would shrink that to a
+thumbnail of itself.
+
+**`gen_fill_demo.py` runs the real models.** It is a Python port of
+`InpaintEngine` and `MobileSamEngine` - same window, dilation, seam, letterbox
+and composite - so the before/after in the 1.3.0 art is the app's own output on
+a CC0 photo rather than a drawing of one. It takes several minutes of CPU ONNX
+per tap and its result is committed; regenerate only if the Dart changes, and
+check the diff, because that is the only thing guarding the port from drift.
+
+**Check the release attribution against `git log`, not against the release
+notes.** An adversarial pass over four drafts of the 1.3.0 LinkedIn copy found
+three of them selling 1.2.0's light theme and six languages as new, because
+`docs/release/1.3.0.md` mentions the theme work and it reads as if the whole
+theme shipped then. The graphic's chips carry the same risk.
 
 `check_store_listings.py` is the one that matters most: Play truncates the title
 at 30 characters and the short description at 80 **silently**, and German,
