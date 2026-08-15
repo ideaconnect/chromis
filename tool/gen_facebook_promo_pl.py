@@ -75,64 +75,65 @@ CAPTURES = ROOT / "build/shots-i18n/pl/phone"
 LOGO = ROOT / "assets/branding/logo.png"
 
 # --- the words --------------------------------------------------------------
-# Three independent Polish drafts were written and each judged by a native
-# reader against the source. Everything below is either lifted from the app's
-# own pl ARB / the pl-PL listing, or is a line all three passes agreed on. Four
-# corrections are baked in, and each was a real fault:
+# FEATURE-LED. An earlier cut led on privacy and carried the tools as a chip
+# list; this one puts the tools in the headline and on five devices, and keeps
+# the privacy claim to one line at the foot. What did NOT change is which
+# claims are allowed, because those were checked once and the reasons stand:
 #
-# - **No blanket "nic się nigdzie nie wysyła" and no "bez chmury".** True of the
-#   PHOTOS, false of the app: it initialises AdMob, fetches a UMP consent form
-#   and queries Play billing on launch. The pl-PL listing is careful about this
-#   ("Internet służy do reklam i zakupów", details.md:67) and so is the app's own
-#   privacy screen. Every privacy claim here is scoped to the photos.
-# - **No "liczone/liczy się na telefonie".** A word-for-word calque of English
-#   "computed on your phone" that the app's Polish never uses; the listing heads
-#   its section "AI, KTÓRE DZIAŁA NA TWOIM TELEFONIE".
-# - **Półpauza in a numeric range**, not a hyphen - "2–5", the way app_pl.arb:52
-#   already writes it.
-# - **The chips name controls that exist.** "Usuwanie tła przez AI" is
-#   app_pl.arb:362 verbatim; "Eksport i udostępnianie" is :416. There is no panel
-#   called "Usuwanie obiektów" - it is a tab, "Usuń obiekt" (:240).
-EYEBROW = "PRYWATNY EDYTOR ZDJĘĆ"
-HEADLINE = ["Twoje zdjęcia"]
-HEADLINE_ACCENT = "zostają w telefonie."
-SUB = "Każde narzędzie AI działa na urządzeniu. Bez konta."
+# - **Privacy claims stay scoped to the PHOTOS.** No "bez chmury", no bare "nic
+#   się nigdzie nie wysyła": true of the photos, false of an app that
+#   initialises AdMob, fetches a UMP consent form and queries Play billing on
+#   launch. The pl-PL listing is careful about this (details.md:67).
+# - **The ads are still stated.** Two of the five features cost a rewarded ad
+#   per session for a free user (`_ensureAiAllowed`), so "za darmo" on its own
+#   would compose into "ad-free", which is the one thing this is not.
+# - **No "liczone / liczy się na telefonie"** - a calque of English "computed
+#   on your phone" that the app's own Polish never uses; it says "działa".
+# - **Półpauza in a numeric range** - "2–5", as app_pl.arb:52 writes it.
+# - **Every label is a control that exists.** Captions and chips below are the
+#   pl ARB's own words, so the graphic names the buttons the app has.
+EYEBROW = "EDYTOR ZDJĘĆ Z AI"
+HEADLINE = ["Wytnij tło, zrób kolaż,"]
+HEADLINE_ACCENT = "dodaj dymek."
+# Not "Pięć narzędzi": the graphic names nine capabilities, the dock has seven
+# tools, and none of them is bubbles - a count here is a number a reader can
+# disprove by looking at the same image.
+SUB = "Komplet narzędzi w jednej aplikacji. Wszystko działa na urządzeniu."
 
-FEATURES = [
-    "Usuwanie tła przez AI",
-    "Usuń obiekt, tło zostaje",
-    "Warstwy, tekst i dymki",
-    "14 filtrów, HDR i winieta",
-    "Kolaż z 2–5 zdjęć",
-    "Eksport i udostępnianie",
-]
+# The rest of the toolbox, under the fan. `Przyciąganie` and `Usuń obiekt` are
+# 1.3.0's; the others have been there longer.
+CHIPS = ["Usuwanie obiektów", "Przyciąganie warstw",
+         "HDR i winieta", "Eksport i udostępnianie"]
 
-PRIVACY_TITLE = "Prywatność nie jest tu dodatkiem"
-PRIVACY_BODY = "Zdjęcia nie opuszczają telefonu. Bez konta i logowania."
-# Said out loud, because the graphic leads with two features that cost a
-# rewarded ad per session for a free user. "Za darmo" beside a privacy panel and
-# no mention of ads composes into "ad-free and tracker-free", which is the one
-# thing this app is not - and the listing discloses it in full.
-PRIVACY_NOTE = "Za darmo. Reklamy usuwa jeden opcjonalny zakup."
+# One line, not a panel: the brief for this cut is the tools.
+PRIVACY_NOTE = "Bez konta i logowania. Zdjęcia nie są nigdzie wysyłane do obróbki."
+PRICE_NOTE = "Za darmo, z reklamami, które usuwa jeden opcjonalny zakup."
 
-# Neutral rather than "Za darmo w Google Play": the free/ads trade is stated in
-# the panel above, and the official Polish badge wording is this.
 CTA = "Pobierz z Google Play"
 
-# --- the pictures -----------------------------------------------------------
-# Back to front. The cut-out result is the front phone because it is the single
-# most legible thing the app does at thumbnail size; the collage and the
-# object-removal panel behind it say there is more than one trick. Tilt is 8
-# degrees, not one or two - a small angle reads as a mistake (gen_ads_assets).
-# (capture, height, tilt, centre). Heights are chosen against the vertical
-# budget in `feed()`, not by eye: a TILTED phone's bounding box is taller than
-# the phone, by height*cos(a) + width*sin(a), and forgetting that is how a
-# device ends up clipped square along one edge.
+# --- the pictures --------------------------------------------------------------
+# ONE DEVICE PER NAMED FEATURE, left to right in the order the copy introduces
+# them, each with its own caption. Five across is what the width allows: at
+# 1080 wide with 72 margins there are 936px for five slots of 187, and a phone
+# 340 tall tilted 6 degrees has a bounding box 187 wide. The fan is a shallow
+# sweep rather than five uprights, and the captions sit under each CENTRE so
+# the tilt never makes it ambiguous which label belongs to which device.
+#
+# The in-device text is illegible at this size and that is expected - the
+# devices say "these are five different screens of a real app" and the captions
+# say which. What has to survive is the SHAPE of each: a cut-out on a
+# checkerboard, a 2x2 collage, a speech bubble, a filter strip, a layer stack.
 FEED_PHONES = [
-    ("grid", 384, -9.0, (296, 762)),
-    ("objremove_panel", 384, 9.0, (784, 762)),
-    ("cutout_result", 442, 0.0, (540, 752)),
+    ("effects", "14 filtrów", -6.0),
+    ("cutout_result", "Usuwanie tła", -3.0),
+    ("layers", "Warstwy", 0.0),
+    ("grid", "Siatka zdjęć", 3.0),
+    ("bubble", "Dymki komiksowe", 6.0),
 ]
+FEED_PHONE_H = 340
+FEED_SLOT = 187
+FEED_FAN_Y = 772
+
 LINK_PHONES = [
     ("grid", 360, -8.0, (830, 300)),
     ("cutout_result", 430, 0.0, (990, 312)),
@@ -223,26 +224,30 @@ def pill(draw: ImageDraw.ImageDraw, x: int, y: int, text: str, size: int,
     return width
 
 
-def bullets(draw: ImageDraw.ImageDraw, x: int, y: int, width: int,
-            cols: int, size: int, row_h: int, gap: int) -> int:
-    """The feature list, as a grid of dot-marked lines. Returns the bottom y.
+def chips(draw: ImageDraw.ImageDraw, y: int, centre: int, limit: int) -> int:
+    """One centred row of outlined capsules, laid out from measured widths.
 
-    A dot rather than a chip outline: six capsules at this size is a lot of
-    stroked geometry competing with the phones, and the list reads as a list
-    without them.
+    Returns the bottom y. Capsules rather than the dot-list the privacy cut
+    used: these sit under five captioned devices, and a second column of bare
+    dotted lines would read as more captions.
     """
-    f = font(BODY, size, "Medium")
-    col_w = (width - gap * (cols - 1)) // cols
-    rows = (len(FEATURES) + cols - 1) // cols
-    for i, item in enumerate(FEATURES):
-        cx = x + (i % cols) * (col_w + gap)
-        cy = y + (i // cols) * row_h
-        r = 5
-        draw.ellipse((s(cx), s(cy + size / 2 - r + 2), s(cx + 2 * r), s(cy + size / 2 + r + 2)),
-                     fill=CYAN)
-        fits(draw, item, f, col_w - 2 * r - 14, "feature %d" % (i + 1))
-        draw.text((s(cx + 2 * r + 14), s(cy)), item, font=f, fill=MUTED)
-    return y + rows * row_h
+    f = font(BODY, 20, "Medium")
+    pad, gap, height = s(18), s(12), s(46)
+    widths = [round(draw.textlength(c, font=f)) + 2 * pad for c in CHIPS]
+    total = sum(widths) + gap * (len(CHIPS) - 1)
+    if total > s(limit):
+        sys.exit("the chip row is %.0fpx but only %dpx is available"
+                 % (total / SS, limit))
+    x = s(centre) - total // 2
+    for chip, width in zip(CHIPS, widths):
+        draw.rounded_rectangle((x, s(y), x + width, s(y) + height),
+                               radius=height // 2,
+                               fill=(0x11, 0x2A, 0x3A),
+                               outline=(0x1D, 0x4A, 0x5E), width=max(1, SS))
+        draw.text((x + width // 2, s(y) + height // 2), chip, font=f,
+                  fill=TEXT, anchor="mm")
+        x += width + gap
+    return y + 46
 
 
 def panel(draw: ImageDraw.ImageDraw, x: int, y: int, width: int, height: int) -> None:
@@ -263,17 +268,23 @@ def feed() -> Image.Image:
     margin = 72
     col = W - 2 * margin
 
-    # The bloom haloes the PHONES, not the type. At (540, 300) it sat directly
-    # behind the headline and took the cyan accent line to 1.22:1; the guard
-    # below is what says so, and moving it here is the fix.
-    bg = backdrop((W, H), (540, 790), (520.0, 620.0, 900.0, 1000.0))
+    # The bloom haloes the FAN, and both its centre and its radii are set by the
+    # contrast guard rather than by eye. Two failures got it here: at (540, 300)
+    # it sat behind the headline and took the cyan accent line to 1.22:1, and at
+    # (540, 790) with the original wide radii it reached the captions and took
+    # "Warstwy" to 4.15:1. Tightened, the captions measure 8.8:1 and the bloom
+    # still lights the devices, which is the only job it has.
+    bg = backdrop((W, H), (540, 700), (430.0, 470.0, 780.0, 760.0))
     flat = np.asarray(bg.convert("RGB"), dtype=np.float64)
     canvas = np.array(bg.resize((W * SS, H * SS), Image.BICUBIC), dtype=np.uint8)
 
-    # The fan sits under the copy; place() asserts each tilted box stays on the
-    # canvas, and FAN_TOP/FAN_BOTTOM below assert it stays clear of the copy.
-    for capture, height, angle, centre in FEED_PHONES:
-        place(canvas, CAPTURES, capture, height, angle, centre, BLUR, (W, H))
+    # One device per named feature, evenly spaced, in a shallow fan. place()
+    # asserts each tilted box stays on the canvas.
+    fan_left = margin + FEED_SLOT / 2
+    centres = [fan_left + i * FEED_SLOT for i in range(len(FEED_PHONES))]
+    for (capture, _label, angle), cx in zip(FEED_PHONES, centres):
+        place(canvas, CAPTURES, capture, FEED_PHONE_H, angle,
+              (round(cx), FEED_FAN_Y), BLUR, (W, H))
 
     layer = Image.new("RGBA", (W * SS, H * SS), (0, 0, 0, 0))
     draw = ImageDraw.Draw(layer)
@@ -288,58 +299,65 @@ def feed() -> Image.Image:
     draw.text((s(margin), s(y)), EYEBROW, font=ef, fill=CYAN)
 
     y += 44
-    hf = font(DISPLAY, 58, "Bold")
+    hf = font(DISPLAY, 56, "Bold")
     for line in HEADLINE:
         fits(draw, line, hf, col, "headline")
-        contrast(flat, line, font_1x(DISPLAY, 58, "Bold"), (margin, y), TEXT,
+        contrast(flat, line, font_1x(DISPLAY, 56, "Bold"), (margin, y), TEXT,
                  "headline", large=True)
         draw.text((s(margin), s(y)), line, font=hf, fill=TEXT)
-        y += 68
+        y += 66
     fits(draw, HEADLINE_ACCENT, hf, col, "headline accent")
-    contrast(flat, HEADLINE_ACCENT, font_1x(DISPLAY, 58, "Bold"), (margin, y),
+    contrast(flat, HEADLINE_ACCENT, font_1x(DISPLAY, 56, "Bold"), (margin, y),
              CYAN, "headline accent", large=True)
     draw.text((s(margin), s(y)), HEADLINE_ACCENT, font=hf, fill=CYAN)
-    y += 68 + 22
+    y += 66 + 20
 
     draw.rounded_rectangle((s(margin), s(y), s(margin + 76), s(y + 7)),
                            radius=s(4), fill=CYAN)
-    y += 7 + 24
+    y += 7 + 22
 
-    sf = font(BODY, 25, "Medium")
+    sf = font(BODY, 24, "Medium")
     fits(draw, SUB, sf, col, "subtitle")
-    contrast(flat, SUB, font_1x(BODY, 25, "Medium"), (margin, y), MUTED, "subtitle")
+    contrast(flat, SUB, font_1x(BODY, 24, "Medium"), (margin, y), MUTED, "subtitle")
     draw.text((s(margin), s(y)), SUB, font=sf, fill=MUTED)
-    copy_bottom = y + 34
+    copy_bottom = y + 32
 
-    # The fan's real extent, tilt included, so the two asserts below are about
-    # the pixels rather than about the nominal heights.
-    fan_top = min(c[1] - (h * math.cos(math.radians(abs(a)))
-                          + h * 1280 / 2856 * math.sin(math.radians(abs(a)))) / 2
-                  for _n, h, a, c in FEED_PHONES)
-    fan_bottom = max(c[1] + (h * math.cos(math.radians(abs(a)))
-                             + h * 1280 / 2856 * math.sin(math.radians(abs(a)))) / 2
-                     for _n, h, a, c in FEED_PHONES)
+    # The fan's real extent, tilt included, so the asserts are about pixels
+    # rather than about the nominal height.
+    def _bbox_h(angle: float) -> float:
+        a = math.radians(abs(angle))
+        return (FEED_PHONE_H * math.cos(a)
+                + FEED_PHONE_H * 1280 / 2856 * math.sin(a))
+
+    half = max(_bbox_h(a) for _n, _l, a in FEED_PHONES) / 2
+    fan_top, fan_bottom = FEED_FAN_Y - half, FEED_FAN_Y + half
     assert copy_bottom < fan_top, (
         "the subtitle at %d runs into the fan at %.0f" % (copy_bottom, fan_top))
 
-    # --- below the fan ---
-    y = round(fan_bottom) + 34
-    y = bullets(draw, margin, y, col, 2, 21, 40, 28)
+    # --- one caption per device, under its own centre ---
+    cf = font(BODY, 19, "Bold")
+    cap_y = round(fan_bottom) + 30
+    for (_capture, label, _angle), cx in zip(FEED_PHONES, centres):
+        fits(draw, label, cf, FEED_SLOT - 8, "caption %r" % label)
+        contrast(flat, label, font_1x(BODY, 19, "Bold"),
+                 (round(cx - draw.textlength(label, font=cf) / SS / 2), cap_y),
+                 TEXT, "caption %r" % label)
+        draw.text((s(cx), s(cap_y)), label, font=cf, fill=TEXT, anchor="ma")
 
-    py = y + 24
-    ph = 148
-    panel(draw, margin, py, col, ph)
-    tf = font(DISPLAY, 26, "Bold")
-    bf = font(BODY, 21, "Medium")
-    nf = font(BODY, 19, "Medium")
-    fits(draw, PRIVACY_TITLE, tf, col - 76, "privacy title")
-    fits(draw, PRIVACY_BODY, bf, col - 76, "privacy body")
-    fits(draw, PRIVACY_NOTE, nf, col - 76, "privacy note")
-    draw.text((s(margin + 34), s(py + 26)), PRIVACY_TITLE, font=tf, fill=TEXT)
-    draw.text((s(margin + 34), s(py + 66)), PRIVACY_BODY, font=bf, fill=MUTED)
-    draw.text((s(margin + 34), s(py + 100)), PRIVACY_NOTE, font=nf, fill=MUTED)
-    assert py + ph <= H - 48, (
-        "the privacy panel ends at %d, past the %d bottom margin" % (py + ph, H - 48))
+    # --- the rest of the toolbox ---
+    y = chips(draw, cap_y + 64, W // 2, col)
+
+    # --- the small print: privacy in one line, price in the next ---
+    nf = font(BODY, 20, "Medium")
+    y += 40
+    for line in (PRIVACY_NOTE, PRICE_NOTE):
+        fits(draw, line, nf, col, "note")
+        contrast(flat, line, font_1x(BODY, 20, "Medium"),
+                 (round(W / 2 - draw.textlength(line, font=nf) / SS / 2), y),
+                 MUTED, "note")
+        draw.text((s(W // 2), s(y)), line, font=nf, fill=MUTED, anchor="ma")
+        y += 32
+    assert y <= H - 48, "the small print ends at %d, past the %d margin" % (y, H - 48)
 
     over(canvas, premultiplied(layer), 0, 0)
     return Image.fromarray(canvas, "RGB").resize((W, H), Image.LANCZOS)
@@ -388,8 +406,13 @@ def link() -> Image.Image:
                            radius=s(3), fill=CYAN)
     y += 6 + 20
 
+    # Three short lines rather than the feed's two: the column is 600px and
+    # every one of these measures under 330, so they break cleanly on sentences
+    # instead of being hyphenated by hand.
     sf = font(BODY, 21, "Medium")
-    for line in (SUB, PRIVACY_BODY.split(". ")[0] + "."):
+    for line in ("Komplet narzędzi w jednej aplikacji.",
+                 "Wszystko działa na urządzeniu. Bez konta.",
+                 "Za darmo, z reklamami."):
         fits(draw, line, sf, col, "link privacy line")
         contrast(flat, line, font_1x(BODY, 21, "Medium"), (margin, y), MUTED,
                  "link privacy line")
