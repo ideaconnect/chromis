@@ -865,10 +865,22 @@ capture session also had and which the six sets therefore keep.
 ## Website (`website/`)
 
 Plain HTML/CSS - no Jekyll, no build. `.github/workflows/pages.yml` uploads the
-folder as-is on any push touching `website/**`, publishing it at
-**idct.tech/chromis/**. Pages there are flat files: `index.html`, `privacy.html`,
+folder as-is on any push touching `website/**` to a Cloudflare Worker that is
+nothing but static assets (`wrangler.jsonc`), bound by route to
+**idct.tech/chromis/**; every other path on `idct.tech` is still the org's apex
+site on GitHub Pages. Pages there are flat files: `index.html`, `privacy.html`,
 `terms.html`. **The folder is uploaded as-is**, so anything left in it ships -
 a scratch probe copy of a page is a live URL and a duplicate of the listing.
+
+**The `.html` URLs are the addresses, and Cloudflare's default would move
+them.** Its HTML handling 307s `/chromis/privacy.html` to `/chromis/privacy` -
+and `privacy.html` is what the app's About screen, Play Console and the page's
+own canonical all hold. `wrangler.jsonc` sets `html_handling: "none"`, which
+also stops `/chromis/` finding `index.html`, so `website/_redirects` rewrites
+the home page back and redirects the extensionless spellings GitHub Pages used
+to answer. The deploy moves `_redirects` to the root of the upload - the only
+place Cloudflare reads it - and ends by asking the live site whether the home
+page, policy and terms each answer 200 from Cloudflare.
 
 **The site has both themes, because the app does**, and the palette is the app's
 neutral one rather than the mockup's navy - a landing page whose job is to look
@@ -917,8 +929,10 @@ a fresh clone could not regenerate them.
 the other IDCT sites - helena and gentastic generate theirs from a Liquid loop,
 nuts uses `jekyll-sitemap` - this one is a literal list, so it is the only one
 that goes stale on its own. Adding, renaming or deleting a page in `website/`
-means editing `sitemap.xml` **in the same change**. Nothing catches it if you
-forget: no build fails, no test goes red, the page simply never gets indexed.
+means editing `sitemap.xml` **in the same change**. The site workflow checks
+that every page's canonical is its own URL and that the sitemap lists exactly
+those, and refuses to deploy otherwise - which on `main` means the site stays at
+its previous version until the sitemap is fixed.
 
 It is not just this site's sitemap. `idct.tech/sitemap.xml` is a sitemap *index*
 (repo `ideaconnect/ideaconnect.github.io`) that references this file directly and
@@ -928,10 +942,10 @@ it is a hard error against the whole domain, not just `/chromis/`.
 Two rules that go with it:
 
 - **Every page needs a `<link rel="canonical">`, and it must match its `<loc>`
-  here exactly.** GitHub Pages answers both `/chromis/privacy` and
-  `/chromis/privacy.html` with a 200, so without a canonical the same page can
-  be indexed twice. The canonical for the home page is the bare directory,
-  `https://idct.tech/chromis/`, not `index.html`.
+  here exactly.** `/chromis/` and `/chromis/index.html` both answer 200, so
+  without a canonical the home page can be indexed twice. The canonical for the
+  home page is the bare directory, `https://idct.tech/chromis/`, not
+  `index.html`.
 - **`changefreq` / `priority` are omitted on purpose.** Google ignores both;
   don't reintroduce them.
 

@@ -11,6 +11,7 @@ website/
 ├── privacy.html        # Privacy Policy
 ├── terms.html          # Terms of Use
 ├── styles.css          # shared styles
+├── _redirects          # Cloudflare rules; moved to the upload's root, never served
 └── assets/img/
     ├── logo.png              # app icon, 256px (header + footer, drawn at 34)
     ├── favicon-32.png        # the same tile at 32px
@@ -276,10 +277,12 @@ a page, so a deploy can skip both.
 
 ## Cache-busting
 
-GitHub Pages serves CSS and images with a long cache (`Cache-Control: max-age=14400`
-= 4 h). After you change `styles.css` or an image, **bump the `?v=N` query** on
-its `<link>` / `<img>` reference so browsers fetch the new file instead of a
-stale cached copy. `styles.css` is at `?v=11`, the brand marks at `?v=10`, the
+Cloudflare serves every file with `Cache-Control: public, max-age=0,
+must-revalidate` and an ETag, so a browser revalidates on each visit and a
+changed file is picked up without help. **Bump the `?v=N` query anyway** on its
+`<link>` / `<img>` reference after you change `styles.css` or an image: it costs
+nothing, and it is what keeps a change visible if the headers ever get longer -
+GitHub Pages, which hosted the site before, cached for 4 h. `styles.css` is at `?v=11`, the brand marks at `?v=10`, the
 screenshots at `?v=8`, the AI composites at `?v=7` and the painted-effect demos
 at `?v=6`; the generated filter tiles use `ASSET_V` in `tool/gen_filters.py`. The HTML pages revalidate quickly, so the new versioned
 URLs propagate on the next visit. (Grep the HTML rather than trusting this line -
@@ -287,14 +290,27 @@ if the two ever disagree, the HTML is the truth.)
 
 ## Deploy
 
-Any static host works (the site is served at `idct.tech/chromis`,
-alongside Sticker Maker). Upload the `website/` contents; no server code needed.
-External requests are only to Google Fonts, Google Analytics, and Web3Forms.
+The site is served at `idct.tech/chromis/` by a Cloudflare Worker that holds
+nothing but these files ([wrangler.jsonc](../wrangler.jsonc)). Every other path
+on `idct.tech` goes to the org's apex site, which is still on GitHub Pages
+(`ideaconnect/ideaconnect.github.io`). No server code; the only external
+requests are Google Analytics (after consent) and Web3Forms (on submit).
 
-`.github/workflows/pages.yml` does exactly that on every push to `main` that
-touches `website/`: GitHub Pages for this repo publishes it as a *project* site,
-which the org's own Pages site (`ideaconnect/ideaconnect.github.io`, custom
-domain `idct.tech`) exposes at `idct.tech/chromis/`.
+`.github/workflows/pages.yml` deploys on every push to `main` that touches
+`website/`: it checks the pages exist and that each canonical matches the
+sitemap, uploads `website/` as `dist/chromis/` with a pinned Wrangler, then asks
+the live address whether Cloudflare is the one answering. PRs get the checks
+without the deploy.
+
+**The pages keep their `.html` URLs, and that takes two files.** Cloudflare's
+default HTML handling redirects `/chromis/privacy.html` to `/chromis/privacy` -
+and `privacy.html` is the URL in the app's About screen, in Play Console and in
+the page's own canonical. `wrangler.jsonc` turns that handling off, which also
+stops `/chromis/` finding `index.html`, so [`_redirects`](_redirects) rewrites
+the home page back and 301s the extensionless spellings GitHub Pages used to
+answer. The deploy moves `_redirects` to the root of the upload, the only place
+Cloudflare reads it, so it is never served as a page. There is no 404 page: a
+missing URL gets a bare 404.
 
 `app-ads.txt` here is a **mirror**, served at `idct.tech/chromis/app-ads.txt`
 because that is the URL the Play listing points at. The copy AdMob verifies is

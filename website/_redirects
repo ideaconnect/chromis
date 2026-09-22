@@ -1,0 +1,17 @@
+# Read by Cloudflare from the ROOT of the uploaded assets, so the deploy moves this file up out
+# of chromis/ - it is never served as /chromis/_redirects. Paths carry the /chromis prefix
+# because the route hands the Worker the full request path.
+#
+# wrangler.jsonc turns html_handling off so that /chromis/privacy.html is served where it is
+# instead of being redirected; these rules put back the three things GitHub Pages did for us.
+# The first matching rule wins.
+
+# The home page. A 200 here is a rewrite, not a redirect: the address bar keeps /chromis/.
+/chromis/           /chromis/index.html    200
+# The trailing slash matters, not just tidiness: every link in the site is relative, and from
+# /chromis they would resolve against the domain root and miss.
+/chromis            /chromis/              301
+# GitHub Pages answered these with the page. Nothing here links to them, but anything outside
+# that ever did should still land.
+/chromis/privacy    /chromis/privacy.html  301
+/chromis/terms      /chromis/terms.html    301

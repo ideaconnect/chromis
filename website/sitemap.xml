@@ -4,9 +4,11 @@
   sitemap index at https://idct.tech/sitemap.xml (repo: ideaconnect.github.io).
   Add an entry here whenever a page is added to website/.
 
-  These three URLs match the <link rel="canonical"> on each page. GitHub Pages
-  also answers /chromis/privacy and /chromis/index.html, so the canonical tags
-  are what keep those extra spellings from being indexed separately.
+  These three URLs match the <link rel="canonical"> on each page, and the site
+  workflow refuses to deploy if they stop doing so. Cloudflare redirects
+  /chromis/privacy and /chromis/terms to these, and also answers
+  /chromis/index.html; the canonical tags keep that one from being indexed
+  separately.
 
   <changefreq>/<priority> are omitted on purpose — Google ignores both.
 -->

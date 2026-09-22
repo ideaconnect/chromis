@@ -1,45 +1,151 @@
-name: Deploy website to GitHub Pages
+name: Site
 
-# Publishes the static marketing site in website/ to GitHub Pages. The site is
-# plain HTML/CSS/JS (no Jekyll build needed), so we upload the folder directly.
+# Publishes website/ to Cloudflare, served at https://idct.tech/chromis/ by a Worker that is
+# nothing but static assets, bound to that path by the routes in wrangler.jsonc. The rest of
+# idct.tech is the org's apex site (repo: ideaconnect.github.io), still on GitHub Pages, and
+# every path outside /chromis/ carries on through to it untouched.
+#
+# The site is plain static HTML with no build step, so this workflow only checks the tree is
+# sound and uploads website/ one level down as dist/chromis/.
+#
+# One-time setup (already done on this repo): the CLOUDFLARE_API_TOKEN secret, a token from
+# the "Edit Cloudflare Workers" template scoped to this account and the idct.tech zone, and
+# CLOUDFLARE_ACCOUNT_ID. Nothing is set up in the Cloudflare dashboard: the first deploy
+# creates the Worker and its routes. Cloudflare's own Git integration is deliberately not
+# used - it would deploy on every push whether or not the checks below passed.
+
 on:
   push:
     branches: [main]
     paths:
-      - "website/**"
-      - ".github/workflows/pages.yml"
+      - website/**
+      - wrangler.jsonc
+      - .github/workflows/pages.yml
+  # Runs on PRs too, so a broken site is caught before it reaches the domain.
+  # Nothing is uploaded or deployed from a PR - see the `if` guards below.
+  pull_request:
+    paths:
+      - website/**
+      - wrangler.jsonc
+      - .github/workflows/pages.yml
   workflow_dispatch:
 
-# Grant the token permission to publish to Pages via OIDC.
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
-# One concurrent deploy; let an in-progress deploy finish rather than cancel it.
+# One deployment at a time, and never cancel a publish that is already running. Keyed by ref
+# so a PR's checks cannot take the one pending slot from a deploy queued behind another.
 concurrency:
-  group: pages
+  group: site-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
-  deploy:
+  site:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v7
 
-      # Best-effort: enable Pages (source = GitHub Actions) if it isn't already.
-      # If org policy blocks auto-enablement, enable it once in
-      # Settings → Pages → Build and deployment → Source: GitHub Actions.
-      - uses: actions/configure-pages@v6
-        with:
-          enablement: true
+      # The privacy policy and terms have to stay reachable at a stable URL - Google Play
+      # requires an active, publicly accessible policy URL, and the app's About screen links
+      # privacy.html directly. _redirects is what serves the home page at all (see
+      # wrangler.jsonc), so without it /chromis/ is a 404.
+      - name: Verify required files exist
+        run: |
+          missing=0
+          for f in \
+            website/index.html \
+            website/privacy.html \
+            website/terms.html \
+            website/styles.css \
+            website/sitemap.xml \
+            website/app-ads.txt \
+            website/_redirects
+          do
+            if [ ! -f "$f" ]; then echo "::error::missing $f"; missing=1; fi
+          done
+          exit $missing
 
-      - uses: actions/upload-pages-artifact@v5
-        with:
-          path: website
+      # Every page names itself as its canonical, and the sitemap lists exactly those. A page
+      # added and forgotten here is invisible to search; one removed and left here is a 404
+      # served to a crawler - and idct.tech/sitemap.xml indexes this file, so the error lands
+      # on the whole domain. Head blocks get written by copying the previous page's, which is
+      # how two pages end up claiming one canonical.
+      - name: Verify canonicals and the sitemap agree
+        run: |
+          python3 - <<'PY'
+          import glob, os, re, sys, xml.etree.ElementTree as ET
+          BASE = "https://idct.tech/chromis/"
+          NS = "{http://www.sitemaps.org/schemas/sitemap/0.9}"
+          listed = {e.text.strip() for e in ET.parse("website/sitemap.xml").getroot().iter(NS + "loc")}
+          fail, canon = False, set()
+          for page in sorted(glob.glob("website/*.html")):
+              name = os.path.basename(page)
+              want = BASE if name == "index.html" else BASE + name
+              found = re.findall(r'<link rel="canonical" href="([^"]+)"', open(page, encoding="utf-8").read())
+              if found != [want]:
+                  print(f"::error file={page}::canonical should be exactly {want}, found {found}")
+                  fail = True
+              canon.add(want)
+          for u in sorted(canon - listed):
+              print(f"::error file=website/sitemap.xml::missing {u}")
+          for u in sorted(listed - canon):
+              print(f"::error file=website/sitemap.xml::lists {u}, which no page claims as its canonical")
+          sys.exit(1 if (fail or canon != listed) else 0)
+          PY
 
-      - id: deployment
-        uses: actions/deploy-pages@v5
+      # The route keeps the /chromis/ prefix on every request, so the tree Cloudflare serves
+      # has website/ one level down. _redirects only counts at the root of that tree, so it is
+      # moved up - which also keeps it from being served as /chromis/_redirects.
+      - name: Assemble the tree Cloudflare serves
+        if: github.ref == 'refs/heads/main'
+        run: |
+          mkdir dist
+          cp -r website dist/chromis
+          mv dist/chromis/_redirects dist/_redirects
+
+      # Wrangler is pinned so a release of it cannot change what a deploy does between two
+      # pushes that changed nothing here.
+      - name: Deploy to Cloudflare
+        if: github.ref == 'refs/heads/main'
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: '4.136.3'
+          command: deploy
+
+      # A green deploy only means Cloudflare accepted the upload. This asks the addresses the
+      # app and the Play listing actually link to: each has to come from Cloudflare rather than
+      # GitHub, which is what a missing or mis-typed route looks like, and has to answer 200 at
+      # its own URL rather than redirect, which is what html_handling falling back to its
+      # default looks like. Retried, because a new route takes a few seconds to reach every
+      # edge.
+      #
+      # An empty response is tested for explicitly: a curl that got nothing would otherwise
+      # hand every "is it wrong" test an empty string, each would come back no, and a site
+      # that is down would pass.
+      - name: Verify the live site is the one just deployed
+        if: github.ref == 'refs/heads/main'
+        run: |
+          for attempt in 1 2 3 4 5 6; do
+            ok=1
+            for path in / /privacy.html /terms.html; do
+              url="https://idct.tech/chromis${path}"
+              headers=$(curl -sSI "$url" | tr -d '\r' || true)
+              status=$(head -n1 <<<"$headers" | awk '{print $2}')
+              if [ -z "$headers" ]; then
+                echo "attempt $attempt: $url did not answer"; ok=0
+              elif grep -qi '^x-github-request-id:' <<<"$headers"; then
+                echo "attempt $attempt: $url is still served by GitHub"; ok=0
+              elif [ "$status" != "200" ]; then
+                echo "attempt $attempt: $url answered $status, not 200"; ok=0
+              fi
+            done
+            if [ "$ok" = 1 ]; then
+              echo 'https://idct.tech/chromis/ is served by Cloudflare, and every page answers at its own URL'
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "::error::https://idct.tech/chromis/ is not serving this deploy"
+          exit 1

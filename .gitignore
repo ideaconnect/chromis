@@ -88,3 +88,8 @@ assets/store/ads/**/video/
 # which is exactly what happened once. Re-fetch from
 # https://huggingface.co/Carve/LaMa-ONNX (lama_fp32.onnx).
 assets/models/lama.onnx
+
+# The tree the site deploy uploads: website/ copied one level down as dist/chromis/.
+# Assembled by .github/workflows/pages.yml; anything here locally is a leftover.
+/dist/
+.wrangler/

@@ -221,8 +221,9 @@ def encode_demo_renders():
 
 DEFAULT_LOOK = "punch"
 
-# Bumped whenever the generated images change, so GitHub Pages' 4-hour cache
-# does not serve a stale tile against a new set of filters.
+# Bumped whenever the generated images change, so no cache between us and the
+# visitor can serve a stale tile against a new set of filters. (Cloudflare
+# revalidates every request; GitHub Pages, before it, cached for 4 hours.)
 ASSET_V = 4
 
 
