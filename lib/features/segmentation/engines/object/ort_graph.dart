@@ -3,6 +3,8 @@ import 'dart:typed_data';
 import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:flutter_onnxruntime/flutter_onnxruntime.dart';
 
+import '../ort_session_options.dart';
+
 /// One named tensor feed for an [OrtGraph] run.
 typedef GraphFeed = ({Float32List data, List<int> shape});
 
@@ -46,7 +48,12 @@ class OrtGraphSession implements OrtGraph {
   /// Creates a session from a bundled asset key
   /// (e.g. `assets/models/mobile_sam_decoder.onnx`).
   static Future<OrtGraphSession> fromAsset(String assetKey) async =>
-      OrtGraphSession._(await OnnxRuntime().createSessionFromAsset(assetKey));
+      OrtGraphSession._(
+        await OnnxRuntime().createSessionFromAsset(
+          assetKey,
+          options: ortSessionOptions(),
+        ),
+      );
 
   @override
   Future<Map<String, Float32List>> run(

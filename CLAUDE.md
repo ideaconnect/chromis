@@ -757,6 +757,27 @@ device** before starting the next (device deploys need their acknowledgement).
 bundled U²-Netp (ONNX) engine, MobileSAM object engine, mask brush/processing.
 Models in `assets/models/*.onnx` (Apache-2.0). Runs via `flutter_onnxruntime`.
 
+**Every ORT session is created with `ortSessionOptions()`
+(`engines/ort_session_options.dart`), and that turns KleidiAI off.** ORT 1.23
+switched its KleidiAI kernels on for any CPU reporting SME, but they are SME2
+code, so Snapdragon 8 Gen 5 / 8 Elite Gen 5 (SME without SME2 - Galaxy S26,
+razr fold) died with SIGILL on the first MobileSAM pass (#64). It was a process
+kill, so no Dart `try` and no failure flag ever ran. And because opening Remove
+object warms the encoder at once while background removal defaults to ML Kit,
+it read as "object removal crashes" on phones where every ORT feature did. ORT
+1.28 (`flutter_onnxruntime` 1.9) picks SME vs SME2 at runtime; the opt-out is
+there so the fix does not rest on that detection on chips nobody here can test.
+It costs nothing elsewhere, because MLAS only installs KleidiAI on SME CPUs.
+`test/segmentation/ort_session_options_test.dart` fails on any session created
+without it. **Do not settle on ORT 1.27**: it silently miscomputes on SM8850
+(sherpa-onnx #3845), which is worse than a crash.
+
+An ORT failure is otherwise invisible from outside - SAM reads as
+"unavailable", U²-Net falls back to ML Kit, MI-GAN to content fill - so "the app
+did not crash" proves nothing. `integration_test/ort_engines_device_test.dart`
+(SAM, U²-Net) and `inpaint_device_test.dart` (MI-GAN) assert the models RAN;
+run them after any ORT bump.
+
 ## Monetization
 
 `google_mobile_ads` (banner + **rewarded interstitial** + UMP; there is no

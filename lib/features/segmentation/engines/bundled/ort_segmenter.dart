@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:flutter_onnxruntime/flutter_onnxruntime.dart';
 
+import '../ort_session_options.dart';
 import 'segmenter.dart';
 
 /// [Segmenter] backed by ONNX Runtime Mobile via `flutter_onnxruntime`. Loads
@@ -19,7 +20,10 @@ class OrtSegmenter implements Segmenter {
 
   /// Creates a session from a bundled asset key (e.g. `assets/models/u2netp.onnx`).
   static Future<OrtSegmenter> fromAsset(String assetKey) async {
-    final session = await OnnxRuntime().createSessionFromAsset(assetKey);
+    final session = await OnnxRuntime().createSessionFromAsset(
+      assetKey,
+      options: ortSessionOptions(),
+    );
     return OrtSegmenter._(
       session,
       session.inputNames.first,
