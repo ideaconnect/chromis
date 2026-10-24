@@ -17,10 +17,14 @@ jobs:
           distribution: temurin
           java-version: "17"
 
+      # Pinned to the 3.44 line on purpose (#65): 3.47 drops MediaTek phones
+      # below vendor SDK 32 to OpenGLES, where toByteData racing toImage - which
+      # mask decode and export both do - deadlocks the Mali driver
+      # (flutter#193428). 3.44.7+ carries the Mali external-texture fence fix.
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
-          flutter-version: 3.44.6
+          flutter-version: 3.44.9
           cache: true
 
       - run: flutter pub get

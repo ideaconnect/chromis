@@ -745,6 +745,39 @@ asks the test unit is how a unit that serves nothing reaches production, where
 it reads as zero revenue rather than as a bug. See `docs/monetization-setup.md`
 ("The Home banner shows nothing").
 
+### Leaving the app, and the Flutter pin
+
+**Back on the last screen moves the task to the background; it never finishes
+the activity** (`MainActivity`, #65). Flutter's default is `finish()`, which
+tears the engine down while the process lives on and the AdMob banner's WebView
+is still drawing into its platform-view texture - and both crashes of that
+teardown are real: on Mali, Impeller frees fences the driver's backend thread
+is still signalling (`FORTIFY: pthread_mutex_lock called on a destroyed mutex`,
+no Flutter frame on the stack - flutter#187703, #191168), and on the emulator
+the WebView trips a CHECK two back-outs in three. Android 12+ already treats
+any other app's root activity this way.
+
+It takes two hooks, because Android delivers back two ways. Where back is still
+`onBackPressed` (below 16, or predictive back off) the last back lands in
+`popSystemNavigator`. On Android 16+ an app targeting 36 gets only
+`OnBackInvokedCallback`s, and Flutter unregisters its own on the last route, so
+`MainActivity` registers one of its own **before `super.onCreate`**, underneath
+Flutter's - equal priority runs most-recent-first. **Do not simplify this by
+keeping Flutter's callback registered on the last route**: it was tried, and
+the back swipe on Home was swallowed after any trip to the editor, because the
+predictive-back page transition, not `canPop`, decides who claims a swipe.
+
+Check it with the events log rather than by eye: `wm_finish_activity ...
+app-request` is the finish. After the fix there is none and the pid survives.
+
+**Flutter is pinned to the 3.44 line** (`ci.yml`). 3.47 drops MediaTek phones
+below vendor SDK 32 to OpenGLES, where `toByteData` racing `toImage` - mask
+decode and export both do it - deadlocks the Mali driver (flutter#193428,
+open). 3.44.7 fixed a `sync_file` leak in platform-view textures on Android 13+
+that the banner hit on every refresh: about 125 descriptors a refresh on the
+emulator, released only by GC, and flat on 3.44.9. Re-check both before moving
+off 3.44.
+
 ## Milestones
 
 Planned as GitHub milestones **M0-M9** with issues. Work one milestone at a time;

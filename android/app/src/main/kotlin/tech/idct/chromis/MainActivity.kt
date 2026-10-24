@@ -10,6 +10,8 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Environment
 import android.provider.MediaStore
+import android.window.OnBackInvokedCallback
+import android.window.OnBackInvokedDispatcher
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import io.flutter.embedding.android.FlutterActivity
@@ -38,8 +40,60 @@ class MainActivity : FlutterActivity() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             splashScreen.setOnExitAnimationListener { view -> view.remove() }
         }
+        // BEFORE super.onCreate, which can already register Flutter's own
+        // callback when it restores state - see backToBackground.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            onBackInvokedDispatcher.registerOnBackInvokedCallback(
+                OnBackInvokedDispatcher.PRIORITY_DEFAULT,
+                backToBackground!!,
+            )
+        }
         super.onCreate(savedInstanceState)
     }
+
+    /**
+     * Back on the last route sends the app to the background instead of
+     * finishing the activity (#65).
+     *
+     * Finishing tears the FlutterEngine down while the process lives on, with
+     * the AdMob banner's WebView still drawing into a platform-view texture.
+     * Both crashes of that teardown are ours to avoid, not to fix: on Mali the
+     * engine frees GPU fences the driver's backend thread is still signalling
+     * and the process aborts on "pthread_mutex_lock called on a destroyed
+     * mutex" (flutter#187703, fixed only in 3.47, which this app cannot take;
+     * flutter#191168, open), and on the emulator the WebView trips a CHECK
+     * once its texture is closed under it - two back-outs in three, on 3.44.6
+     * and 3.44.9 alike. Moving the task back keeps everything alive, which is
+     * what Android 12+ does for any other app's root activity, and coming
+     * back becomes a warm resume rather than a cold start.
+     *
+     * This is where the last back lands while back still arrives as
+     * `onBackPressed`: below Android 16, or with predictive back off.
+     */
+    override fun popSystemNavigator(): Boolean {
+        moveTaskToBack(true)
+        return true
+    }
+
+    /**
+     * The same as [popSystemNavigator], for Android 16+, where an app
+     * targeting 36 gets no `onBackPressed` at all - only OnBackInvokedCallbacks.
+     *
+     * Flutter registers its callback while a route can pop and unregisters it
+     * on the last route, handing that back to the system - which finished the
+     * activity, so [popSystemNavigator] never ran. This one stays registered
+     * underneath: callbacks of equal priority run most-recent-first, and
+     * Flutter's is registered after it every time, so it is reached only when
+     * Flutter has stepped aside. Flutter's own judgement of "can pop" is left
+     * alone on purpose - keeping its callback registered on the last route
+     * instead swallowed the back swipe on Home after any trip to the editor.
+     */
+    private val backToBackground: OnBackInvokedCallback? =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            OnBackInvokedCallback { moveTaskToBack(true) }
+        } else {
+            null
+        }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
