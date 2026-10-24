@@ -812,8 +812,39 @@ class AppLocalizationsEs extends AppLocalizations {
   String get fillIn => 'Rellenar';
 
   @override
-  String get fillExplainer =>
-      'Rellenar reconstruye el fondo con el resto de la foto.';
+  String get fillQualityBest => 'Mejor calidad';
+
+  @override
+  String get fillQualityLowMemory => 'Poca memoria';
+
+  @override
+  String get fillBestExplainer =>
+      'Rellenar reconstruye el fondo con el máximo detalle. Necesita más memoria y tarda más.';
+
+  @override
+  String get fillLowMemoryExplainer =>
+      'Rellenar reconstruye el fondo con el resto de la foto usando mucha menos memoria. Los objetos grandes quedan más simples.';
+
+  @override
+  String get fillQualityTitle => '¿Cómo quieres rellenar?';
+
+  @override
+  String get fillQualityMessage =>
+      'El fondo se puede reconstruir de dos formas. Puedes cambiarlo cuando quieras debajo de Rellenar.';
+
+  @override
+  String get fillQualityBestDetail =>
+      'El máximo detalle, sobre todo en objetos grandes. Necesita más memoria y tarda más.';
+
+  @override
+  String get fillQualityLowMemoryDetail =>
+      'Más rápido y ligero para la memoria, así que va bien en cualquier móvil. Los objetos grandes quedan más simples.';
+
+  @override
+  String get fillQualityRecommended => 'Recomendado para este móvil';
+
+  @override
+  String get fillQualityContinue => 'Continuar';
 
   @override
   String get eraseExplainer => 'Borrar quita el objeto y deja transparencia.';

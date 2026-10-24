@@ -22,6 +22,7 @@ class SettingsStore {
   static const _kRestoreProbed = 'restoreProbed';
   static const _kLocale = 'locale';
   static const _kThemeMode = 'themeMode';
+  static const _kFillQuality = 'fillQuality';
 
   Future<File> _file() async {
     final base = _baseOverride ?? await getApplicationDocumentsDirectory();
@@ -126,6 +127,23 @@ class SettingsStore {
       data.remove(_kThemeMode);
     } else {
       data[_kThemeMode] = name;
+    }
+    await _write(data);
+  }
+
+  /// How Fill rebuilds the background (see `FillQuality`), or null when the
+  /// user has not chosen yet - which is what makes the first fill ask.
+  Future<String?> fillQualityId() async =>
+      (await _read())[_kFillQuality] as String?;
+
+  /// Pass null to forget the choice, so the next fill asks again. The key is
+  /// REMOVED rather than written as null, as for [setThemeModeName].
+  Future<void> setFillQualityId(String? id) async {
+    final data = await _read();
+    if (id == null) {
+      data.remove(_kFillQuality);
+    } else {
+      data[_kFillQuality] = id;
     }
     await _write(data);
   }

@@ -817,8 +817,39 @@ class AppLocalizationsFr extends AppLocalizations {
   String get fillIn => 'Remplir';
 
   @override
-  String get fillExplainer =>
-      'Le remplissage reconstitue l\'arrière-plan à partir du reste de la photo.';
+  String get fillQualityBest => 'Meilleure qualité';
+
+  @override
+  String get fillQualityLowMemory => 'Peu de mémoire';
+
+  @override
+  String get fillBestExplainer =>
+      'Le remplissage reconstitue l\'arrière-plan avec le plus de détails. Il demande plus de mémoire et prend plus de temps.';
+
+  @override
+  String get fillLowMemoryExplainer =>
+      'Le remplissage reconstitue l\'arrière-plan à partir du reste de la photo avec bien moins de mémoire. Les grands objets donnent un résultat plus simple.';
+
+  @override
+  String get fillQualityTitle => 'Quel remplissage choisir ?';
+
+  @override
+  String get fillQualityMessage =>
+      'L\'arrière-plan peut être reconstitué de deux façons. Vous pouvez changer à tout moment sous Remplir.';
+
+  @override
+  String get fillQualityBestDetail =>
+      'Le plus de détails, surtout sur les grands objets. Demande plus de mémoire et prend plus de temps.';
+
+  @override
+  String get fillQualityLowMemoryDetail =>
+      'Plus rapide et léger en mémoire, il convient à tous les téléphones. Les grands objets donnent un résultat plus simple.';
+
+  @override
+  String get fillQualityRecommended => 'Recommandé pour ce téléphone';
+
+  @override
+  String get fillQualityContinue => 'Continuer';
 
   @override
   String get eraseExplainer =>

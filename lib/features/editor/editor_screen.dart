@@ -48,6 +48,7 @@ import '../segmentation/alpha_mask.dart';
 import '../segmentation/engines/inpaint/content_fill_engine.dart';
 import '../segmentation/engines/inpaint/inpaint_engine.dart';
 import '../segmentation/engines/object/mobile_sam_engine.dart';
+import '../segmentation/fill_quality.dart';
 import '../segmentation/mask_brush.dart';
 import '../segmentation/mask_processing.dart';
 import '../segmentation/mask_store.dart';
@@ -69,6 +70,7 @@ import 'widgets/canvas_size_sheet.dart';
 import 'widgets/crop_overlay.dart';
 import 'widgets/editor_canvas.dart';
 import 'widgets/erase_trail.dart';
+import 'widgets/fill_quality_sheet.dart';
 import 'widgets/filter_strip.dart';
 import 'widgets/project_canvas.dart';
 
@@ -2326,9 +2328,19 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
               ),
             ],
           ),
+          // HOW to fill (#68), only while Fill is chosen: the two tiers peak
+          // about 45 MB and 460 MB above the app, and on a 2 GB phone that
+          // trade is the user's call, not ours. Until they make it, the row
+          // shows what this phone's memory suggests - the first fill then
+          // asks, with that one preselected.
+          if (_fillMode) ...[const SizedBox(height: 8), _fillQualityRow()],
           const SizedBox(height: 3),
           Text(
-            _fillMode ? _l10n.fillExplainer : _l10n.eraseExplainer,
+            !_fillMode
+                ? _l10n.eraseExplainer
+                : _shownFillQuality() == FillQuality.lowMemory
+                ? _l10n.fillLowMemoryExplainer
+                : _l10n.fillBestExplainer,
             textAlign: TextAlign.center,
             style: TextStyle(
               fontFamily: AppFonts.ui,
@@ -2364,6 +2376,44 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                   },
           ),
         ],
+      ],
+    );
+  }
+
+  /// The fill quality the panel shows: the user's choice, or - until they have
+  /// made one - what this phone's memory suggests. Display only: a fill reads
+  /// the providers with `await`, never through `asData`, which reads as
+  /// "nothing yet" on the first frame of a session (see [_tryInpaint]).
+  FillQuality _shownFillQuality() =>
+      ref.watch(fillQualityProvider).asData?.value ??
+      ref.watch(fillQualityRecommendationProvider).asData?.value ??
+      FillQuality.best;
+
+  /// Best quality / Low memory, under Fill in. A tap here IS the choice, so
+  /// the first fill does not ask again.
+  Widget _fillQualityRow() {
+    final shown = _shownFillQuality();
+    void choose(FillQuality q) =>
+        unawaited(ref.read(fillQualityProvider.notifier).select(q));
+    return Row(
+      children: [
+        Expanded(
+          child: _segTab(
+            _l10n.fillQualityBest,
+            shown == FillQuality.best,
+            context.colors.cyan,
+            () => choose(FillQuality.best),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: _segTab(
+            _l10n.fillQualityLowMemory,
+            shown == FillQuality.lowMemory,
+            context.colors.cyan,
+            () => choose(FillQuality.lowMemory),
+          ),
+        ),
       ],
     );
   }
@@ -3253,6 +3303,25 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         .catchError((Object _) {});
   }
 
+  /// True once the user has said how Fill should work (#68) - from the panel
+  /// at any time, or from the sheet this shows the first time it is needed,
+  /// with the quality this phone's memory suggests preselected. Dismissing the
+  /// sheet answers false and saves nothing, so the next fill asks again.
+  Future<bool> _ensureFillQualityChosen() async {
+    if (await ref.read(fillQualityProvider.future) != null) return true;
+    final recommended = await ref.read(
+      fillQualityRecommendationProvider.future,
+    );
+    if (!mounted) return false;
+    final picked = await FillQualitySheet.show(
+      context,
+      recommended: recommended,
+    );
+    if (picked == null || !mounted) return false;
+    await ref.read(fillQualityProvider.notifier).select(picked);
+    return true;
+  }
+
   /// Tier-1 object removal (#83): the tapped 4-connected blob of the cutout's
   /// alpha is subtracted (with a feathered seam) - no ML involved. Tapping the
   /// largest blob (the subject) or transparency is a safe no-op.
@@ -3270,6 +3339,10 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       );
       final maskPoint = mapper.canvasToMask(pointLogical);
       if (maskPoint == null) return; // missed the photo entirely
+      // The first Fill asks how to fill (#68). Here, before any work and before
+      // the ad gate: nothing has changed yet, so backing out of the question
+      // costs nothing - not the tap, and not an ad.
+      if (_fillMode && !await _ensureFillQualityChosen()) return;
       // AI object removal is gated like the other AI actions (once per session;
       // Pro skips). Placed after the "hit the photo" checks so an empty-space
       // tap never spends the unlock, and it can't be routed around via the
@@ -3438,32 +3511,43 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     }
   }
 
-  /// The two fill tiers, best first. MI-GAN invents plausible content and wins
-  /// on structured scenes, but it is an OPTIONAL bundled model (see
-  /// docs/inpaint-setup.md) and absent from the shipped app; content-aware fill
-  /// only rebuilds from texture the photo already has, and always runs. Trying
-  /// them in order is what lets Fill be offered unconditionally - the feature
-  /// no longer disappears with the asset.
+  /// The fill tiers the user's [FillQuality] allows, best first (#68). MI-GAN
+  /// invents plausible content and wins on structured scenes; content-aware
+  /// fill only rebuilds from texture the photo already has, but needs a tenth
+  /// of the memory and always runs. Low memory is content-aware fill alone;
+  /// Best quality tries MI-GAN and falls through to it, which is what lets
+  /// Fill be offered unconditionally - the feature never disappears with an
+  /// asset or a runtime.
   Future<Uint8List?> _tryInpaint(ImageLayer layer, AlphaMask object) async {
     try {
       final bytes = await File(layer.assetPath).readAsBytes();
-      // No availability gate. There used to be one - an asset-manifest
-      // FutureProvider - and it skipped this tier THREE separate times, each
-      // silently: the chooser was built behind it while no build shipped the
-      // asset; then un-gating the chooser removed its only `ref.watch`, so a
-      // synchronous `ref.read(...).asData` read an uninitialised provider as
-      // AsyncLoading and answered "no model" for the first fill of every
-      // session. A gate whose failure mode is indistinguishable from a bad
-      // model is not worth what it saves.
+      // Awaited, never `.asData`: a synchronous read of an uninitialised
+      // provider is AsyncLoading, which is how the generative tier was once
+      // skipped on the first fill of every session. Null only if the panel's
+      // choice and the first-fill sheet were both bypassed - then the same
+      // guess the sheet would have offered.
+      final chosen = await ref.read(fillQualityProvider.future);
+      // Typed: untyped, the `??` hands its left side's nullable type down as
+      // the context, and `ref.read` infers a nullable result from it.
+      final FillQuality quality =
+          chosen ?? await ref.read(fillQualityRecommendationProvider.future);
+      // No availability gate inside Best quality. There used to be one - an
+      // asset-manifest FutureProvider - and it skipped this tier THREE
+      // separate times, each silently: the chooser was built behind it while
+      // no build shipped the asset; then un-gating the chooser removed its
+      // only `ref.watch`, so a synchronous `ref.read(...).asData` answered "no
+      // model" for the first fill of every session. A gate whose failure mode
+      // is indistinguishable from a bad model is not worth what it saves.
       //
       // `inpaint` already returns null on ANY failure - missing asset included
-      // - and null is exactly the signal to fall through. So just try it. The
-      // only cost when the asset is absent is one failed load per fill.
-      final generated = await ref
-          .read(inpaintEngineProvider)
-          .inpaint(bytes, object);
-      if (generated != null) return generated;
-      return await ref.read(contentFillEngineProvider).fill(bytes, object);
+      // - and null is exactly the signal to fall through. So just try it.
+      return await runFill(
+        quality,
+        generative: () =>
+            ref.read(inpaintEngineProvider).inpaint(bytes, object),
+        contentAware: () =>
+            ref.read(contentFillEngineProvider).fill(bytes, object),
+      );
     } catch (_) {
       return null;
     }

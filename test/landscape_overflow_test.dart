@@ -7,6 +7,7 @@ import 'package:chromis/features/ads/ad_gate.dart';
 import 'package:chromis/features/editor/editor_screen.dart';
 import 'package:chromis/features/editor/widgets/bubble_shape_sheet.dart';
 import 'package:chromis/features/editor/widgets/canvas_size_sheet.dart';
+import 'package:chromis/features/editor/widgets/fill_quality_sheet.dart';
 import 'package:chromis/features/editor/widgets/project_canvas.dart';
 import 'package:chromis/features/go_pro/iap.dart';
 import 'package:chromis/features/grid/widgets/grid_setup_sheet.dart';
@@ -15,6 +16,7 @@ import 'package:chromis/features/home/widgets/app_drawer.dart';
 import 'package:chromis/features/home/widgets/new_project_sheet.dart';
 import 'package:chromis/features/home/widgets/project_tile.dart';
 import 'package:chromis/features/onboarding/onboarding_screen.dart';
+import 'package:chromis/features/segmentation/fill_quality.dart';
 import 'package:chromis/features/settings/settings_screen.dart';
 import 'package:chromis/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
@@ -177,6 +179,23 @@ void main() {
         expect(tester.takeException(), isNull);
         expect(find.byKey(const ValueKey('ad-gate-watch')), findsOneWidget);
         expect(find.byKey(const ValueKey('ad-gate-go-pro')), findsOneWidget);
+      });
+
+      // Asked on the first fill (#68): two option cards of prose and a button.
+      testWidgets('fill quality sheet', (tester) async {
+        await pumpSheet(
+          tester,
+          size,
+          (context) => FillQualitySheet.show(
+            context,
+            recommended: FillQuality.lowMemory,
+          ),
+        );
+        expect(tester.takeException(), isNull);
+        expect(
+          find.byKey(const ValueKey('fill-quality-continue')),
+          findsOneWidget,
+        );
       });
 
       testWidgets('about sheet', (tester) async {

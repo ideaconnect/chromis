@@ -1564,11 +1564,65 @@ abstract class AppLocalizations {
   /// **'Fill in'**
   String get fillIn;
 
-  /// No description provided for @fillExplainer.
+  /// No description provided for @fillQualityBest.
   ///
   /// In en, this message translates to:
-  /// **'Fill rebuilds the background from the rest of the photo.'**
-  String get fillExplainer;
+  /// **'Best quality'**
+  String get fillQualityBest;
+
+  /// No description provided for @fillQualityLowMemory.
+  ///
+  /// In en, this message translates to:
+  /// **'Low memory'**
+  String get fillQualityLowMemory;
+
+  /// No description provided for @fillBestExplainer.
+  ///
+  /// In en, this message translates to:
+  /// **'Fill rebuilds the background in the most detail. It needs more memory and takes longer.'**
+  String get fillBestExplainer;
+
+  /// No description provided for @fillLowMemoryExplainer.
+  ///
+  /// In en, this message translates to:
+  /// **'Fill rebuilds the background from the rest of the photo with far less memory. Large objects come out simpler.'**
+  String get fillLowMemoryExplainer;
+
+  /// No description provided for @fillQualityTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'How should Fill work?'**
+  String get fillQualityTitle;
+
+  /// No description provided for @fillQualityMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Fill can rebuild the background in two ways. You can switch any time under Fill in.'**
+  String get fillQualityMessage;
+
+  /// No description provided for @fillQualityBestDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'The most detail, especially on large objects. Needs more memory and takes longer.'**
+  String get fillQualityBestDetail;
+
+  /// No description provided for @fillQualityLowMemoryDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'Quicker and light on memory, so it suits any phone. Large objects come out simpler.'**
+  String get fillQualityLowMemoryDetail;
+
+  /// No description provided for @fillQualityRecommended.
+  ///
+  /// In en, this message translates to:
+  /// **'Recommended for this phone'**
+  String get fillQualityRecommended;
+
+  /// No description provided for @fillQualityContinue.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue'**
+  String get fillQualityContinue;
 
   /// No description provided for @eraseExplainer.
   ///

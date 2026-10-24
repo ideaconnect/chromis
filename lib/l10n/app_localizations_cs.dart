@@ -812,7 +812,39 @@ class AppLocalizationsCs extends AppLocalizations {
   String get fillIn => 'Vyplnit';
 
   @override
-  String get fillExplainer => 'Vyplnění obnoví pozadí z okolních částí fotky.';
+  String get fillQualityBest => 'Nejlepší kvalita';
+
+  @override
+  String get fillQualityLowMemory => 'Méně paměti';
+
+  @override
+  String get fillBestExplainer =>
+      'Vyplnění obnoví pozadí s nejvíce detaily. Potřebuje víc paměti a trvá déle.';
+
+  @override
+  String get fillLowMemoryExplainer =>
+      'Vyplnění obnoví pozadí z okolních částí fotky s mnohem menšími nároky na paměť. U velkých objektů je výsledek jednodušší.';
+
+  @override
+  String get fillQualityTitle => 'Jak má vyplňování fungovat?';
+
+  @override
+  String get fillQualityMessage =>
+      'Pozadí jde obnovit dvěma způsoby. Kdykoli to změníš pod tlačítkem Vyplnit.';
+
+  @override
+  String get fillQualityBestDetail =>
+      'Nejvíc detailů, hlavně u velkých objektů. Potřebuje víc paměti a trvá déle.';
+
+  @override
+  String get fillQualityLowMemoryDetail =>
+      'Rychlejší a nenáročné na paměť, takže zvládne každý telefon. U velkých objektů je výsledek jednodušší.';
+
+  @override
+  String get fillQualityRecommended => 'Doporučeno pro tento telefon';
+
+  @override
+  String get fillQualityContinue => 'Pokračovat';
 
   @override
   String get eraseExplainer => 'Mazání vymaže objekt do průhledna.';

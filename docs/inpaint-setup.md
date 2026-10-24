@@ -117,8 +117,12 @@ had ever entered the mode.
 `assets/models/migan.onnx` (26.7 MB) is produced by
 `model_conversion/convert_migan.py` from `migan_512_places2.pt`. See
 `model_conversion/README.md` for provenance, both sha256s, and the reproduce
-step. **Nothing in the UI changes when it is present** - the tier is an
-implementation detail of "Fill in", not a mode anyone picks.
+step. **Nothing in the UI changes when it is present.** Since #68 the user picks
+how Fill works - **Best quality** (this tier, falling through to content fill)
+or **Low memory** (content fill alone) - and the two are named by what they cost
+rather than by model, so with the asset missing Best quality still fills, just
+from the content-fill tier. The memory numbers behind the choice, and the guess
+the first fill preselects, are in CLAUDE.md under "Object removal".
 
 **There is no availability gate, deliberately.** `_tryInpaint` just calls the
 engine; `inpaint` returns null for a missing or unloadable asset, and null is

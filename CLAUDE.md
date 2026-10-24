@@ -385,9 +385,27 @@ Fill has **two tiers, tried in order by `_tryInpaint`**: MI-GAN (bundled,
 floor is what lets Fill be offered unconditionally - it degrades rather than
 disappears - but the generative tier is what makes it good: on a person-shaped
 hole PatchMatch pastes a slab of background through the subject, MI-GAN rebuilds
-it. **The tier is invisible to the user on purpose** - it is not a mode anyone
-picks, and the old label "Fill (AI)" was a promise the shipped app could not
-keep.
+it.
+
+**Which tiers run is the user's choice, and it is named by what it costs, not
+by model (#68).** Under Fill in sits **Best quality** (MI-GAN, falling through
+to content fill) and **Low memory** (content fill alone) - `FillQuality` in
+`features/segmentation/fill_quality.dart`, and `runFill` is the one place the
+routing lives. It is a real trade, measured on the emulator with a 2048 px
+photo: MI-GAN peaks 454-460 MB above the app and takes 7.6-24.6 s, content
+fill 39-46 MB and 1.6-3.0 s - and on a 2 GB phone those 460 MB are #66's ANR.
+The old label "Fill (AI)" named a model and promised one the app could not
+always run; these two name an outcome both always deliver.
+
+The first fill **asks** (`FillQualitySheet`), with a guess preselected:
+`recommendFillQuality` says Low memory for a low-RAM device, under 3 GiB total,
+or under 1 GiB free at the time - twice MI-GAN's peak - and Best quality
+otherwise, including when the phone cannot say (SAM's "only a positive signal"
+rule). It is asked after the "did the tap hit the photo" checks and **before**
+the ad gate, so backing out costs nothing; dismissing saves nothing and the
+next fill asks again. The answer is `settings.json`'s `fillQuality` key, with
+the same remove-not-null rule as `themeMode`, and a tap on the panel row is a
+choice too, so it is never asked after that.
 
 **There is no availability gate on the generative tier, and that is
 deliberate.** Deciding "should we even try MI-GAN?" got this tier silently
@@ -395,7 +413,13 @@ skipped THREE times - the dead chooser branch, then a synchronous
 `ref.read(futureProvider).asData` that reads as AsyncLoading (i.e. "no model")
 for the first fill of every session. `inpaint` already returns null for a
 missing or unloadable asset, and null is the signal to fall through, so the
-gate bought nothing and hid everything. Do not reintroduce one.
+gate bought nothing and hid everything. Do not reintroduce one. **The quality
+choice is not one**: Best quality still tries MI-GAN unconditionally and treats
+null as "fall through"; only the user's own Low memory skips it. Read the
+choice with `await ...future`, never `asData` - the same trap, one provider
+over. And type the result where a `??` joins two provider reads: the left
+side's nullable type becomes the right side's inference context, and
+`ref.read` then hands back a nullable.
 
 **A permissive licence with no carve-out covers the weights its authors
 distribute under it, and the training set is a disclosed risk rather than a

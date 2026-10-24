@@ -106,6 +106,19 @@ SLOTS = {
         "each button is full width in _panel's Column: 360 - 36 - 48",
         ["cropPhoto", "editCrop", "resetCrop"],
     ),
+    "remove-object tabs": (
+        # Not a SizedBox: two Expanded _segTabs share each row, like the export
+        # chips. The tab has no horizontal padding, so the label gets the whole
+        # half. Added with the fill-quality row (#68), whose labels are the
+        # longest of the three pairs.
+        158.0, 13.0, 700,
+        "two Expanded _segTabs per row in _cutoutPanel, inside _panel's "
+        "18dp padding a side, 8dp apart: (360 - 36 - 8) / 2",
+        [
+            "background", "removeObject", "fillIn", "erase",
+            "fillQualityBest", "fillQualityLowMemory",
+        ],
+    ),
     "export format chip": (
         101.0, 9.5, 400,
         "three Expanded chips share the export row, which is padded "

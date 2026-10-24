@@ -815,8 +815,39 @@ class AppLocalizationsDe extends AppLocalizations {
   String get fillIn => 'Füllen';
 
   @override
-  String get fillExplainer =>
-      'Füllen rekonstruiert den Hintergrund aus dem übrigen Foto.';
+  String get fillQualityBest => 'Beste Qualität';
+
+  @override
+  String get fillQualityLowMemory => 'Wenig Speicher';
+
+  @override
+  String get fillBestExplainer =>
+      'Füllen rekonstruiert den Hintergrund mit den meisten Details. Es braucht mehr Speicher und dauert länger.';
+
+  @override
+  String get fillLowMemoryExplainer =>
+      'Füllen rekonstruiert den Hintergrund aus dem übrigen Foto und braucht dabei viel weniger Speicher. Große Objekte werden einfacher.';
+
+  @override
+  String get fillQualityTitle => 'Wie soll Füllen arbeiten?';
+
+  @override
+  String get fillQualityMessage =>
+      'Der Hintergrund lässt sich auf zwei Arten rekonstruieren. Du kannst jederzeit unter Füllen wechseln.';
+
+  @override
+  String get fillQualityBestDetail =>
+      'Die meisten Details, vor allem bei großen Objekten. Braucht mehr Speicher und dauert länger.';
+
+  @override
+  String get fillQualityLowMemoryDetail =>
+      'Schneller und sparsam mit dem Speicher, passt also zu jedem Gerät. Große Objekte werden einfacher.';
+
+  @override
+  String get fillQualityRecommended => 'Empfohlen für dieses Gerät';
+
+  @override
+  String get fillQualityContinue => 'Weiter';
 
   @override
   String get eraseExplainer =>

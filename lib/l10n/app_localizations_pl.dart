@@ -816,8 +816,39 @@ class AppLocalizationsPl extends AppLocalizations {
   String get fillIn => 'Wypełnij';
 
   @override
-  String get fillExplainer =>
-      'Wypełnianie odtwarza tło na podstawie reszty zdjęcia.';
+  String get fillQualityBest => 'Najlepsza jakość';
+
+  @override
+  String get fillQualityLowMemory => 'Mniej pamięci';
+
+  @override
+  String get fillBestExplainer =>
+      'Wypełnianie odtwarza tło z największą liczbą szczegółów. Potrzebuje więcej pamięci i trwa dłużej.';
+
+  @override
+  String get fillLowMemoryExplainer =>
+      'Wypełnianie odtwarza tło na podstawie reszty zdjęcia, zużywając dużo mniej pamięci. Przy dużych obiektach efekt jest prostszy.';
+
+  @override
+  String get fillQualityTitle => 'Jak ma działać wypełnianie?';
+
+  @override
+  String get fillQualityMessage =>
+      'Tło można odtworzyć na dwa sposoby. W każdej chwili zmienisz to pod przyciskiem Wypełnij.';
+
+  @override
+  String get fillQualityBestDetail =>
+      'Najwięcej szczegółów, zwłaszcza przy dużych obiektach. Potrzebuje więcej pamięci i trwa dłużej.';
+
+  @override
+  String get fillQualityLowMemoryDetail =>
+      'Szybsze i oszczędne dla pamięci, więc sprawdzi się na każdym telefonie. Przy dużych obiektach efekt jest prostszy.';
+
+  @override
+  String get fillQualityRecommended => 'Zalecane dla tego telefonu';
+
+  @override
+  String get fillQualityContinue => 'Dalej';
 
   @override
   String get eraseExplainer => 'Wymazywanie wycina obiekt do przezroczystości.';

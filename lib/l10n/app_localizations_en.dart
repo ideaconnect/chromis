@@ -805,8 +805,39 @@ class AppLocalizationsEn extends AppLocalizations {
   String get fillIn => 'Fill in';
 
   @override
-  String get fillExplainer =>
-      'Fill rebuilds the background from the rest of the photo.';
+  String get fillQualityBest => 'Best quality';
+
+  @override
+  String get fillQualityLowMemory => 'Low memory';
+
+  @override
+  String get fillBestExplainer =>
+      'Fill rebuilds the background in the most detail. It needs more memory and takes longer.';
+
+  @override
+  String get fillLowMemoryExplainer =>
+      'Fill rebuilds the background from the rest of the photo with far less memory. Large objects come out simpler.';
+
+  @override
+  String get fillQualityTitle => 'How should Fill work?';
+
+  @override
+  String get fillQualityMessage =>
+      'Fill can rebuild the background in two ways. You can switch any time under Fill in.';
+
+  @override
+  String get fillQualityBestDetail =>
+      'The most detail, especially on large objects. Needs more memory and takes longer.';
+
+  @override
+  String get fillQualityLowMemoryDetail =>
+      'Quicker and light on memory, so it suits any phone. Large objects come out simpler.';
+
+  @override
+  String get fillQualityRecommended => 'Recommended for this phone';
+
+  @override
+  String get fillQualityContinue => 'Continue';
 
   @override
   String get eraseExplainer => 'Erase cuts the object out to transparency.';
