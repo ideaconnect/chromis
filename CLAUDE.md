@@ -745,6 +745,32 @@ asks the test unit is how a unit that serves nothing reaches production, where
 it reads as zero revenue rather than as a bug. See `docs/monetization-setup.md`
 ("The Home banner shows nothing").
 
+**The Home banner exists only while Home can be seen (#67).** Routes are pushed,
+so Home stays mounted under the editor and export screen, and a platform view in
+a covered route stays attached and VISIBLE - the banner's WebView went on
+rendering behind the editor, where the AI tools keep every core busy. That is
+not free on our side: each WebView frame is a synchronous round trip from our
+main thread to the ad's renderer process. On the emulator an animated banner
+cost Home's main thread 2.4 s of view traversals and 0.5 s of VSync callbacks in
+6.6 s, with nobody touching the phone. `OnScreenOnly`
+(`core/widgets/on_screen_only.dart`) takes the `AdWidget` out of the tree when
+`TickerMode` turns off, which `Overlay` does for everything under an opaque
+route; the `BannerAd` stays loaded, so coming back re-attaches the same
+`AdView` with no new request, and AdMob stops refreshing an ad nobody can see.
+**Any new ad slot, or any other platform view on a screen that gets covered,
+goes in one too.**
+
+**`J.N.<letters>` in a Play ANR is WebView native code, and the letters are a
+signature, not a name.** Chromium's multiplexed JNI names each native by its
+types - `VJJJ` is "void, three longs" - so the mapping changes with the WebView
+version and only the APK can answer it: `dexdump -d` its `classes.dex` and find
+the `invoke-static ... LJ/N;.VJJJ` call sites. In WebView 151 there is one,
+`ExternalBeginFrameSourceAndroid.doFrame` - the per-frame VSync callback - and
+behind it `SynchronousCompositorSyncCallBridge` waits for the renderer on a
+condition variable **with no timeout**. That is the frame the Android docs'
+list of common Unity ANRs shows blocked in `pthread_cond_wait`; older builds
+called it `J.N.Mhc_M_H$`.
+
 ### Leaving the app, and the Flutter pin
 
 **Back on the last screen moves the task to the background; it never finishes
@@ -809,7 +835,10 @@ engine tasks, Chromium's UI-thread tasks), which is exactly what the ANR trace
 shows as "idle". Do not read Java costs from `simpleperf` on a Flutter
 **profile** build: that build is debuggable, so ART interprets it. For memory,
 `ProcessInfo.currentRss` from an integration test isolates one session at a
-time; driving the UI cannot.
+time; driving the UI cannot. For frame work, `adb shell atrace -t 8
+-a tech.idct.chromis view gfx` does run on the user build and needs no code:
+main-thread `traversal` and `animation` slices are where an ad WebView's frames
+land.
 
 ## Milestones
 

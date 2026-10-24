@@ -17,6 +17,7 @@ import '../../core/rendering/canvas_geometry.dart';
 import '../../core/theme/app_tokens.dart';
 import '../../core/theme/app_typography.dart';
 import '../../core/widgets/name_prompt.dart';
+import '../../core/widgets/on_screen_only.dart';
 import '../../core/widgets/responsive_center.dart';
 import '../../l10n/app_localizations.dart';
 import '../about/about_data.dart';
@@ -828,10 +829,12 @@ class _HomeAdBannerState extends ConsumerState<_HomeAdBanner> {
       devBadge: kDebugMode && _devFallback
           ? 'TEST UNIT · ${_devStatus!}'
           : null,
+      // The slot keeps its size while Home is covered; only the platform
+      // view goes, so the ad is not rendering behind the editor (#67).
       child: SizedBox(
         width: ad.size.width.toDouble(),
         height: ad.size.height.toDouble(),
-        child: AdWidget(ad: ad),
+        child: OnScreenOnly(child: AdWidget(ad: ad)),
       ),
     );
   }
