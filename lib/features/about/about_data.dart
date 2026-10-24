@@ -15,7 +15,7 @@ abstract final class AboutInfo {
   /// the About sheet and the Licenses page were all showing to users.
   /// `about_data_test.dart` now parses pubspec.yaml and fails if the two
   /// disagree, so a version bump cannot forget this again.
-  static const appVersion = '1.3.0';
+  static const appVersion = '1.3.1';
   static const publisher = 'IDCT · Bartosz Pachołek';
   static const contactEmail = 'bartosz@idct.tech';
 

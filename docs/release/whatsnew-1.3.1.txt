@@ -1,0 +1,36 @@
+<en-US>
+• Fixed the app closing when you open Remove object on phones with the newest Snapdragon chips, such as the Galaxy S26 and razr fold.
+• Fixed a crash that could follow leaving the app with Back.
+• The AI tools give their memory back when they finish, so phones with 2 GB of RAM stay responsive.
+• Smoother editing: the home-screen ad no longer runs behind the editor, and saving no longer holds up the app.
+</en-US>
+<pl-PL>
+• Naprawiono zamykanie się aplikacji po otwarciu Usuń obiekt na telefonach z najnowszymi układami Snapdragon, np. Galaxy S26 i razr fold.
+• Naprawiono awarię, która mogła wystąpić po wyjściu z aplikacji przyciskiem Wstecz.
+• Narzędzia AI zwalniają pamięć po zakończeniu pracy, więc telefony z 2 GB RAM działają płynnie.
+• Płynniejsza edycja: reklama z ekranu głównego nie działa już w tle edytora, a zapisywanie nie wstrzymuje aplikacji.
+</pl-PL>
+<de-DE>
+• Behoben: Die App schloss sich beim Öffnen von Objekt entfernen auf Geräten mit den neuesten Snapdragon-Chips, etwa Galaxy S26 und razr fold.
+• Behoben: ein Absturz, der nach dem Verlassen der App mit Zurück auftreten konnte.
+• Die KI-Werkzeuge geben ihren Speicher nach getaner Arbeit frei, sodass Geräte mit 2 GB RAM flüssig bleiben.
+• Flüssigeres Bearbeiten: Die Werbung vom Startbildschirm läuft nicht mehr hinter dem Editor, und Speichern hält die App nicht mehr auf.
+</de-DE>
+<es-ES>
+• Corregido el cierre de la app al abrir Quitar objeto en móviles con los chips Snapdragon más recientes, como el Galaxy S26 y el razr fold.
+• Corregido un fallo que podía ocurrir al salir de la app con Atrás.
+• Las herramientas de IA liberan la memoria al terminar, así que los móviles con 2 GB de RAM siguen fluidos.
+• Edición más fluida: el anuncio de la pantalla de inicio ya no funciona detrás del editor y guardar ya no detiene la app.
+</es-ES>
+<fr-FR>
+• Correction de la fermeture de l'appli à l'ouverture de Supprimer l'objet sur les téléphones aux puces Snapdragon les plus récentes, comme le Galaxy S26 et le razr fold.
+• Correction d'un plantage possible après avoir quitté l'appli avec Retour.
+• Les outils IA libèrent leur mémoire une fois terminés : les téléphones avec 2 Go de RAM restent fluides.
+• Édition plus fluide : la publicité de l'écran d'accueil ne tourne plus derrière l'éditeur, et l'enregistrement ne bloque plus l'appli.
+</fr-FR>
+<cs-CZ>
+• Opravili jsme zavírání aplikace po otevření Odstranit objekt na telefonech s nejnovějšími čipy Snapdragon, například Galaxy S26 a razr fold.
+• Opravili jsme pád, ke kterému mohlo dojít po opuštění aplikace tlačítkem Zpět.
+• AI nástroje po dokončení uvolní paměť, takže telefony se 2 GB RAM zůstávají svižné.
+• Plynulejší úpravy: reklama z domovské obrazovky už neběží za editorem a ukládání už aplikaci nezdržuje.
+</cs-CZ>
