@@ -155,4 +155,40 @@ void main() {
       );
     });
   });
+
+  // #66. The session lives as long as the process, so whatever a fill leaves
+  // resident stays there. With ORT's CPU arena on, two fills kept 1.1 GB - the
+  // whole of a 2 GB phone - and nothing but the resident size shows it: the
+  // fill still works, just as fast.
+  testWidgets('repeated fills do not keep their working memory', (
+    tester,
+  ) async {
+    const w = 1200, h = 900;
+    const ox = 470, oy = 240, ow = 150, oh = 500;
+    final bytes = photo(w, h, ox, oy, ow, oh);
+    final region = maskFor(w, h, ox, oy, ow, oh);
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+
+    int residentMb() => ProcessInfo.currentRss ~/ (1024 * 1024);
+    late int before, after;
+    await tester.runAsync(() async {
+      final engine = container.read(inpaintEngineProvider);
+      before = residentMb();
+      for (var i = 0; i < 2; i++) {
+        expect(await engine.inpaint(bytes, region), isNotNull);
+      }
+      // Let the Dart side's own garbage from decoding go first.
+      await Future<void>.delayed(const Duration(seconds: 2));
+      after = residentMb();
+    });
+
+    debugPrint('MI-GAN on-device: resident $before -> $after MB over 2 fills');
+    expect(
+      after - before,
+      lessThan(200),
+      reason:
+          'the session is keeping each run\'s memory - is the ORT arena on?',
+    );
+  });
 }

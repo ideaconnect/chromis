@@ -18,6 +18,8 @@ import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 import java.io.File
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 
 class MainActivity : FlutterActivity() {
 
@@ -136,7 +138,8 @@ class MainActivity : FlutterActivity() {
 
     /**
      * Pre-Q gallery write: `Pictures/Chromis/<name>` on the shared volume,
-     * then a media scan so it shows up in the gallery.
+     * then a media scan so it shows up in the gallery. Runs on [galleryWriter];
+     * the permission it needs has already been checked on the main thread.
      *
      * Everything below Android 10 predates scoped storage, so this needs
      * WRITE_EXTERNAL_STORAGE (declared with `maxSdkVersion="28"`). Without it
@@ -154,22 +157,6 @@ class MainActivity : FlutterActivity() {
         bytes: ByteArray,
         result: MethodChannel.Result,
     ) {
-        val granted = ContextCompat.checkSelfPermission(
-            this,
-            Manifest.permission.WRITE_EXTERNAL_STORAGE,
-        ) == PackageManager.PERMISSION_GRANTED
-        if (!granted) {
-            // Ask once, then retry from onRequestPermissionsResult. Only one
-            // save can be in flight - the export button disables itself while
-            // busy - so a single slot is enough.
-            pendingSave = PendingSave(name, mime, bytes, result)
-            ActivityCompat.requestPermissions(
-                this,
-                arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE),
-                REQUEST_WRITE_STORAGE,
-            )
-            return
-        }
         try {
             @Suppress("DEPRECATION")
             val pictures = Environment.getExternalStoragePublicDirectory(
@@ -181,7 +168,7 @@ class MainActivity : FlutterActivity() {
             file.writeBytes(bytes)
             // Without this the file exists but no gallery app lists it.
             MediaScannerConnection.scanFile(
-                this,
+                applicationContext,
                 arrayOf(file.absolutePath),
                 arrayOf(mime),
                 null,
@@ -204,7 +191,9 @@ class MainActivity : FlutterActivity() {
         val granted = grantResults.isNotEmpty() &&
             grantResults[0] == PackageManager.PERMISSION_GRANTED
         if (granted) {
-            saveToPicturesLegacy(save.name, save.mime, save.bytes, save.result)
+            galleryWriter.execute {
+                saveToPicturesLegacy(save.name, save.mime, save.bytes, save.result)
+            }
         } else {
             // A distinct code from save_failed: Dart can tell "you said no"
             // from "it broke", and say something the user can act on.
@@ -217,9 +206,16 @@ class MainActivity : FlutterActivity() {
     }
 
     /**
-     * Inserts [bytes] as a new image in the Pictures gallery
-     * (`Pictures/Chromis`) via MediaStore on Android 10+ - no runtime
-     * permission needed. Pre-Q takes the legacy file + media-scan path.
+     * Saves [bytes] into the Pictures gallery (`Pictures/Chromis`): MediaStore
+     * on Android 10+, which needs no runtime permission, and the legacy file +
+     * media-scan path below that, which asks for storage access first.
+     *
+     * Called on the main thread, and nothing past the permission check may
+     * stay on it (#66). The write goes through the media provider's FUSE layer
+     * and the final `update` makes it scan the file before returning - 150 ms
+     * for a 1.9 MB PNG on an emulator, and a 2 GB phone's storage is several
+     * times slower. That is the main thread a tap is waiting on, right after
+     * the export's rewarded ad has closed. Replies may come from any thread.
      */
     private fun saveImageToGallery(
         name: String,
@@ -228,9 +224,35 @@ class MainActivity : FlutterActivity() {
         result: MethodChannel.Result,
     ) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
-            saveToPicturesLegacy(name, mime, bytes, result)
+            val granted = ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE,
+            ) == PackageManager.PERMISSION_GRANTED
+            if (!granted) {
+                // Ask once, then retry from onRequestPermissionsResult. Only
+                // one save can be in flight - the export button disables
+                // itself while busy - so a single slot is enough.
+                pendingSave = PendingSave(name, mime, bytes, result)
+                ActivityCompat.requestPermissions(
+                    this,
+                    arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE),
+                    REQUEST_WRITE_STORAGE,
+                )
+                return
+            }
+            galleryWriter.execute { saveToPicturesLegacy(name, mime, bytes, result) }
             return
         }
+        galleryWriter.execute { saveToMediaStore(name, mime, bytes, result) }
+    }
+
+    /** Android 10+ gallery write via MediaStore. Runs on [galleryWriter]. */
+    private fun saveToMediaStore(
+        name: String,
+        mime: String,
+        bytes: ByteArray,
+        result: MethodChannel.Result,
+    ) {
         try {
             val values = ContentValues().apply {
                 put(MediaStore.Images.Media.DISPLAY_NAME, name)
@@ -241,7 +263,7 @@ class MainActivity : FlutterActivity() {
                 )
                 put(MediaStore.Images.Media.IS_PENDING, 1)
             }
-            val resolver = contentResolver
+            val resolver = applicationContext.contentResolver
             val uri = resolver.insert(
                 MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
                 values,
@@ -260,5 +282,13 @@ class MainActivity : FlutterActivity() {
     companion object {
         private const val PLATFORM_CHANNEL = "chromis/platform"
         private const val REQUEST_WRITE_STORAGE = 4201
+
+        /**
+         * Where gallery writes run - one thread for the process rather than per
+         * activity, so an activity recreated mid-save cannot start a second
+         * writer beside the first.
+         */
+        private val galleryWriter: ExecutorService =
+            Executors.newSingleThreadExecutor { task -> Thread(task, "chromis-gallery") }
     }
 }

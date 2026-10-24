@@ -21,5 +21,15 @@ const Map<String, String> kOrtSessionConfigs = {'mlas.disable_kleidiai': '1'};
 /// The options for every ORT session - the one place they are defined, so no
 /// model can be loaded without them. `test/segmentation/ort_session_options_test.dart`
 /// fails if a `createSession` call in `lib/` does not pass this.
+///
+/// **The CPU memory arena is off** (#66). ORT's arena grows to fit a run and
+/// hands nothing back while its session lives - and every session here but
+/// the SAM encoder lives for the whole process. Measured on an emulator with a
+/// 2048 px photo: one U²-Net cut kept 200 MB, and two MI-GAN fills kept
+/// 1.1 GB, so the app sat at 1.4 GB after a couple of taps. On a 2 GB phone
+/// that is the whole device: zram thrash in which nothing, the main thread
+/// included, gets scheduled for seconds - an input ANR whose trace shows an
+/// idle `nativePollOnce`. Without the arena the same two fills keep 44 MB and
+/// run no slower, and the process peak falls too, from 1.6 GB to 1.0 GB.
 OrtSessionOptions ortSessionOptions() =>
-    OrtSessionOptions(sessionConfigs: kOrtSessionConfigs);
+    OrtSessionOptions(sessionConfigs: kOrtSessionConfigs, useArena: false);

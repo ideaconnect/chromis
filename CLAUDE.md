@@ -778,6 +778,39 @@ that the banner hit on every refresh: about 125 descriptors a refresh on the
 emulator, released only by GC, and flat on 3.44.9. Re-check both before moving
 off 3.44.
 
+### The Android main thread
+
+**Input ANRs are the main thread, and on a 2 GB phone anything over a few
+hundred ms on an emulator is a candidate.** Two rules on our side:
+
+- **Platform-channel work that touches storage goes to a background thread.**
+  `saveImageToGallery` wrote through MediaStore on the main thread, and the
+  final `IS_PENDING=0` update makes the media provider scan the file before it
+  returns - 150 ms for a 1.9 MB PNG on the emulator, right after the export's
+  rewarded ad closes, which is when the user taps. It runs on `galleryWriter`
+  now; only the pre-Q permission check stays on the main thread. A channel
+  reply may come from any thread.
+- **AI sessions must not keep their working memory** - see the arena under
+  On-device AI. Memory pressure is how a main thread that looks idle in the
+  trace still causes the ANR.
+
+What is left there is not ours, measured on the API 37 emulator: Impeller's
+surface setup at cold start (`FlutterJNI.nativeSurfaceCreated` waits on the
+raster thread: 0.85 s warm, 3.9 s on the first launch after install), AdMob
+creating its JavaScript WebView after `MobileAds.initialize` (~0.5 s), and
+Play Billing's `startConnection` (~0.15 s).
+
+**How to measure it.** The emulator is a user build, so `log.looper.*.slow`
+cannot be set. A temporary `Looper.setMessageLogging` printer plus a watchdog
+thread sampling `mainLooper.thread.stackTrace` finds slow messages, and
+comparing the main thread's CPU time (`/proc/self/task/<pid>/stat`) with wall
+time finds the other case - native work inside `nativePollOnce` (Flutter
+engine tasks, Chromium's UI-thread tasks), which is exactly what the ANR trace
+shows as "idle". Do not read Java costs from `simpleperf` on a Flutter
+**profile** build: that build is debuggable, so ART interprets it. For memory,
+`ProcessInfo.currentRss` from an integration test isolates one session at a
+time; driving the UI cannot.
+
 ## Milestones
 
 Planned as GitHub milestones **M0-M9** with issues. Work one milestone at a time;
@@ -810,6 +843,20 @@ An ORT failure is otherwise invisible from outside - SAM reads as
 did not crash" proves nothing. `integration_test/ort_engines_device_test.dart`
 (SAM, U²-Net) and `inpaint_device_test.dart` (MI-GAN) assert the models RAN;
 run them after any ORT bump.
+
+**`ortSessionOptions()` also turns ORT's CPU memory arena off (#66), and on a
+2 GB phone that is the difference between working and not.** The arena grows
+to fit a run and returns nothing while its session lives, and every session but
+the SAM encoder lives for the process (MI-GAN's provider, U²-Net's engine, the
+SAM decoder). Measured on the emulator: one U²-Net cut kept 200 MB, two MI-GAN
+fills kept 1.1 GB, so the app sat at 1.4 GB resident after a couple of taps.
+On an Infinix Smart 7 HD that is zram thrash in which the main thread is not
+scheduled for seconds - an "Input dispatching timed out" whose trace shows an
+idle `nativePollOnce`, because by the time it is sampled the thread has nothing
+left to do. Arena off, the same two fills keep 44 MB, take the same time, and
+the process peak drops from 1.6 GB to 1.0 GB. Nothing else shows the cost: the
+fill still works, just as fast, so `inpaint_device_test.dart` asserts on the
+resident size directly and fails with the arena on (+1,171 MB).
 
 ## Monetization
 

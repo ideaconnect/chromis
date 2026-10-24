@@ -16,6 +16,14 @@ void main() {
     });
   });
 
+  // #66: with the arena on, sessions that live for the whole process keep
+  // every run's high-water mark - 1.1 GB after two fills. Only a device shows
+  // the cost (integration_test/inpaint_device_test.dart measures it), so the
+  // option itself is pinned here.
+  test('the session options turn the CPU memory arena off', () {
+    expect(ortSessionOptions().toMap()['useArena'], isFalse);
+  });
+
   test('every createSession call in lib/ passes ortSessionOptions()', () {
     final sites = <String>[];
     final sources = Directory('lib')
