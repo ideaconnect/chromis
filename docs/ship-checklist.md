@@ -284,6 +284,10 @@ flutter build appbundle --release
 
 Upload `build/app/outputs/bundle/release/app-release.aab`.
 
+Once the one-time setup in section 6 of that doc is done, publishing a GitHub
+release does the build and the upload instead, with
+`docs/release/whatsnew-<version>.txt` as the "What's new".
+
 ---
 
 ## E. Deliberately NOT built (optional future work)

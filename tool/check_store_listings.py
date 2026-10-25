@@ -75,6 +75,16 @@ WHATSNEW_LIMIT = 500
 RELEASE_DIR = os.path.join(ROOT, "docs", "release")
 
 
+def whatsnew_blocks(text):
+    """The `<en-US>…</en-US>` blocks of a whatsnew file, as (tag, body)."""
+    return re.findall(r"<([a-z]{2}-[A-Z]{2})>\n(.*?)\n</\1>", text, re.S)
+
+
+def whatsnew_length(body):
+    """+1 per line: a paste that converts LF to CRLF is what Play measures."""
+    return len(body) + body.count("\n")
+
+
 def check_whatsnew(problems):
     """Every language block in the newest whatsnew file, against Play's cap."""
     files = sorted(f for f in os.listdir(RELEASE_DIR) if f.startswith("whatsnew-"))
@@ -82,15 +92,14 @@ def check_whatsnew(problems):
         return
     path = os.path.join(RELEASE_DIR, files[-1])
     text = read(path)
-    blocks = re.findall(r"<([a-z]{2}-[A-Z]{2})>\n(.*?)\n</\1>", text, re.S)
+    blocks = whatsnew_blocks(text)
     print("\n%s" % files[-1])
     seen = {tag for tag, _ in blocks}
     for tag in LOCALES:
         if tag not in seen:
             problems.append("%s: no <%s> block in %s" % (tag, tag, files[-1]))
     for tag, body in blocks:
-        # +1 per line: a paste that converts LF to CRLF is what Play measures.
-        n = len(body) + body.count("\n")
+        n = whatsnew_length(body)
         print("  %-6s %d/%d%s" % (tag, n, WHATSNEW_LIMIT,
                                   "!" if n > WHATSNEW_LIMIT else ""))
         if n > WHATSNEW_LIMIT:

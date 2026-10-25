@@ -1,0 +1,168 @@
+name: Google Play
+
+# Publishing a GitHub release uploads that version to Google Play and rolls it
+# out on the production track. A pre-release does not: `released` fires for a
+# full release, and again if a pre-release is later promoted to one.
+#
+# It sends the signed bundle, its R8 mapping (so Play's crash and ANR traces
+# are readable) and the "What's new" - nothing else. The store listing is still
+# edited by hand. The notes come from docs/release/whatsnew-<version>.txt and
+# NEVER from the GitHub release body: that is written for developers, and
+# almost every line of it is something a user's update screen must not show.
+# tool/play_release_notes.py refuses a notes file that reads like one.
+#
+# One-time setup (docs/release-and-data-safety.md, section 6): a Play service
+# account, and five secrets on the `google-play` environment -
+# PLAY_SERVICE_ACCOUNT_JSON, UPLOAD_KEYSTORE_BASE64, UPLOAD_KEYSTORE_PASSWORD,
+# UPLOAD_KEY_ALIAS, UPLOAD_KEY_PASSWORD.
+
+on:
+  release:
+    types: [released]
+  # To retry a release whose upload failed, or to send one to a test track.
+  # The tag must already contain this workflow and its notes script.
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to upload, e.g. v1.4.2
+        required: true
+      track:
+        description: Play track
+        type: choice
+        options: [production, beta, alpha, internal]
+        default: production
+
+permissions:
+  contents: read
+
+# Each upload is a Play "edit", and committing one makes any other open edit
+# stale, so two uploads at once fail each other. Queue the second rather than
+# cancel the first.
+concurrency:
+  group: google-play
+  cancel-in-progress: false
+
+jobs:
+  upload:
+    name: build · upload to Play
+    runs-on: ubuntu-latest
+    environment: google-play
+    timeout-minutes: 60
+    env:
+      TAG: ${{ github.event.release.tag_name || inputs.tag }}
+      TRACK: ${{ inputs.track || 'production' }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: refs/tags/${{ env.TAG }}
+
+      # The tag names the version; pubspec.yaml is what the build stamps into
+      # the bundle. A release cut from the wrong commit would otherwise ship
+      # some other build under this version's notes.
+      - name: Tag matches pubspec.yaml
+        id: version
+        run: |
+          version=$(sed -n 's/^version: *//p' pubspec.yaml | tr -d '\r')
+          name=${version%%+*}
+          if [ "v$name" != "$TAG" ]; then
+            echo "::error::$TAG is not pubspec.yaml's version ($version)"
+            exit 1
+          fi
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+          echo "code=${version#*+}" >> "$GITHUB_OUTPUT"
+
+      # Before the build, so a missing or leaky notes file fails in seconds.
+      - name: What's new
+        env:
+          VERSION: ${{ steps.version.outputs.name }}
+        run: |
+          python3 tool/play_release_notes.py \
+            "docs/release/whatsnew-$VERSION.txt" "$RUNNER_TEMP/whatsnew"
+
+      # Without key.properties the release build quietly signs with the debug
+      # key (android/app/build.gradle.kts), and Play only refuses it after the
+      # build. Say which secret is missing instead.
+      - name: Credentials are set
+        env:
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          UPLOAD_KEYSTORE_BASE64: ${{ secrets.UPLOAD_KEYSTORE_BASE64 }}
+          UPLOAD_KEYSTORE_PASSWORD: ${{ secrets.UPLOAD_KEYSTORE_PASSWORD }}
+          UPLOAD_KEY_ALIAS: ${{ secrets.UPLOAD_KEY_ALIAS }}
+          UPLOAD_KEY_PASSWORD: ${{ secrets.UPLOAD_KEY_PASSWORD }}
+        run: |
+          missing=0
+          for name in PLAY_SERVICE_ACCOUNT_JSON UPLOAD_KEYSTORE_BASE64 \
+              UPLOAD_KEYSTORE_PASSWORD UPLOAD_KEY_ALIAS UPLOAD_KEY_PASSWORD; do
+            if [ -z "${!name}" ]; then
+              echo "::error::secret $name is not set on the google-play environment"
+              missing=1
+            fi
+          done
+          exit $missing
+
+      # The one Flutter pin lives in ci.yml (#65), so what ships is always the
+      # Flutter that CI tests.
+      - name: Flutter version from ci.yml
+        id: flutter
+        run: |
+          pins=$(sed -n 's/^ *flutter-version: *//p' .github/workflows/ci.yml)
+          if [ "$(echo "$pins" | wc -l)" != 1 ] || [ -z "$pins" ]; then
+            echo "::error::expected one flutter-version in ci.yml, found: $pins"
+            exit 1
+          fi
+          echo "version=$pins" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: ${{ steps.flutter.outputs.version }}
+          cache: true
+
+      - run: flutter pub get
+
+      # This job is what puts a build in front of users, so it does not take
+      # another run's word that this commit is green - CI may still be running
+      # on it, or may have failed.
+      - run: flutter analyze
+      - run: flutter test --exclude-tags golden
+
+      - name: Upload key
+        env:
+          UPLOAD_KEYSTORE_BASE64: ${{ secrets.UPLOAD_KEYSTORE_BASE64 }}
+          UPLOAD_KEYSTORE_PASSWORD: ${{ secrets.UPLOAD_KEYSTORE_PASSWORD }}
+          UPLOAD_KEY_ALIAS: ${{ secrets.UPLOAD_KEY_ALIAS }}
+          UPLOAD_KEY_PASSWORD: ${{ secrets.UPLOAD_KEY_PASSWORD }}
+        run: |
+          printf '%s' "$UPLOAD_KEYSTORE_BASE64" | tr -d '[:space:]' \
+            | base64 --decode > "$RUNNER_TEMP/upload.jks"
+          {
+            echo "storeFile=$RUNNER_TEMP/upload.jks"
+            echo "storePassword=$UPLOAD_KEYSTORE_PASSWORD"
+            echo "keyAlias=$UPLOAD_KEY_ALIAS"
+            echo "keyPassword=$UPLOAD_KEY_PASSWORD"
+          } > android/key.properties
+
+      - run: flutter build appbundle --release
+
+      - name: Upload to Google Play
+        uses: r0adkll/upload-google-play@e738b9dd8f2476ea806d921b64aacd24f34515a5 # v1.1.5
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: tech.idct.chromis
+          releaseFiles: build/app/outputs/bundle/release/app-release.aab
+          tracks: ${{ env.TRACK }}
+          status: completed
+          releaseName: ${{ steps.version.outputs.name }}
+          whatsNewDirectory: ${{ runner.temp }}/whatsnew
+          mappingFile: build/app/outputs/mapping/release/mapping.txt
+
+      - name: Summary
+        env:
+          VERSION: ${{ steps.version.outputs.name }}
+          CODE: ${{ steps.version.outputs.code }}
+        run: echo "Uploaded $VERSION (versionCode $CODE) to the $TRACK track." >> "$GITHUB_STEP_SUMMARY"

@@ -997,7 +997,8 @@ decode and export both do it - deadlocks the Mali driver (flutter#193428,
 open). 3.44.7 fixed a `sync_file` leak in platform-view textures on Android 13+
 that the banner hit on every refresh: about 125 descriptors a refresh on the
 emulator, released only by GC, and flat on 3.44.9. Re-check both before moving
-off 3.44.
+off 3.44. `play.yml` reads its Flutter version out of `ci.yml`, so the pin
+stays in one place and what ships is what CI tested.
 
 ### The Android main thread
 
@@ -1186,6 +1187,26 @@ like it covers the rest, but it does not - whatever the emulator happened to be
 nagging about that week lands in all 24 captures for that device. They are
 snoozed individually instead, all but the Safety-Center shield, which the first
 capture session also had and which the six sets therefore keep.
+
+## Releasing to Google Play
+
+**Publishing a full GitHub release ships it.** `.github/workflows/play.yml`
+builds the tag, tests it, and uploads the signed bundle to the production
+track at 100%. A pre-release uploads nothing. Setup and recovery are in
+`docs/release-and-data-safety.md`, section 6.
+
+**`docs/release/whatsnew-<version>.txt` goes straight to every user's update
+screen, unreviewed.** It is the only source of the Play notes - the GitHub
+release body is written for developers and is never sent. So the notes say what
+changed for the person using the app, and nothing about how: no issue numbers,
+file names, links, tooling, or the release process itself.
+`tool/play_release_notes.py` refuses a file that reads like a changelog, that
+is missing one of the six languages, or that runs past Play's 500 characters,
+and the workflow runs it before building. The list it checks is a net, not a
+review - "no longer blocks the main thread" passes it and still does not belong
+there.
+
+The tag must be `v` + `pubspec.yaml`'s version name, or the workflow stops.
 
 ## Website (`website/`)
 

@@ -48,8 +48,9 @@ flutter build appbundle --release
 ```
 
 Output: `build/app/outputs/bundle/release/app-release.aab` - upload this to Play
-Console (App bundles, not APKs). The bundle carries **arm64-v8a and
-armeabi-v7a only** and Play generates per-device splits from those. The
+Console (App bundles, not APKs), or let a GitHub release build and upload it
+(section 6). The bundle carries **arm64-v8a and armeabi-v7a only** and Play
+generates per-device splits from those. The
 `build.gradle.kts` x86_64 exclusion is scoped to the release *buildType*, not to
 APK outputs, so it applies to the bundle too - verified in the artifact. Nothing
 here supports an x86_64 Android device or a Chromebook running one; that is the
@@ -148,3 +149,99 @@ Notes:
   consent form at first launch; no extra SDK or config needed.
 - Google's own AdMob Data Safety guidance lists the exact types to declare:
   https://support.google.com/admob/answer/11150250
+
+---
+
+## 6. Upload from a GitHub release (automatic)
+
+Publishing a **full** GitHub release (not a pre-release) runs
+`.github/workflows/play.yml`, which checks out the tag, runs `flutter analyze`
+and the tests, builds the signed bundle, and uploads it to the **production**
+track at 100% with its R8 mapping and the "What's new". Nothing else in the
+Play listing is touched. Promoting a pre-release to a full release counts as
+publishing it.
+
+**The notes are `docs/release/whatsnew-<version>.txt`, and only that.** The
+GitHub release body is written for developers - issue numbers, file names,
+how a thing was fixed - and is never sent to Play. The workflow stops before
+building if the notes file is missing, lacks one of the six languages, runs
+over 500 characters in any of them, or contains something only a developer
+would write (an issue number, a link, a file name, GitHub, CI, Flutter, a
+version code). Check a draft locally the same way:
+
+```bash
+python tool/play_release_notes.py docs/release/whatsnew-1.4.2.txt build/whatsnew
+```
+
+It also refuses a tag that is not `pubspec.yaml`'s version (`v1.4.2` must
+build `version: 1.4.2+N`), so bump the version before tagging.
+
+### A release, start to finish
+
+1. Bump `version:` in `pubspec.yaml` and `AboutInfo.appVersion`.
+2. Write `docs/release/whatsnew-<version>.txt` - user-facing, six languages.
+3. Merge to `main`, tag `v<version>`, push the tag, publish the GitHub release.
+4. Watch **Actions -> Google Play**. When it is green, the version is in
+   Play's review queue; with managed publishing on, it then waits for you to
+   press Publish in the console.
+
+To retry a failed upload, or send a build to a test track, use **Run workflow**
+on the Google Play workflow with the tag and a track. It only works for tags
+that already contain the workflow - none from before it was added. A version
+code Play has seen once is spent on every track, so a build sent to `internal`
+cannot later go to production under the same code - promote it in the console
+instead.
+
+### One-time setup
+
+**1. A service account Play accepts.**
+
+1. In the Google Cloud console, pick (or create) a project and enable the
+   **Google Play Android Developer API**.
+2. **IAM & Admin -> Service accounts -> Create service account.** Give it no
+   Cloud roles. Open it, **Keys -> Add key -> JSON**, and keep the downloaded
+   file out of the repo (`secrets/` is ignored). If key creation is blocked by
+   an organisation policy, use Workload Identity Federation instead - see the
+   [upload-google-play README](https://github.com/r0adkll/upload-google-play#configure-access-via-service-account).
+3. In the Play Console, **Users and permissions -> Invite new users**, enter the
+   service account's e-mail, and under **App permissions** add Chromis with
+   **Release to production, exclude devices, and use Play App Signing** and
+   **Release apps to testing tracks**. Nothing else is needed: the notes are
+   part of the release, not of the listing. A new account can take some hours
+   before the API accepts it.
+
+**2. An environment holding the secrets.** In GitHub, **Settings ->
+Environments -> New environment** named `google-play`. Under deployment
+branches and tags choose **Selected**, and allow the tag pattern `v*` (release
+runs) and the branch `main` (Run workflow). Optionally add yourself as a
+required reviewer, so every upload waits for a click. The repo is public, so
+the secrets belong on the environment rather than on the repo.
+
+Then set the five secrets from the repo root in Git Bash. They are read from the
+files you already sign with, so nothing is typed or echoed:
+
+```bash
+E="--env google-play"
+prop() { sed -n "s/^$1=//p" android/key.properties | tr -d '\r\n'; }
+base64 -w0 secrets/chromis-upload.jks | gh secret set UPLOAD_KEYSTORE_BASE64 $E
+prop storePassword | gh secret set UPLOAD_KEYSTORE_PASSWORD $E
+prop keyAlias      | gh secret set UPLOAD_KEY_ALIAS $E
+prop keyPassword   | gh secret set UPLOAD_KEY_PASSWORD $E
+gh secret set PLAY_SERVICE_ACCOUNT_JSON $E < secrets/<service-account>.json
+```
+
+The keystore secret must be the **upload** key (the one `key.properties`
+points at). Play App Signing re-signs for users; an upload signed with any
+other key is refused.
+
+### When the upload step fails
+
+- **"Package not found"** - the service account is not yet active, or lacks
+  the app permission above.
+- **"Changes cannot be sent for review automatically"** - something else is
+  pending in the console (a listing edit, a declaration). Send or discard it
+  there, then Run workflow again.
+- **A version code that has already been used** - the version was uploaded
+  already, by hand or by an earlier run. Bump the version.
+- **A staged rollout** instead of 100%: set `status: inProgress` and
+  `userFraction: 0.2` (say) on the upload step, then raise it in the console.
