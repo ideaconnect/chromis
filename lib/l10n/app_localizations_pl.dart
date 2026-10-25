@@ -669,6 +669,9 @@ class AppLocalizationsPl extends AppLocalizations {
   String get importFontFileSub => '.ttf lub .otf';
 
   @override
+  String get fontImportFailed => 'Nie udało się dodać pliku czcionki';
+
+  @override
   String get noFontsMatch => 'Żadna czcionka nie pasuje do wyszukiwania';
 
   @override

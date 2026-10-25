@@ -197,6 +197,7 @@
   "fontsSearchingDevice": "Suche Schriften auf dem Gerät…",
   "importFontFile": "Schriftdatei importieren",
   "importFontFileSub": ".ttf oder .otf",
+  "fontImportFailed": "Die Schriftdatei konnte nicht hinzugefügt werden",
   "noFontsMatch": "Keine Schrift passt zur Suche",
   "scaleLimitMax": "Maximale Größe",
   "scaleLimitMin": "Minimale Größe",

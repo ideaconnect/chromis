@@ -1288,6 +1288,12 @@ abstract class AppLocalizations {
   /// **'.ttf or .otf'**
   String get importFontFileSub;
 
+  /// No description provided for @fontImportFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t add that font file'**
+  String get fontImportFailed;
+
   /// No description provided for @noFontsMatch.
   ///
   /// In en, this message translates to:

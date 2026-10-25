@@ -279,7 +279,22 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    PaintingBinding.instance.systemFonts.addListener(_onFontsChanged);
+  }
+
+  /// A font that lands after the panel was built - an import at startup, a
+  /// device font on a reopened project - changes what the bubble's caption
+  /// measures, so the "fills the bubble" note is measured again.
+  void _onFontsChanged() {
+    _cappedFor = null;
+    if (mounted) setState(() {});
+  }
+
+  @override
   void dispose() {
+    PaintingBinding.instance.systemFonts.removeListener(_onFontsChanged);
     _saveTimer?.cancel();
     _playTimer?.cancel();
     // Last chance to persist. dispose() cannot await, so this is deliberately
@@ -1569,16 +1584,33 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
   /// bubble's own box - the layer's scale enlarges both together - so it is
   /// measured at the base size; [bubbleFitFontSize] returns the requested size
   /// exactly whenever it fits, so any shortfall is the cap.
+  ///
+  /// Remembered against what it was measured from: the panel rebuilds on
+  /// every frame of a drag, and the fit is up to eight text layouts that only
+  /// the caption, its font and its size can change.
   bool _bubbleCaptionCapped(BubbleLayer bubble) {
+    final key = (
+      text: bubble.text,
+      family: bubble.fontFamily,
+      size: bubble.fontSize,
+    );
+    if (key == _cappedFor) return _capped;
     final bounds = bubbleBodyRect(kBubbleBaseSize).deflate(10).size;
-    return bubbleFitFontSize(
+    _capped =
+        bubbleFitFontSize(
           text: bubble.text,
           fontFamily: bubble.fontFamily,
           maxSize: bubble.fontSize,
           bounds: bounds,
         ) <
         bubble.fontSize;
+    _cappedFor = key;
+    return _capped;
   }
+
+  /// What [_capped] was measured from; null forces a new measurement.
+  ({String text, String family, double size})? _cappedFor;
+  bool _capped = false;
 
   Widget _bubblePanel(EditorState editor) {
     final bubble = editor.selectedLayer! as BubbleLayer;

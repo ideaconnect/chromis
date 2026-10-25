@@ -197,6 +197,7 @@
   "fontsSearchingDevice": "Szukam czcionek na urządzeniu…",
   "importFontFile": "Importuj plik czcionki",
   "importFontFileSub": ".ttf lub .otf",
+  "fontImportFailed": "Nie udało się dodać pliku czcionki",
   "noFontsMatch": "Żadna czcionka nie pasuje do wyszukiwania",
   "scaleLimitMax": "Maksymalny rozmiar",
   "scaleLimitMin": "Minimalny rozmiar",

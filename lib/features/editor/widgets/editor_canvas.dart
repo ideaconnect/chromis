@@ -160,14 +160,34 @@ class _EditorCanvasState extends ConsumerState<EditorCanvas> {
   /// entirely, and what happened is "you are now like that one".
   Set<String> _snapMatchIds = const {};
 
-  /// Which end of [LayerScaleRange] the current pinch is pressing against, or
-  /// null while it is anywhere inside.
+  /// Which limit the current pinch is pressing against - an end of
+  /// [LayerScaleRange], or a collage cell photo's cover - or null while it is
+  /// anywhere inside.
   ///
-  /// The range clamps silently, so a layer at its limit simply stops growing
+  /// Both clamp silently, so a layer at its limit simply stops growing
   /// under the fingers - which looks exactly like the gesture having been
   /// dropped. Gesture-scoped, like the snap feedback: cleared in
   /// [_onScaleEnd].
   _ScaleLimit? _scaleLimit;
+
+  /// Which limit a pinch asking for [proposed] and held at [held] is at.
+  ///
+  /// Reached past the pinch slop, and let go of only once the fingers are
+  /// back within HALF of it. Without that gap a hand holding a pinch right at
+  /// the edge - which is where anyone stops when a layer stops - wobbles
+  /// across the one threshold, and the badge flickers and ticks every time.
+  _ScaleLimit? _limitFor(double proposed, double held) {
+    final overshoot = proposed / held - 1;
+    const reach = kSnapPinchSlop;
+    const leave = kSnapPinchSlop / 2;
+    return switch (_scaleLimit) {
+      _ScaleLimit.max when overshoot > leave => _ScaleLimit.max,
+      _ScaleLimit.min when overshoot < -leave => _ScaleLimit.min,
+      _ when overshoot > reach => _ScaleLimit.max,
+      _ when overshoot < -reach => _ScaleLimit.min,
+      _ => null,
+    };
+  }
 
   void _setScaleLimit(_ScaleLimit? limit) {
     if (limit == _scaleLimit) return;
@@ -877,17 +897,10 @@ class _EditorCanvasState extends ConsumerState<EditorCanvas> {
     final layerScale = LayerScaleRange.forCanvas(
       canvasSize,
     ).clampGesture(proposedScale, start: start.scale);
-    // Asked with the pinch slop, for the reason `snapScale` is below: two
-    // fingers never hold a span exactly, so a plain two-finger MOVE of a layer
-    // already at the limit would otherwise flash the badge on every wobble.
-    final overshoot = proposedScale / layerScale - 1;
-    _setScaleLimit(
-      overshoot > kSnapPinchSlop
-          ? _ScaleLimit.max
-          : overshoot < -kSnapPinchSlop
-          ? _ScaleLimit.min
-          : null,
-    );
+    // What the pinch is held at, for the limit badge. The range's clamp, not
+    // the final scale: a snap onto a neighbour's size also moves the scale,
+    // and that is not a limit.
+    var held = layerScale;
     var next = LayerTransform(
       position: start.position + delta,
       scale: layerScale,
@@ -940,8 +953,19 @@ class _EditorCanvasState extends ConsumerState<EditorCanvas> {
       } else {
         _setSnapFeedback(null);
       }
-      if (cell != null) next = _clampToCell(layer, next, cell);
+      if (cell != null) {
+        next = _clampToCell(layer, next, cell);
+        // A cell photo has a second floor - covering its cell - and it stops a
+        // pinch just as silently. Only for a pinch: a drag of a photo that
+        // starts below cover is lifted to it on the first frame, which is the
+        // clamp's doing and not a limit anyone reached for.
+        if (clamped && (d.scale - 1).abs() > kSnapPinchSlop) held = next.scale;
+      }
     }
+    // Asked with the pinch slop, for the reason `snapScale` is: two fingers
+    // never hold a span exactly, so a plain two-finger MOVE of a layer already
+    // at the limit would otherwise flash the badge on every wobble.
+    _setScaleLimit(_limitFor(proposedScale, held));
     _controller.updateTransform(id, next);
   }
 

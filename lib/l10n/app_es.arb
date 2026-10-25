@@ -197,6 +197,7 @@
   "fontsSearchingDevice": "Buscando fuentes en el dispositivo…",
   "importFontFile": "Importar archivo de fuente",
   "importFontFileSub": ".ttf u .otf",
+  "fontImportFailed": "No se pudo añadir el archivo de fuente",
   "noFontsMatch": "Ninguna fuente coincide con la búsqueda",
   "scaleLimitMax": "Tamaño máximo",
   "scaleLimitMin": "Tamaño mínimo",

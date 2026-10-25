@@ -670,6 +670,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get importFontFileSub => '.ttf ou .otf';
 
   @override
+  String get fontImportFailed => 'Impossible d\'ajouter ce fichier de police';
+
+  @override
   String get noFontsMatch => 'Aucune police ne correspond à la recherche';
 
   @override

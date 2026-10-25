@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_tokens.dart';
 import '../../core/theme/app_typography.dart';
 import '../../core/widgets/sheet_body.dart';
+import '../../core/widgets/sm_toast.dart';
 import '../../l10n/app_localizations.dart';
 import 'custom_fonts.dart';
 import 'device_fonts.dart';
@@ -161,10 +162,24 @@ class _FontPickerSheetState extends ConsumerState<FontPickerSheet> {
   String _query = '';
   bool _importing = false;
 
-  /// What search and de-duplication compare: case- and space-insensitive, so
-  /// "luckiestguy" finds "Luckiest Guy" and a device "Space Grotesk" is the
-  /// bundled one's twin.
+  /// What search compares: case- and space-insensitive, so "luckiestguy"
+  /// finds "Luckiest Guy".
   static String _fold(String s) => s.toLowerCase().replaceAll(' ', '');
+
+  /// What de-duplication compares: the written name, case-insensitive - so a
+  /// device "Space Grotesk" is the bundled one's twin. NOT space-insensitive
+  /// like [_fold]: the engine tells "RobotoMono" from "Roboto Mono", imports
+  /// are kept unique the same way, and folding the space would hide one of
+  /// two fonts that never collided.
+  static String _identity(String family) =>
+      AppFonts.nameOf(family).toLowerCase();
+
+  /// Below this the sheet's header - title and search field - is not pinned
+  /// above the list but scrolls with it. A landscape phone with the keyboard
+  /// up leaves well under 200dp, which a fixed header at a large text scale
+  /// can fill on its own; the list would get nothing and the column would
+  /// overflow. 260 keeps a landscape phone WITHOUT the keyboard pinned.
+  static const double _pinnedHeaderMinHeight = 260;
 
   @override
   void dispose() {
@@ -175,7 +190,20 @@ class _FontPickerSheetState extends ConsumerState<FontPickerSheet> {
   Future<void> _import() async {
     if (_importing) return;
     setState(() => _importing = true);
-    final family = await ref.read(customFontsProvider.notifier).importFont();
+    String? family;
+    try {
+      family = await ref.read(customFontsProvider.notifier).importFont();
+    } catch (_) {
+      // A file a provider could not hand over, a full disk: the row comes back
+      // and the failure is said, rather than the row going dead with no word.
+      if (mounted) {
+        showSmToast(
+          context,
+          AppLocalizations.of(context).fontImportFailed,
+          ok: false,
+        );
+      }
+    }
     if (!mounted) return;
     if (family == null) {
       setState(() => _importing = false);
@@ -195,7 +223,7 @@ class _FontPickerSheetState extends ConsumerState<FontPickerSheet> {
     List<_Entry> section(String title, Iterable<_Font> fonts) {
       final rows = <_Entry>[
         for (final f in fonts)
-          if (seen.add(_fold(AppFonts.nameOf(f.family))) &&
+          if (seen.add(_identity(f.family)) &&
               (_query.isEmpty ||
                   _fold(AppFonts.nameOf(f.family)).contains(_query) ||
                   _fold(f.family).contains(_query)))
@@ -246,39 +274,61 @@ class _FontPickerSheetState extends ConsumerState<FontPickerSheet> {
         height: height,
         child: SafeArea(
           top: false,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const SizedBox(height: 14),
-              const SheetGrabHandle(),
-              const SizedBox(height: 14),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Text(
-                  l10n.font,
-                  style: TextStyle(
-                    fontFamily: AppFonts.display,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 17,
-                    color: context.colors.textPrimary,
+          child: LayoutBuilder(
+            builder: (context, box) {
+              final header = Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const SizedBox(height: 14),
+                  const SheetGrabHandle(),
+                  const SizedBox(height: 14),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Text(
+                      l10n.font,
+                      style: TextStyle(
+                        fontFamily: AppFonts.display,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 17,
+                        color: context.colors.textPrimary,
+                      ),
+                    ),
                   ),
-                ),
-              ),
-              const SizedBox(height: 10),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: _searchField(l10n),
-              ),
-              const SizedBox(height: 6),
-              Expanded(
-                child: ListView.builder(
-                  key: const ValueKey('font-list'),
-                  padding: const EdgeInsets.only(bottom: 12),
-                  itemCount: entries.length,
-                  itemBuilder: (context, i) => _row(entries[i], l10n),
-                ),
-              ),
-            ],
+                  const SizedBox(height: 10),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: _searchField(l10n),
+                  ),
+                  const SizedBox(height: 6),
+                ],
+              );
+              if (box.maxHeight >= _pinnedHeaderMinHeight) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    header,
+                    Expanded(
+                      child: ListView.builder(
+                        key: const ValueKey('font-list'),
+                        padding: const EdgeInsets.only(bottom: 12),
+                        itemCount: entries.length,
+                        itemBuilder: (context, i) => _row(entries[i], l10n),
+                      ),
+                    ),
+                  ],
+                );
+              }
+              // Too short to pin: the header is the list's first item. A
+              // focused search field keeps itself alive when scrolled away,
+              // so typing survives a scroll.
+              return ListView.builder(
+                key: const ValueKey('font-list'),
+                padding: const EdgeInsets.only(bottom: 12),
+                itemCount: entries.length + 1,
+                itemBuilder: (context, i) =>
+                    i == 0 ? header : _row(entries[i - 1], l10n),
+              );
+            },
           ),
         ),
       ),

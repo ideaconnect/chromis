@@ -197,6 +197,7 @@
   "fontsSearchingDevice": "Recherche des polices de l'appareil…",
   "importFontFile": "Importer un fichier de police",
   "importFontFileSub": ".ttf ou .otf",
+  "fontImportFailed": "Impossible d'ajouter ce fichier de police",
   "noFontsMatch": "Aucune police ne correspond à la recherche",
   "scaleLimitMax": "Taille maximale",
   "scaleLimitMin": "Taille minimale",

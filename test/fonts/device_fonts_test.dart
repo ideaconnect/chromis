@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:chromis/core/models/layer.dart';
@@ -246,6 +247,36 @@ void main() {
       expect(await fonts.ensure('Bangers'), isTrue);
       fonts.reserve('Patrick Hand');
       expect(await fonts.ensure('Patrick Hand'), isTrue);
+    });
+
+    test('a load that failed is tried again by the next ensure', () async {
+      final fonts = DeviceFonts(directories: [system.path]);
+      final file = File('${system.path}/PatrickHand-Regular.ttf');
+      final bytes = file.readAsBytesSync();
+      // Scanned while the file is there, then gone when the load reads it.
+      expect((await fonts.families()).map((f) => f.family), isNotEmpty);
+      file.deleteSync();
+      expect(await fonts.ensure('Patrick Hand'), isFalse);
+      // A miss like this is not "the phone has no such font": once the file
+      // is readable again, asking again loads it.
+      file.writeAsBytesSync(bytes);
+      expect(await fonts.ensure('Patrick Hand'), isTrue);
+    });
+
+    test('loads wait for the imported names, and yield to them', () async {
+      final fonts = DeviceFonts(directories: [system.path]);
+      final imports = Completer<void>();
+      fonts.holdUntilImportsKnown(imports.future);
+      var settled = false;
+      final load = fonts.ensure('Patrick Hand');
+      unawaited(load.then((_) => settled = true));
+      await Future<void>.delayed(Duration.zero);
+      expect(settled, isFalse, reason: 'held until the imports are known');
+      // The catalogue turns out to have an import of that name: it is the
+      // import's to draw, and no device face may be registered under it.
+      fonts.reserve('Patrick Hand');
+      imports.complete();
+      expect(await load, isTrue);
     });
 
     test('ensureFor waits for every family the layers draw with', () async {

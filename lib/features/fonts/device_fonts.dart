@@ -205,6 +205,16 @@ class DeviceFonts {
   Future<List<DeviceFontFamily>>? _families;
   final Map<String, Future<bool>> _loads = {};
 
+  /// Families whose last load FAILED - a read or a registration that threw,
+  /// as opposed to a name this phone simply does not have. [prefetch] leaves
+  /// them alone, so a file that keeps failing is not re-read on every frame
+  /// of a drag; an explicit [ensure] - the picker, an export - tries again.
+  final Set<String> _failed = {};
+
+  /// Set while the imported fonts' names are still being read. See
+  /// [holdUntilImportsKnown].
+  Future<void>? _importsKnown;
+
   /// Families some other source draws: the bundled set and the user's
   /// imported fonts. A device font under one of these names is never
   /// registered - it would join that family as a second face, and the engine
@@ -216,14 +226,42 @@ class DeviceFonts {
   };
 
   /// Claims [family] for another source - see [_taken]. The imported-font
-  /// store calls this as it registers each one.
+  /// store calls this for every name in its catalogue as soon as it has read
+  /// it, before any file is loaded.
   void reserve(String family) => _taken.add(family);
 
-  /// The device's font families. Scanned once, on first ask, off the UI
-  /// isolate - not at startup, because most sessions never open the picker
-  /// and never draw a device font.
-  Future<List<DeviceFontFamily>> families() =>
-      _families ??= _scan(directories, configs);
+  /// Holds every device-font load until [known] completes - the imported
+  /// fonts' catalogue being read and reserved.
+  ///
+  /// Without it there is a race at launch: Home's first frame asks for the
+  /// families its tiles draw, and an import whose name a device font also
+  /// has (a "Roboto.ttf" imported before names were checked against the
+  /// device) would get the device's face registered under it first - and
+  /// then its own on top, two faces in one family. A wait that ends in an
+  /// error ends the hold too; it only ever delays, never blocks.
+  void holdUntilImportsKnown(Future<void> known) {
+    _importsKnown = known.then((_) {}, onError: (Object _) {});
+  }
+
+  /// The device's font families. Scanned on first ask, off the UI isolate -
+  /// not at startup, because most sessions never open the picker and never
+  /// draw a device font. A scan that FAILED is not remembered, so the next
+  /// ask scans again rather than the session going on without the phone's
+  /// fonts.
+  Future<List<DeviceFontFamily>> families() async =>
+      await _scanned() ?? const [];
+
+  /// [families], or null when the scan itself failed.
+  Future<List<DeviceFontFamily>?> _scanned() {
+    final pending = _families ??= _scan(directories, configs);
+    return pending.then<List<DeviceFontFamily>?>(
+      (found) => found,
+      onError: (Object _) {
+        if (identical(_families, pending)) _families = null;
+        return null;
+      },
+    );
+  }
 
   /// Registers [family] with the engine if it is one of the device's fonts.
   ///
@@ -238,19 +276,33 @@ class DeviceFonts {
   }
 
   Future<bool> _load(String family) async {
-    final match = (await families())
-        .where((f) => f.family == family)
-        .firstOrNull;
+    if (_importsKnown case final known?) await known;
+    // Asked again after the wait: the name may have turned out to be an
+    // import's, which is not the device's to register.
+    if (_taken.contains(family)) return true;
+    final all = await _scanned();
+    if (all == null) return _failedNow(family);
+    final match = all.where((f) => f.family == family).firstOrNull;
     if (match == null) return false;
     try {
       final bytes = await File(match.path).readAsBytes();
       await (FontLoader(
         family,
       )..addFont(Future.value(ByteData.sublistView(bytes)))).load();
+      _failed.remove(family);
       return true;
     } catch (_) {
-      return false;
+      return _failedNow(family);
     }
+  }
+
+  /// A failure is not cached as an answer: forgetting the load lets the next
+  /// [ensure] try again, and [_failed] keeps [prefetch] from doing so on
+  /// every frame.
+  bool _failedNow(String family) {
+    _loads.remove(family);
+    _failed.add(family);
+    return false;
   }
 
   /// Starts loading every device font [layers] draw with, and returns at once.
@@ -264,7 +316,8 @@ class DeviceFonts {
       final family = fontFamilyOf(layer);
       if (family == null ||
           _taken.contains(family) ||
-          _loads.containsKey(family)) {
+          _loads.containsKey(family) ||
+          _failed.contains(family)) {
         continue;
       }
       unawaited(ensure(family));
@@ -304,13 +357,9 @@ Future<List<DeviceFontFamily>> _scan(
       if (Directory(d).existsSync()) d,
   ];
   if (present.isEmpty) return const [];
-  try {
-    return await Isolate.run(
-      () => scanFontDirectories(present, configs: configs),
-    );
-  } catch (_) {
-    return const [];
-  }
+  // Errors propagate: [DeviceFonts._scanned] tells a failed scan from an
+  // empty one, so the failure is not remembered as "this phone has none".
+  return Isolate.run(() => scanFontDirectories(present, configs: configs));
 }
 
 final deviceFontsProvider = Provider<DeviceFonts>(

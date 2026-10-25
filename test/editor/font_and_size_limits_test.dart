@@ -1,4 +1,5 @@
 import 'package:chromis/core/models/frame.dart';
+import 'package:chromis/core/models/grid.dart';
 import 'package:chromis/core/models/layer.dart';
 import 'package:chromis/core/models/layer_transform.dart';
 import 'package:chromis/core/models/project.dart';
@@ -11,9 +12,11 @@ import 'package:chromis/features/editor/widgets/editor_canvas.dart';
 import 'package:chromis/features/editor/widgets/project_canvas.dart';
 import 'package:chromis/features/fonts/custom_fonts.dart';
 import 'package:chromis/features/go_pro/iap.dart';
+import 'package:chromis/features/grid/grid_templates.dart';
 import 'package:chromis/features/home/project_repository.dart';
 import 'package:chromis/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -34,6 +37,7 @@ void main() {
     WidgetTester tester,
     Layer layer, {
     EditorTool tool = EditorTool.text,
+    GridSpec? grid,
   }) async {
     setSurface(tester, const Size(412, 915));
     final container = ProviderContainer(
@@ -47,6 +51,7 @@ void main() {
     final controller = container.read(editorControllerProvider.notifier);
     controller.loadProject(
       Project.empty(id: 'p').copyWith(
+        grid: grid,
         frames: [
           Frame(id: 'p_f0', layers: [layer]),
         ],
@@ -190,9 +195,10 @@ void main() {
     /// moved to [factor] of that span.
     Future<(TestGesture, TestGesture)> pinch(
       WidgetTester tester,
-      double factor,
-    ) async {
-      final centre = tester.getCenter(find.byType(EditorCanvas));
+      double factor, {
+      Offset? at,
+    }) async {
+      final centre = at ?? tester.getCenter(find.byType(EditorCanvas));
       final left = await tester.startGesture(
         centre - const Offset(100, 0),
         pointer: 101,
@@ -274,6 +280,89 @@ void main() {
       await left.up();
       await right.up();
       await tester.pump();
+    });
+
+    testWidgets('a hand wobbling at the limit does not flicker or re-tick', (
+      tester,
+    ) async {
+      var ticks = 0;
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        (call) async {
+          if (call.method == 'HapticFeedback.vibrate') ticks++;
+          return null;
+        },
+      );
+      addTearDown(
+        () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          SystemChannels.platform,
+          null,
+        ),
+      );
+      // 5.9 against a 6x cap: a factor f asks for an overshoot of
+      // 5.9f/6 - 1, and the badge comes on past 2% and goes off inside 1%.
+      await pumpEditor(tester, bubble(scale: 5.9), tool: EditorTool.adjust);
+      double factorFor(double overshoot) => 6 * (1 + overshoot) / 5.9;
+      var at = 1.2;
+      final (left, right) = await pinch(tester, at);
+      Future<void> moveTo(double factor) async {
+        final step = 115 * (factor - at);
+        await left.moveBy(Offset(-step, 0));
+        await right.moveBy(Offset(step, 0));
+        await tester.pump();
+        at = factor;
+      }
+
+      expect(badge, findsOneWidget);
+      expect(ticks, 1);
+      // Wobbling between 1.5% and 2.5% - across the 2% that turns it on.
+      for (final overshoot in [0.015, 0.025, 0.015, 0.025, 0.015]) {
+        await moveTo(factorFor(overshoot));
+        expect(badge, findsOneWidget, reason: 'at $overshoot');
+      }
+      expect(ticks, 1, reason: 'one arrival, one tick');
+      // Properly back inside, then out again: a second arrival.
+      await moveTo(factorFor(0.004));
+      expect(badge, findsNothing);
+      await moveTo(1.2);
+      expect(badge, findsOneWidget);
+      expect(ticks, 2);
+      await left.up();
+      await right.up();
+      await tester.pump();
+    });
+
+    testWidgets('a collage cell photo says Minimum size at its cover', (
+      tester,
+    ) async {
+      // Stacked: two cells, one above the other, so a horizontal pinch in the
+      // top cell's middle is nowhere near the divider. The photo's file does
+      // not exist here, so it measures as the 440 square and covers the
+      // ~1080x540 cell at about 2.4x - far above the range's 0.2 floor, which
+      // is the floor the badge used to be blind to.
+      await pumpEditor(
+        tester,
+        const ImageLayer(
+          id: 'img',
+          name: 'Photo',
+          assetPath: '/fake/photo.png',
+          cellId: 'c0',
+          transform: LayerTransform(position: Offset(540, 270), scale: 3),
+        ),
+        tool: EditorTool.adjust,
+        grid: GridSpec(root: gridTemplatesFor(2)[1].root),
+      );
+      final canvas = tester.getRect(find.byType(EditorCanvas));
+      final (left, right) = await pinch(
+        tester,
+        0.5,
+        at: Offset(canvas.center.dx, canvas.top + canvas.height / 4),
+      );
+      expect(find.text('Minimum size'), findsOneWidget);
+      await left.up();
+      await right.up();
+      await tester.pump();
+      expect(badge, findsNothing);
     });
   });
 }

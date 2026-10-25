@@ -21,9 +21,14 @@ class CustomFont {
 /// Stores, registers and imports user font files. Imported fonts live under
 /// `<app documents>/fonts/`, catalogued in `fonts.json`; each is registered at
 /// runtime with [FontLoader] so `TextStyle(fontFamily: family)` renders it.
+/// Pass [baseDir] in tests to use a temp directory.
 class CustomFontStore {
+  CustomFontStore({Directory? baseDir}) : _baseOverride = baseDir;
+
+  final Directory? _baseOverride;
+
   Future<Directory> _dir() async {
-    final base = await getApplicationDocumentsDirectory();
+    final base = _baseOverride ?? await getApplicationDocumentsDirectory();
     final dir = Directory('${base.path}/fonts');
     if (!dir.existsSync()) await dir.create(recursive: true);
     return dir;
@@ -69,10 +74,26 @@ class CustomFontStore {
 
   /// Loads every persisted font and registers it with the engine, returning the
   /// catalogue (best-effort - a missing/corrupt file is skipped).
+  ///
+  /// Every name is reserved against the device's fonts before any file is
+  /// read - see [DeviceFonts.holdUntilImportsKnown] for the race that closes.
   Future<List<CustomFont>> loadAndRegister() async {
     final dir = await _dir();
+    final catalogue = await _read();
+    final fonts = _renameAppOwned(catalogue);
+    if (!identical(fonts, catalogue)) {
+      try {
+        await _write(fonts);
+      } catch (_) {
+        // Still registered under the new names this session; the rename is
+        // simply made again on the next launch.
+      }
+    }
+    for (final c in fonts) {
+      DeviceFonts.instance.reserve(c.family);
+    }
     final ok = <CustomFont>[];
-    for (final c in await _read()) {
+    for (final c in fonts) {
       try {
         final file = File('${dir.path}/${c.fileName}');
         if (!file.existsSync()) continue;
@@ -107,10 +128,7 @@ class CustomFontStore {
     final family = _uniqueFamily(_familyFromName(picked.name), {
       for (final c in existing) c.family.toLowerCase(),
       for (final d in device) d.family.toLowerCase(),
-      for (final b in AppFonts.bundledFonts) ...[
-        b.toLowerCase(),
-        AppFonts.nameOf(b).toLowerCase(),
-      ],
+      ..._appOwned,
     });
     final fileName = '$family.$ext';
     await File('${(await _dir()).path}/$fileName').writeAsBytes(bytes);
@@ -126,6 +144,49 @@ class CustomFontStore {
         .replaceAll(RegExp('[^A-Za-z0-9 ]'), ' ')
         .trim();
     return s.isEmpty ? 'Custom font' : s;
+  }
+
+  /// The names the app draws with itself, lower-cased: every bundled caption
+  /// family by key and by written name, and the UI face - an import named
+  /// "Manrope" would otherwise become a second face of every label in the app.
+  static Set<String> get _appOwned => {
+    for (final b in [...AppFonts.bundledFonts, AppFonts.ui]) ...[
+      b.toLowerCase(),
+      AppFonts.nameOf(b).toLowerCase(),
+    ],
+  };
+
+  /// [fonts] with every family that collides with an app-owned name
+  /// renumbered - "Lobster" becomes "Lobster 2" - or [fonts] itself when
+  /// none does.
+  ///
+  /// Imports made before the bundled set grew were only checked against each
+  /// other, so a "Lobster.ttf" imported then is family "Lobster" - and
+  /// registered under that name now it would join the bundled Lobster as a
+  /// second face, with the engine choosing between the two files by weight.
+  /// The file stays, under its new name. A project that named the old family
+  /// draws the bundled face of that name instead, which for a file called
+  /// Lobster.ttf is almost certainly the same typeface.
+  static List<CustomFont> _renameAppOwned(List<CustomFont> fonts) {
+    final owned = _appOwned;
+    if (!fonts.any((c) => owned.contains(c.family.toLowerCase()))) {
+      return fonts;
+    }
+    final taken = {...owned, for (final c in fonts) c.family.toLowerCase()};
+    return [
+      for (final c in fonts)
+        if (owned.contains(c.family.toLowerCase()))
+          CustomFont(_claim(c.family, taken), c.fileName)
+        else
+          c,
+    ];
+  }
+
+  /// [_uniqueFamily], with the answer added to [taken].
+  static String _claim(String base, Set<String> taken) {
+    final family = _uniqueFamily(base, taken);
+    taken.add(family.toLowerCase());
+    return family;
   }
 
   /// [base], numbered if need be so it is not in [taken] (lower-cased).
@@ -147,8 +208,13 @@ final customFontStoreProvider = Provider<CustomFontStore>(
 /// app start so they render immediately); [importFont] adds a new one.
 class CustomFontsController extends AsyncNotifier<List<CustomFont>> {
   @override
-  Future<List<CustomFont>> build() =>
-      ref.read(customFontStoreProvider).loadAndRegister();
+  Future<List<CustomFont>> build() {
+    final loaded = ref.read(customFontStoreProvider).loadAndRegister();
+    // The device's fonts wait for these names - see
+    // DeviceFonts.holdUntilImportsKnown.
+    DeviceFonts.instance.holdUntilImportsKnown(loaded);
+    return loaded;
+  }
 
   /// Imports a font file; returns its new family name, or null if cancelled.
   Future<String?> importFont() async {

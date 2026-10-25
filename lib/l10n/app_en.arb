@@ -360,6 +360,7 @@
   "fontsSearchingDevice": "Looking for fonts on this device…",
   "importFontFile": "Import a font file",
   "importFontFileSub": ".ttf or .otf",
+  "fontImportFailed": "Couldn't add that font file",
   "noFontsMatch": "No fonts match your search",
   "scaleLimitMax": "Maximum size",
   "scaleLimitMin": "Minimum size",

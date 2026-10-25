@@ -197,6 +197,7 @@
   "fontsSearchingDevice": "Hledám písma v zařízení…",
   "importFontFile": "Importovat soubor písma",
   "importFontFileSub": ".ttf nebo .otf",
+  "fontImportFailed": "Soubor písma se nepodařilo přidat",
   "noFontsMatch": "Hledání neodpovídá žádné písmo",
   "scaleLimitMax": "Maximální velikost",
   "scaleLimitMin": "Minimální velikost",

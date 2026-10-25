@@ -665,6 +665,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get importFontFileSub => '.ttf u .otf';
 
   @override
+  String get fontImportFailed => 'No se pudo añadir el archivo de fuente';
+
+  @override
   String get noFontsMatch => 'Ninguna fuente coincide con la búsqueda';
 
   @override

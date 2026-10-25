@@ -502,6 +502,27 @@ imported is `reserve`d and never looked up as a device font - registered under
 the same name, a device file would join that family as a second face. An import
 is named unique against all three sources for the same reason.
 
+Three things the second review found, each a way two files end up in one
+family or a font silently goes missing:
+
+- **Imported names are reserved before anything loads.** Home's first frame
+  asks for the families its tiles draw, before the import catalogue is read;
+  `CustomFontsController.build` hands its load to
+  `DeviceFonts.holdUntilImportsKnown`, and every device load waits for it.
+- **An import named like a family the app draws itself is renumbered on
+  load** - "Lobster" imported before Lobster was bundled becomes "Lobster 2",
+  written back to `fonts.json`. The set it is checked against includes
+  Manrope, the UI face, which `bundledFonts` does not: an import called
+  Manrope would otherwise become a second face of every label in the app.
+- **A failed scan or load is not an answer.** Only "no such family on this
+  phone" is cached; a read or registration that threw is forgotten so the
+  next explicit `ensure` (the picker, an export) retries, and `prefetch`
+  skips it so a failing file is not re-read on every frame of a drag.
+
+The picker's de-duplication is by written name, case-insensitive - NOT
+space-insensitive like its search: the engine tells "RobotoMono" from
+"Roboto Mono", and folding the space hid one of two fonts that never collided.
+
 ### Object removal: which pixels, and what goes there
 
 Removing an object is two questions, and only the first one was ever really

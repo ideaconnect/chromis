@@ -665,6 +665,9 @@ class AppLocalizationsCs extends AppLocalizations {
   String get importFontFileSub => '.ttf nebo .otf';
 
   @override
+  String get fontImportFailed => 'Soubor písma se nepodařilo přidat';
+
+  @override
   String get noFontsMatch => 'Hledání neodpovídá žádné písmo';
 
   @override

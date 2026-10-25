@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:chromis/core/theme/app_theme.dart';
 import 'package:chromis/core/theme/app_typography.dart';
 import 'package:chromis/features/fonts/custom_fonts.dart';
@@ -27,6 +29,8 @@ void main() {
     Size size = const Size(412, 915),
     Locale locale = const Locale('en'),
     double textScale = 1,
+    double keyboard = 0,
+    CustomFontsController Function()? importer,
   }) async {
     setSurface(tester, size);
     final results = <FontPick?>[];
@@ -37,7 +41,9 @@ void main() {
             DeviceFonts(directories: const []),
           ),
           deviceFontFamiliesProvider.overrideWith((ref) async => deviceFonts),
-          customFontsProvider.overrideWith(() => _Imported(imported)),
+          customFontsProvider.overrideWith(
+            importer ?? () => _Imported(imported),
+          ),
         ],
         child: MaterialApp(
           locale: locale,
@@ -45,9 +51,10 @@ void main() {
           supportedLocales: AppLocalizations.supportedLocales,
           theme: darkAppTheme,
           builder: (context, child) => MediaQuery(
-            data: MediaQuery.of(
-              context,
-            ).copyWith(textScaler: TextScaler.linear(textScale)),
+            data: MediaQuery.of(context).copyWith(
+              textScaler: TextScaler.linear(textScale),
+              viewInsets: EdgeInsets.only(bottom: keyboard),
+            ),
             child: child!,
           ),
           home: Builder(
@@ -187,18 +194,60 @@ void main() {
     expect(find.text('Your fonts'), findsNothing);
   });
 
+  testWidgets('names that differ only by a space are two fonts', (
+    tester,
+  ) async {
+    // Kept apart by the engine and by import naming, so the list must not
+    // fold one into the other the way search does.
+    await open(
+      tester,
+      imported: const [CustomFont('RobotoMono', 'RobotoMono.ttf')],
+      deviceFonts: const [
+        DeviceFontFamily('Roboto Mono', '/system/fonts/RobotoMono.ttf'),
+      ],
+    );
+    await tester.enterText(search, 'robotomono');
+    await tester.pump();
+    expect(option('RobotoMono'), findsOneWidget);
+    expect(option('Roboto Mono'), findsOneWidget);
+  });
+
+  testWidgets('a failed import says so and can be tried again', (tester) async {
+    final importer = _FailingImport();
+    await open(tester, importer: () => importer);
+    final row = find.byKey(const ValueKey('font-import'));
+    await reveal(tester, row);
+    await tester.tap(row);
+    await tester.pump();
+    expect(find.text("Couldn't add that font file"), findsOneWidget);
+    expect(importer.attempts, 1);
+    // The row is live again - not stuck waiting on an import that threw.
+    await tester.tap(row);
+    await tester.pump();
+    expect(importer.attempts, 2);
+    await tester.pump(const Duration(seconds: 5));
+  });
+
   // Not a SheetBody, so the header - title and search field - has to fit in
   // whatever height is left and only the list may give. Swept here because the
-  // locale and text-scale sweeps pump screens, not sheets.
+  // locale and text-scale sweeps pump screens, not sheets. The keyboard case is
+  // the one that leaves no room to pin the header at all.
   for (final locale in AppLocalizations.supportedLocales) {
-    for (final (name, size) in const [
-      ('360dp phone', Size(360, 640)),
-      ('landscape', Size(780, 360)),
+    for (final (name, size, keyboard) in const [
+      ('360dp phone', Size(360, 640), 0.0),
+      ('landscape', Size(780, 360), 0.0),
+      ('landscape with the keyboard up', Size(780, 360), 200.0),
     ]) {
       testWidgets('fits a $name at 2x text in ${locale.languageCode}', (
         tester,
       ) async {
-        await open(tester, size: size, locale: locale, textScale: 2);
+        await open(
+          tester,
+          size: size,
+          locale: locale,
+          textScale: 2,
+          keyboard: keyboard,
+        );
         expect(tester.takeException(), isNull);
         expect(search, findsOneWidget);
         expect(option(AppFonts.bangers), findsOneWidget);
@@ -228,6 +277,19 @@ void main() {
     expect(find.bySemanticsLabel('Font, Luckiest Guy'), findsOneWidget);
     handle.dispose();
   });
+}
+
+class _FailingImport extends CustomFontsController {
+  var attempts = 0;
+
+  @override
+  Future<List<CustomFont>> build() async => const [];
+
+  @override
+  Future<String?> importFont() async {
+    attempts++;
+    throw const FileSystemException('No space left on device');
+  }
 }
 
 class _Imported extends CustomFontsController {

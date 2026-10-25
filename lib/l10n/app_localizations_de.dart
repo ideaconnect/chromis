@@ -668,6 +668,10 @@ class AppLocalizationsDe extends AppLocalizations {
   String get importFontFileSub => '.ttf oder .otf';
 
   @override
+  String get fontImportFailed =>
+      'Die Schriftdatei konnte nicht hinzugefügt werden';
+
+  @override
   String get noFontsMatch => 'Keine Schrift passt zur Suche';
 
   @override
