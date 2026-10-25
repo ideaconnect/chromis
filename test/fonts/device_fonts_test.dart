@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:chromis/core/models/layer.dart';
 import 'package:chromis/features/fonts/device_fonts.dart';
@@ -41,14 +42,32 @@ void main() {
       expect(info.variable, isTrue);
     });
 
-    test('every bundled caption font maps the Latin alphabet', () {
-      for (final f in Directory('assets/fonts').listSync().whereType<File>()) {
-        if (!f.path.endsWith('.ttf')) continue;
-        final info = readFontFaceInfo(f.path);
-        expect(info, isNotNull, reason: f.path);
-        expect(info!.latin, isTrue, reason: f.path);
-        expect(info.family, isNotEmpty, reason: f.path);
-      }
+    test(
+      'every bundled font maps the Latin alphabet, under an open licence',
+      () {
+        for (final f in Directory(
+          'assets/fonts',
+        ).listSync().whereType<File>()) {
+          if (!f.path.endsWith('.ttf')) continue;
+          final info = readFontFaceInfo(f.path);
+          expect(info, isNotNull, reason: f.path);
+          expect(info!.latin, isTrue, reason: f.path);
+          expect(info.family, isNotEmpty, reason: f.path);
+          // Every one of them states it in its own name table, OFL or Apache -
+          // the same test a device font has to pass to be offered.
+          expect(info.openLicense, isTrue, reason: f.path);
+        }
+      },
+    );
+
+    test('a font that does not state its licence is not open', () {
+      final dir = Directory.systemTemp.createTempSync('nolicence');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      final file = File('${dir.path}/Bangers.ttf')
+        ..writeAsBytesSync(withoutLicence(font('Bangers-Regular.ttf')));
+      final info = readFontFaceInfo(file.path)!;
+      expect(info.family, 'Bangers', reason: 'still read as a font');
+      expect(info.openLicense, isFalse);
     });
 
     test('anything that is not a single font is refused, not thrown', () {
@@ -68,6 +87,34 @@ void main() {
     });
   });
 
+  group('isOpenFontLicence', () {
+    test('knows the OFL and Apache 2.0 by their own words and URLs', () {
+      for (final open in [
+        'This Font Software is licensed under the SIL Open Font License, '
+            'Version 1.1.',
+        'https://scripts.sil.org/OFL',
+        'https://openfontlicense.org',
+        'Licensed under the Apache License, Version 2.0',
+        'http://www.apache.org/licenses/LICENSE-2.0',
+      ]) {
+        expect(isOpenFontLicence(open), isTrue, reason: open);
+      }
+    });
+
+    test('anything else is not open', () {
+      for (final closed in [
+        '',
+        'All rights reserved.',
+        'Licensed for use in Google products only.',
+        'Monotype Imaging EULA - https://www.monotype.com/legal/eula',
+        // Three letters are not a licence.
+        'PROFL Corporation proprietary',
+      ]) {
+        expect(isOpenFontLicence(closed), isFalse, reason: closed);
+      }
+    });
+  });
+
   group('pickDrawingFace', () {
     FontFaceInfo face(
       int weight, {
@@ -82,6 +129,7 @@ void main() {
       italic: italic,
       latin: true,
       variable: variable,
+      openLicense: true,
       bytes: bytes,
     );
 
@@ -150,6 +198,17 @@ void main() {
         ], maxBytes: 100 * 1024).map((f) => f.family),
         ['Bangers', 'Comic Neue'],
       );
+    });
+
+    test('a font that does not state an open licence is not offered', () {
+      // Named in no config here, so only the licence can be what drops it.
+      File(
+        '${system.path}/Kalam-Bold.ttf',
+      ).writeAsBytesSync(withoutLicence(font('Kalam-Bold.ttf')));
+      expect(scanFontDirectories([system.path]).map((f) => f.family), [
+        'Bangers',
+        'Comic Neue',
+      ]);
     });
 
     test('a directory that is not there is skipped', () {
@@ -308,4 +367,26 @@ void main() {
       expect(announced, greaterThan(0));
     });
   });
+}
+
+/// [source]'s bytes with its licence records - name ids 13 and 14 -
+/// renumbered out of the way: the same font, no longer saying what it is
+/// licensed under. Patched in place rather than through a font tool so the
+/// test needs nothing but the bundled files.
+List<int> withoutLicence(String source) {
+  final bytes = File(source).readAsBytesSync();
+  final data = ByteData.sublistView(bytes);
+  final tables = data.getUint16(4);
+  for (var i = 0; i < tables; i++) {
+    final at = 12 + i * 16;
+    if (String.fromCharCodes(bytes.sublist(at, at + 4)) != 'name') continue;
+    final name = data.getUint32(at + 8);
+    final count = data.getUint16(name + 2);
+    for (var r = 0; r < count; r++) {
+      final id = name + 6 + r * 12 + 6;
+      final value = data.getUint16(id);
+      if (value == 13 || value == 14) data.setUint16(id, 300);
+    }
+  }
+  return bytes;
 }

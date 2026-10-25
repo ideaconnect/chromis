@@ -17,6 +17,7 @@ class FontFaceInfo {
     required this.italic,
     required this.latin,
     required this.variable,
+    required this.openLicense,
     required this.bytes,
   });
 
@@ -40,6 +41,17 @@ class FontFaceInfo {
   /// Has an `fvar` table. Flutter draws a runtime-loaded variable font at its
   /// default instance, so a static face is preferred when both exist.
   final bool variable;
+
+  /// The file's own licence fields (name ids 13 and 14) declare the SIL Open
+  /// Font License or the Apache License 2.0 - the two licences every bundled
+  /// font is under, and the only fonts the app's licensing policy accepts.
+  ///
+  /// A device font is offered only when this is true. The app never copies a
+  /// device font anywhere, but a phone maker's own faces (Google Sans on a
+  /// Pixel, Samsung's) are licensed for the maker's software, not for other
+  /// apps' pictures; a font whose licence the file does not state is not one
+  /// the app can say it may use. AOSP's own fonts all pass.
+  final bool openLicense;
 
   final int bytes;
 
@@ -81,6 +93,10 @@ FontFaceInfo? readFontFaceInfo(String path) {
     final names = _read(file, name.offset, name.length);
     if (names == null) return null;
     final family = (_nameRecord(names, 16) ?? _nameRecord(names, 1))?.trim();
+    final licence = [
+      _nameRecord(names, 13),
+      _nameRecord(names, 14),
+    ].nonNulls.join(' ');
     if (family == null || family.isEmpty) return null;
 
     var weight = 400;
@@ -107,6 +123,7 @@ FontFaceInfo? readFontFaceInfo(String path) {
       italic: italic,
       latin: latin,
       variable: tables.containsKey(_tag('fvar')),
+      openLicense: isOpenFontLicence(licence),
       bytes: length,
     );
   } catch (_) {
@@ -114,6 +131,22 @@ FontFaceInfo? readFontFaceInfo(String path) {
   } finally {
     file?.closeSync();
   }
+}
+
+/// Whether a font's licence description and URL (name ids 13 and 14) name the
+/// SIL Open Font License or the Apache License 2.0.
+///
+/// By the words the licences use for themselves and their canonical URLs -
+/// "SIL Open Font License" / scripts.sil.org/OFL / openfontlicense.org, and
+/// "Apache License" / apache.org/licenses - not by a bare "OFL", which is three
+/// letters a proprietary licence could contain.
+bool isOpenFontLicence(String licence) {
+  final l = licence.toLowerCase();
+  return l.contains('open font license') ||
+      l.contains('sil.org/ofl') ||
+      l.contains('openfontlicense.org') ||
+      l.contains('apache license') ||
+      l.contains('apache.org/licenses');
 }
 
 /// A-Z and a-z.

@@ -77,6 +77,8 @@ void main() {
       final info = readFontFaceInfo(f.path)!;
       expect(info.latin, isTrue, reason: f.path);
       expect(info.italic, isFalse, reason: f.path);
+      // Offered only under a licence the file itself states - OFL or Apache.
+      expect(info.openLicense, isTrue, reason: f.path);
       expect(info.bytes, lessThanOrEqualTo(kMaxDeviceFontBytes));
       expect(f.family.startsWith('.'), isFalse);
     }

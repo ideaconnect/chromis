@@ -129,7 +129,9 @@ FontFaceInfo? pickDrawingFace(Iterable<FontFaceInfo> faces) {
 /// Scans [directories] and returns the device's Latin-capable font families,
 /// sorted by name. Synchronous file I/O throughout: run it off the UI isolate.
 ///
-/// Only files [configs] offer by name are kept (see [namedFontFiles]); where
+/// Only files whose own licence fields declare the OFL or Apache 2.0 are
+/// kept, and of those only files [configs] offer by name (see
+/// [namedFontFiles]); where
 /// no config can be read, every file is a candidate and the Latin check alone
 /// decides, which over-offers rather than hiding the device's fonts.
 List<DeviceFontFamily> scanFontDirectories(
@@ -164,8 +166,13 @@ List<DeviceFontFamily> scanFontDirectories(
       }
       final info = readFontFaceInfo(entry.path);
       // A name with a leading dot is the platform's private convention for
-      // "not a user-facing family".
-      if (info == null || !info.latin || info.family.startsWith('.')) {
+      // "not a user-facing family". A face whose own file does not declare an
+      // open licence is left out however it is named - see
+      // [FontFaceInfo.openLicense].
+      if (info == null ||
+          !info.latin ||
+          !info.openLicense ||
+          info.family.startsWith('.')) {
         continue;
       }
       byFamily.putIfAbsent(info.family, () => []).add(info);

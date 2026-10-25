@@ -482,6 +482,14 @@ Hentaigana - script fallbacks that carry a plain Latin - and a duplicate
 fallbacks live in a `font_fallback.xml` apps cannot read, so "listed only as a
 fallback" cannot be asked; "listed by name" can. No readable config means no
 filter, which over-offers rather than hiding the phone's fonts.
+
+**And only a face whose own file declares the OFL or Apache 2.0** (name ids 13
+and 14, `isOpenFontLicence`). The app never copies a device font, but a phone
+maker's own faces - Google Sans on a Pixel, Samsung's - are licensed for the
+maker's software rather than for other apps' pictures, and the app's licensing
+policy is OFL / Apache / MIT / BSD for anything it uses. A font that does not
+state its licence is not offered at all. Every AOSP font passes, and so does
+every bundled one - `device_fonts_test.dart` asserts both.
 `integration_test/device_fonts_device_test.dart` is the only check that runs
 any of this against a real font directory - run it after touching the scan.
 **One face per family is registered, the one nearest w700**, because a font
