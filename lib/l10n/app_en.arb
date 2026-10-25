@@ -555,6 +555,45 @@
   "pasteImage": "Paste image",
   "renameLayer": "Rename layer",
   "canvasSize": "Canvas size",
+  "canvasAndImageSize": "Canvas and image size",
+  "@canvasAndImageSize": {
+    "description": "Tooltip of the editor top-bar button that opens the Canvas / Image size sheet."
+  },
+  "sizeModeCanvas": "Canvas",
+  "@sizeModeCanvas": {
+    "description": "Tab in the size sheet: change the canvas around the layers."
+  },
+  "sizeModeImage": "Image",
+  "@sizeModeImage": {
+    "description": "Tab in the size sheet: scale the whole picture, resampling its photos."
+  },
+  "imageSize": "Image size",
+  "imageSizeExplainer": "Scales the whole picture. Every photo is resampled to its new size; text and bubbles are redrawn, so they stay sharp. Width and height keep their proportions.",
+  "resamplingSection": "RESAMPLING",
+  "@resamplingSection": {
+    "description": "Section label; upper case by design."
+  },
+  "resampleNearest": "Nearest neighbour",
+  "resampleBilinear": "Bilinear",
+  "resampleBicubic": "Bicubic",
+  "resampleLanczos": "Lanczos",
+  "resampleNearestSub": "Hard pixel edges and no new colours. For pixel art and screenshots.",
+  "resampleBilinearSub": "Smooth and soft, with no halos.",
+  "resampleBicubicSub": "Sharper than bilinear. A good choice for most photos.",
+  "resampleLanczosSub": "The sharpest, and the best for shrinking. Can leave a faint halo along hard edges.",
+  "resizingImage": "Resizing image…",
+  "imageResizedTo": "Image resized to {width}×{height}",
+  "@imageResizedTo": {
+    "placeholders": {
+      "width": {
+        "type": "int"
+      },
+      "height": {
+        "type": "int"
+      }
+    }
+  },
+  "imageResizeFailed": "Could not resize the image",
   "addLayer": "Add layer",
   "aiCut": "AI Cut",
   "seeThePrice": "See the price",

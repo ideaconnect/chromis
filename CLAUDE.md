@@ -138,11 +138,26 @@ or pinched down by accident - is smaller than a finger and cannot be grabbed to
 be made big again. A slider does not depend on the layer's size.
 
 `layer_scale_curve.dart` holds the scale range and the slider's mapping.
-`kMinLayerScale`/`kMaxLayerScale` are read by BOTH the slider and the pinch
-gesture's clamp (`EditorCanvas._onScaleUpdate`) - they used to be duplicated
-with a comment saying to change both, which is a rule a compiler cannot enforce;
-a gesture that reached a size the slider refuses to represent would be a state
-with no way back.
+`LayerScaleRange.forCanvas` is read by the slider, the pinch gesture's clamp
+(`EditorCanvas._onScaleUpdate`) AND the snap engine's size match - the bounds
+used to be duplicated with a comment saying to change both, which is a rule a
+compiler cannot enforce; a gesture that reached a size the slider refuses to
+represent would be a state with no way back.
+
+**The range is per canvas, because a layer's scale is not.** Scale is relative
+to the fixed `kLayerFitBoxSide` box, so a fixed 0.2…6x meant 2.4 canvas widths
+at 1080 and less than a full bleed at 4096 - where a photo-sized canvas puts
+its photo at 9.3x, and the first pinch clamped it to two thirds of its size.
+`kMinLayerScale`/`kMaxLayerScale` are now the range on a 1080 canvas, stretched
+by the canvas's longer side, and **it only ever widens**: the top grows on a
+bigger canvas, the bottom shrinks on a smaller one, and neither moves inward,
+so nothing that was in range before can leave it. That is deliberately not
+proportional at both ends - proportional would keep a resized composition
+exactly in range, but would pull a 512 canvas's top down to 2.8x and strand
+every layer above it. What the asymmetry leaves (a layer shrunk past the bottom
+by a Resize image, an old project) `clampGesture` absorbs: a pinch is clamped to
+the range widened to where it STARTED, so an out-of-range layer never jumps and
+can only be brought back toward the range.
 
 **The Scale slider is a curve, not a linear range, and it is driven in
 bar-position space (0…1) rather than in percent.** Linear over 20…600% put 100%
@@ -359,6 +374,69 @@ project and left it unselected and `locale_overflow_test` used `Project.empty`,
 so the Adjust panel's chips, crop buttons, toggle and sliders - every translated
 string in the tool panel - were outside both. That is the same blind spot that
 let the panel header's 50/50 split ship past five review rounds.
+
+### Resize image
+
+The top bar's size button opens one sheet with two tabs, because people look
+for both behind it. **Canvas** changes the canvas around the layers, as it
+always did. **Image** scales the whole picture: `resizeProjectGeometry`
+(`features/editor/image_resize.dart`) moves and scales every layer in every
+frame plus a collage's borders, `PhotoResampler` gives every photo new pixels,
+and `EditorController.resizeImage` commits it all as one undo step. Width and
+height are linked - a caption cannot be stretched, so neither can the picture.
+
+**The pixels are computed on the CPU (`core/rendering/resample.dart`), because
+a method the user picks by name has to be the method that runs.** A GPU draw
+resamples with whatever `FilterQuality` maps to on its backend and there is no
+Lanczos to ask for. Nearest / bilinear / bicubic (Catmull-Rom) / Lanczos-3,
+separable, with the kernel widened by the shrink factor so a downscale averages
+rather than aliases. RGBA is filtered **premultiplied**: straight, a cut-out's
+hidden pixels bleed their colour into its edge. The vertical pass streams
+through a ring of filtered rows instead of a whole intermediate image, which
+for a 2048 -> 4096 upscale would be 100 MB of floats. Lanczos is the sharpest
+at shrinking, not at enlarging - on an enlarged hard edge it is no steeper than
+bicubic and its second lobe leaves a faint halo, which is what its description
+in the sheet says and what `resample_test.dart` pins.
+
+**Each photo is resampled to its FOOTPRINT, not by the resize factor**
+(`photoResampleTarget`): the pixels it covers on the resized canvas, measured
+with `layerLogicalSize` and divided back out of its crop, capped at
+`kMaxPhotoSide`. The export then draws it 1:1, so the user's method is the only
+resampling it ever gets. By factor, a 2048 photo on a 1080 canvas would stay
+twice the size it is drawn at and the GPU's bilinear would finish the job -
+which undoes nearest neighbour entirely. Text and bubbles get only the new
+transform: they are drawn from their description, so they stay sharp.
+
+Three things that are easy to break:
+
+- **A mask is resampled with its photo, and they are swapped together or not
+  at all.** `MaskMapper` and every AI tool address photo and mask with one pixel
+  coordinate. The dock stays live during the seconds a resample takes, so
+  `resizeImage` re-derives the geometry from the LIVE document and swaps only a
+  layer that still shows what was resampled (`ResampledPhoto.fromAsset` /
+  `fromMask`); anything else keeps its old pixels, which still draw correctly.
+  The other direction is ordering, not a check: a cut-out, stroke or fill that
+  landed AFTER the resize would set an old-size mask on the new photo, so the
+  resize waits for a background removal in flight (`_bgRemovalSettled`), queues
+  on `_strokeLock` with strokes and object removal, and Remove background shows
+  busy while it runs.
+- **The editor's working-mask cache is keyed by the photo too.** A layer with
+  no mask yet caches a *filled* one at the photo's size, and Resize image swaps
+  the photo for another size without giving it a mask - keyed by (layer, mask)
+  alone, the next erase stroke painted into a mask the photo no longer matched.
+- **New files, never rewritten ones.** The undo step before the resize still
+  points at the originals; the orphan sweep reclaims them, and a superseded
+  mask goes through the same `SupersededMaskCollector` as a brush stroke's. An
+  opaque result goes back as JPEG at q95 - a 4096 px PNG of a photo is ~30 MB -
+  and anything with alpha in it stays PNG.
+
+**`kMaxPhotoSide` (4096, `canvas_geometry.dart`) is the import downscale AND
+the resize cap** - one number, because a resize that could write a photo the
+import would refuse is a second route to the memory this bounds. It was 2048.
+A 4096 x 3072 photo is 50 MB decoded, four times what 2048 was, and the AI tools
+decode their input in full; every memory and timing figure elsewhere in this
+file was measured on 2048 px photos, so re-measure before trusting them at the
+new cap.
 
 ### Object removal: which pixels, and what goes there
 

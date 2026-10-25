@@ -1081,6 +1081,63 @@ class AppLocalizationsFr extends AppLocalizations {
   String get canvasSize => 'Taille de la toile';
 
   @override
+  String get canvasAndImageSize => 'Taille de la toile et de l\'image';
+
+  @override
+  String get sizeModeCanvas => 'Toile';
+
+  @override
+  String get sizeModeImage => 'Image';
+
+  @override
+  String get imageSize => 'Taille de l\'image';
+
+  @override
+  String get imageSizeExplainer =>
+      'Met à l\'échelle toute l\'image. Chaque photo est rééchantillonnée à sa nouvelle taille ; le texte et les bulles sont redessinés, ils restent donc nets. La largeur et la hauteur gardent leurs proportions.';
+
+  @override
+  String get resamplingSection => 'RÉÉCHANTILLONNAGE';
+
+  @override
+  String get resampleNearest => 'Au plus proche';
+
+  @override
+  String get resampleBilinear => 'Bilinéaire';
+
+  @override
+  String get resampleBicubic => 'Bicubique';
+
+  @override
+  String get resampleLanczos => 'Lanczos';
+
+  @override
+  String get resampleNearestSub =>
+      'Bords de pixels francs, aucune nouvelle couleur. Pour le pixel art et les captures d\'écran.';
+
+  @override
+  String get resampleBilinearSub => 'Un rendu doux et lisse, sans halo.';
+
+  @override
+  String get resampleBicubicSub =>
+      'Plus net que le bilinéaire. Un bon choix pour la plupart des photos.';
+
+  @override
+  String get resampleLanczosSub =>
+      'Le plus net, et le meilleur pour réduire. Peut laisser un léger halo le long des bords francs.';
+
+  @override
+  String get resizingImage => 'Redimensionnement de l\'image…';
+
+  @override
+  String imageResizedTo(int width, int height) {
+    return 'Image redimensionnée en $width×$height';
+  }
+
+  @override
+  String get imageResizeFailed => 'Impossible de redimensionner l\'image';
+
+  @override
   String get addLayer => 'Photo';
 
   @override

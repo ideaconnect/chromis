@@ -765,13 +765,20 @@ class _EditorCanvasState extends ConsumerState<EditorCanvas> {
     final delta = focalLogical - startFocal;
     final editor = ref.read(editorControllerProvider);
     final layer = editor.layers.where((l) => l.id == id).firstOrNull;
+    final canvasSize = Size(
+      editor.project.canvasWidth.toDouble(),
+      editor.project.canvasHeight.toDouble(),
+    );
     var next = LayerTransform(
       position: start.position + delta,
       // Shared with the Adjust panel's Scale slider rather than repeated, so
       // the two ways of resizing a layer cannot disagree about how small or
       // large one may get - a gesture that reached a size the slider refuses
-      // to represent would be a state with no way back.
-      scale: (start.scale * d.scale).clamp(kMinLayerScale, kMaxLayerScale),
+      // to represent would be a state with no way back. Widened to where the
+      // pinch started, so a layer already outside it does not jump.
+      scale: LayerScaleRange.forCanvas(
+        canvasSize,
+      ).clampGesture(start.scale * d.scale, start: start.scale),
       rotation: start.rotation + d.rotation,
     );
     if (layer != null) {
@@ -790,10 +797,7 @@ class _EditorCanvasState extends ConsumerState<EditorCanvas> {
             scale: s,
             imagePixels: l is ImageLayer ? _imageDims[l.assetPath] : null,
           ),
-          canvas: Size(
-            editor.project.canvasWidth.toDouble(),
-            editor.project.canvasHeight.toDouble(),
-          ),
+          canvas: canvasSize,
           // A layer in a collage cell is CLIPPED to it, and a cell photo is
           // cover-scaled, so a good deal of its box is behind the neighbouring
           // cells. Only what is on screen may be lined up with - the same rule

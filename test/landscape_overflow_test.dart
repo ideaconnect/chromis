@@ -152,6 +152,28 @@ void main() {
         expect(tester.takeException(), isNull);
       });
 
+      // The editor's copy of it, on the Image tab: an explainer, five
+      // shortcuts, the linked fields and four method chips with a description.
+      testWidgets('canvas size sheet, image tab', (tester) async {
+        await pumpSheet(
+          tester,
+          size,
+          (context) => showCanvasSizeSheet(
+            context,
+            title: 'Canvas size',
+            initialWidth: 1080,
+            initialHeight: 1080,
+            allowScaleContent: true,
+            allowImageResize: true,
+          ),
+        );
+        await tester.tap(find.byKey(const ValueKey('size-mode-image')));
+        await tester.pump();
+        expect(tester.takeException(), isNull);
+        expect(find.text('Image size'), findsOneWidget);
+        expect(find.byType(SheetBody), findsOneWidget);
+      });
+
       testWidgets('photo grid setup sheet', (tester) async {
         await pumpSheet(tester, size, showGridSetupSheet);
         expect(tester.takeException(), isNull);

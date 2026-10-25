@@ -440,6 +440,7 @@ _Evaluation _evaluate({
   var scale = proposed.scale;
   String? sizeMatchId;
   if (snapScale) {
+    final range = LayerScaleRange.forCanvas(canvas);
     double? bestScale;
     var bestDistance = tolerance;
     for (final target in visible) {
@@ -455,7 +456,7 @@ _Evaluation _evaluate({
         // rather than after the search, or the nearest candidate could be an
         // impossible one and shadow a perfectly good match behind it.
         final candidate = targetExtent / unitExtent;
-        if (candidate < kMinLayerScale || candidate > kMaxLayerScale) return;
+        if (!range.contains(candidate)) return;
         final distance = (unitExtent * proposed.scale - targetExtent).abs();
         if (distance < bestDistance) {
           bestDistance = distance;

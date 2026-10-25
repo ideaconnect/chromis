@@ -1,5 +1,6 @@
 import '../core/models/layer_effects.dart';
 import '../core/models/photo_filter.dart';
+import '../core/rendering/resample.dart';
 import '../features/editor/state/editor_tool.dart';
 import '../features/editor/widgets/canvas_size_sheet.dart';
 import '../features/grid/grid_templates.dart';
@@ -119,6 +120,24 @@ extension GridTemplateL10n on GridTemplate {
     '3 over 2' => l10n.gridThreeOverTwo,
     '2 left, 3 right' => l10n.gridTwoLeftThreeRight,
     _ => label,
+  };
+}
+
+extension ResampleMethodL10n on ResampleMethod {
+  String labelOf(AppLocalizations l10n) => switch (this) {
+    ResampleMethod.nearest => l10n.resampleNearest,
+    ResampleMethod.bilinear => l10n.resampleBilinear,
+    ResampleMethod.bicubic => l10n.resampleBicubic,
+    ResampleMethod.lanczos => l10n.resampleLanczos,
+  };
+
+  /// One line on what it looks like - the size sheet shows it for the method
+  /// picked, since "Lanczos" names an algorithm rather than a result.
+  String descriptionOf(AppLocalizations l10n) => switch (this) {
+    ResampleMethod.nearest => l10n.resampleNearestSub,
+    ResampleMethod.bilinear => l10n.resampleBilinearSub,
+    ResampleMethod.bicubic => l10n.resampleBicubicSub,
+    ResampleMethod.lanczos => l10n.resampleLanczosSub,
   };
 }
 

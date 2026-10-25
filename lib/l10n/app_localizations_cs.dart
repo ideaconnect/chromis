@@ -1077,6 +1077,63 @@ class AppLocalizationsCs extends AppLocalizations {
   String get canvasSize => 'Velikost plátna';
 
   @override
+  String get canvasAndImageSize => 'Velikost plátna a obrázku';
+
+  @override
+  String get sizeModeCanvas => 'Plátno';
+
+  @override
+  String get sizeModeImage => 'Obrázek';
+
+  @override
+  String get imageSize => 'Velikost obrázku';
+
+  @override
+  String get imageSizeExplainer =>
+      'Změní měřítko celého obrázku. Každá fotka se převzorkuje na novou velikost; text a bubliny se vykreslí znovu, takže zůstanou ostré. Šířka a výška si zachovají poměr stran.';
+
+  @override
+  String get resamplingSection => 'PŘEVZORKOVÁNÍ';
+
+  @override
+  String get resampleNearest => 'Nejbližší soused';
+
+  @override
+  String get resampleBilinear => 'Bilineární';
+
+  @override
+  String get resampleBicubic => 'Bikubická';
+
+  @override
+  String get resampleLanczos => 'Lanczos';
+
+  @override
+  String get resampleNearestSub =>
+      'Ostré hrany pixelů a žádné nové barvy. Pro pixel art a snímky obrazovky.';
+
+  @override
+  String get resampleBilinearSub => 'Hladký, měkký výsledek bez lemů.';
+
+  @override
+  String get resampleBicubicSub =>
+      'Ostřejší než bilineární. Dobrá volba pro většinu fotek.';
+
+  @override
+  String get resampleLanczosSub =>
+      'Nejostřejší výsledek, nejlepší pro zmenšování. Na ostrých hranách může zanechat slabý lem.';
+
+  @override
+  String get resizingImage => 'Mění se velikost obrázku…';
+
+  @override
+  String imageResizedTo(int width, int height) {
+    return 'Velikost obrázku změněna na $width×$height';
+  }
+
+  @override
+  String get imageResizeFailed => 'Velikost obrázku se nepodařilo změnit';
+
+  @override
   String get addLayer => 'Fotka';
 
   @override

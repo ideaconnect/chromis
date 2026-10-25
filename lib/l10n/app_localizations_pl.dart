@@ -1079,6 +1079,63 @@ class AppLocalizationsPl extends AppLocalizations {
   String get canvasSize => 'Rozmiar płótna';
 
   @override
+  String get canvasAndImageSize => 'Rozmiar płótna i obrazu';
+
+  @override
+  String get sizeModeCanvas => 'Płótno';
+
+  @override
+  String get sizeModeImage => 'Obraz';
+
+  @override
+  String get imageSize => 'Rozmiar obrazu';
+
+  @override
+  String get imageSizeExplainer =>
+      'Skaluje cały obraz. Każde zdjęcie jest przeliczane do nowego rozmiaru, a tekst i dymki są rysowane od nowa, więc pozostają ostre. Szerokość i wysokość zachowują proporcje.';
+
+  @override
+  String get resamplingSection => 'INTERPOLACJA';
+
+  @override
+  String get resampleNearest => 'Najbliższy sąsiad';
+
+  @override
+  String get resampleBilinear => 'Dwuliniowa';
+
+  @override
+  String get resampleBicubic => 'Dwusześcienna';
+
+  @override
+  String get resampleLanczos => 'Lanczos';
+
+  @override
+  String get resampleNearestSub =>
+      'Ostre krawędzie pikseli, bez nowych kolorów. Do pixel artu i zrzutów ekranu.';
+
+  @override
+  String get resampleBilinearSub => 'Gładki, miękki efekt, bez obwódek.';
+
+  @override
+  String get resampleBicubicSub =>
+      'Ostrzej niż dwuliniowa. Dobry wybór do większości zdjęć.';
+
+  @override
+  String get resampleLanczosSub =>
+      'Najostrzejszy efekt, najlepszy przy zmniejszaniu. Na wyraźnych krawędziach może zostawić delikatną obwódkę.';
+
+  @override
+  String get resizingImage => 'Zmiana rozmiaru obrazu…';
+
+  @override
+  String imageResizedTo(int width, int height) {
+    return 'Zmieniono rozmiar obrazu na $width×$height';
+  }
+
+  @override
+  String get imageResizeFailed => 'Nie udało się zmienić rozmiaru obrazu';
+
+  @override
   String get addLayer => 'Zdjęcie';
 
   @override

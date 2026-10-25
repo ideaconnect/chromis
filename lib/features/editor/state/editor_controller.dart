@@ -15,6 +15,7 @@ import '../../../core/models/project.dart';
 import '../../../core/rendering/canvas_geometry.dart';
 import '../../grid/grid_refit.dart';
 import '../../grid/grid_templates.dart';
+import '../image_resize.dart';
 import 'editor_state.dart';
 import 'editor_tool.dart';
 
@@ -414,6 +415,48 @@ class EditorController extends Notifier<EditorState> {
         )
         .toList();
     _commit(project.copyWith(canvasWidth: w, canvasHeight: h, frames: frames));
+  }
+
+  /// Resize image: the whole picture to [width]×[height] in one undo step -
+  /// canvas, every layer's placement, a collage's borders, and each photo in
+  /// [photos] (keyed by layer id) swapped for its resampled pixels.
+  ///
+  /// The caller resamples (see `PhotoResampler`); this method only does the
+  /// document surgery, which keeps the controller free of async I/O. The
+  /// geometry is recomputed here from the LIVE document, not taken from the
+  /// caller's snapshot, so an edit made while the pixels were being computed
+  /// survives; a photo is swapped only if the layer still shows what was
+  /// resampled (see [ResampledPhoto]).
+  void resizeImage(
+    int width,
+    int height, {
+    Map<String, ResampledPhoto> photos = const {},
+  }) {
+    final resized = resizeProjectGeometry(state.project, width, height);
+    Layer swapped(Layer layer) {
+      final photo = photos[layer.id];
+      if (layer is! ImageLayer ||
+          photo == null ||
+          layer.assetPath != photo.fromAsset ||
+          layer.maskPath != photo.fromMask) {
+        return layer;
+      }
+      // A null maskPath leaves the layer's own, which is null too: a mask is
+      // resampled whenever the layer had one.
+      return layer.copyWith(
+        assetPath: photo.assetPath,
+        maskPath: photo.maskPath,
+      );
+    }
+
+    _commit(
+      resized.copyWith(
+        frames: [
+          for (final frame in resized.frames)
+            frame.copyWith(layers: frame.layers.map(swapped).toList()),
+        ],
+      ),
+    );
   }
 
   /// Resizes the canvas to [newWidth]×[newHeight] keeping the composition

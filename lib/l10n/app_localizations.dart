@@ -2020,6 +2020,108 @@ abstract class AppLocalizations {
   /// **'Canvas size'**
   String get canvasSize;
 
+  /// Tooltip of the editor top-bar button that opens the Canvas / Image size sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'Canvas and image size'**
+  String get canvasAndImageSize;
+
+  /// Tab in the size sheet: change the canvas around the layers.
+  ///
+  /// In en, this message translates to:
+  /// **'Canvas'**
+  String get sizeModeCanvas;
+
+  /// Tab in the size sheet: scale the whole picture, resampling its photos.
+  ///
+  /// In en, this message translates to:
+  /// **'Image'**
+  String get sizeModeImage;
+
+  /// No description provided for @imageSize.
+  ///
+  /// In en, this message translates to:
+  /// **'Image size'**
+  String get imageSize;
+
+  /// No description provided for @imageSizeExplainer.
+  ///
+  /// In en, this message translates to:
+  /// **'Scales the whole picture. Every photo is resampled to its new size; text and bubbles are redrawn, so they stay sharp. Width and height keep their proportions.'**
+  String get imageSizeExplainer;
+
+  /// Section label; upper case by design.
+  ///
+  /// In en, this message translates to:
+  /// **'RESAMPLING'**
+  String get resamplingSection;
+
+  /// No description provided for @resampleNearest.
+  ///
+  /// In en, this message translates to:
+  /// **'Nearest neighbour'**
+  String get resampleNearest;
+
+  /// No description provided for @resampleBilinear.
+  ///
+  /// In en, this message translates to:
+  /// **'Bilinear'**
+  String get resampleBilinear;
+
+  /// No description provided for @resampleBicubic.
+  ///
+  /// In en, this message translates to:
+  /// **'Bicubic'**
+  String get resampleBicubic;
+
+  /// No description provided for @resampleLanczos.
+  ///
+  /// In en, this message translates to:
+  /// **'Lanczos'**
+  String get resampleLanczos;
+
+  /// No description provided for @resampleNearestSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Hard pixel edges and no new colours. For pixel art and screenshots.'**
+  String get resampleNearestSub;
+
+  /// No description provided for @resampleBilinearSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Smooth and soft, with no halos.'**
+  String get resampleBilinearSub;
+
+  /// No description provided for @resampleBicubicSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Sharper than bilinear. A good choice for most photos.'**
+  String get resampleBicubicSub;
+
+  /// No description provided for @resampleLanczosSub.
+  ///
+  /// In en, this message translates to:
+  /// **'The sharpest, and the best for shrinking. Can leave a faint halo along hard edges.'**
+  String get resampleLanczosSub;
+
+  /// No description provided for @resizingImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Resizing image…'**
+  String get resizingImage;
+
+  /// No description provided for @imageResizedTo.
+  ///
+  /// In en, this message translates to:
+  /// **'Image resized to {width}×{height}'**
+  String imageResizedTo(int width, int height);
+
+  /// No description provided for @imageResizeFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not resize the image'**
+  String get imageResizeFailed;
+
   /// No description provided for @addLayer.
   ///
   /// In en, this message translates to:

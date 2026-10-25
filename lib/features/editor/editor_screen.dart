@@ -21,6 +21,7 @@ import '../../core/models/layer_transform.dart';
 import '../../core/models/project.dart';
 import '../../core/rendering/canvas_geometry.dart';
 import '../../core/rendering/image_decode.dart';
+import '../../core/rendering/resample.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_tokens.dart';
 import '../../core/theme/app_typography.dart';
@@ -62,6 +63,7 @@ import 'layer_snap.dart';
 import 'mask_mapper.dart';
 import 'services/image_import.dart';
 import 'services/layer_flattener.dart';
+import 'services/photo_resampler.dart';
 import 'state/editor_controller.dart';
 import 'state/editor_state.dart';
 import 'state/editor_tool.dart';
@@ -128,6 +130,10 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
   bool _inpainting = false; // fill in progress (either tier)
   bool _samBusy = false; // MobileSAM object segmentation in progress (#86)
   bool _merging = false; // flatten / merge-down render in progress
+  bool _resizing = false; // Resize image: photos being resampled
+  // Completes when the panel's background removal in flight has applied, so
+  // a Resize image can wait for it rather than swap the photo under it.
+  Future<void> _bgRemovalSettled = Future<void>.value();
   // Landscape only: whether the tool column beside the rail is showing.
   bool _sidePanelOpen = true;
   // Set when the SAM engine hard-fails (precompute/segmentAt threw): a broken
@@ -146,11 +152,16 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
   AppLocalizations get _l10n => AppLocalizations.of(context);
 
   // Working mask cached across strokes of the Erase tool, so we don't reload
-  // and decode the mask file on every dab. Keyed by (layerId, maskPath) so an
-  // undo/redo or a layer switch transparently reloads.
+  // and decode the mask file on every dab. Keyed by (layerId, maskPath,
+  // assetPath) so an undo/redo or a layer switch transparently reloads. The
+  // photo is in the key because a layer with no mask yet caches a FILLED one at
+  // the photo's size - and Resize image swaps the photo for one of another
+  // size without giving it a mask, so (layerId, null) alone would keep
+  // painting into a mask the photo no longer matches.
   AlphaMask? _workingMask;
   String? _workingMaskLayerId;
   String? _workingMaskPath;
+  String? _workingAssetPath;
   Size? _workingImageSize;
   // Serializes erase strokes so overlapping async applies can't race and lose
   // dabs (each stroke starts only after the previous one has fully applied).
@@ -543,6 +554,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                             : _l10n.findingObject,
                       ),
                     if (_merging) _RemovingOverlay(label: _l10n.mergingLayers),
+                    if (_resizing) _RemovingOverlay(label: _l10n.resizingImage),
                     // Which frame you're editing - shown in every tool while the
                     // project is animated (per-frame editing indicator, #36).
                     if (editor.project.frameCount > 1)
@@ -1080,13 +1092,17 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         (t.position.dy - centre.dy) /
         _placementTravelOf(layer, project, axisX: false) *
         100;
+    // The same range the pinch clamps to, from the same canvas.
+    final scaleRange = LayerScaleRange.forCanvas(
+      Size(project.canvasWidth.toDouble(), project.canvasHeight.toDouble()),
+    );
     return [
       LabeledSlider(
         label: _l10n.scale,
         // Driven in bar-position space rather than in percent, because the
-        // mapping is a curve - see [_scaleUnityAt]. The readout stays the real
+        // mapping is a curve - see [kScaleUnityAt]. The readout stays the real
         // percentage, which is the number anyone actually wants.
-        value: sliderFromLayerScale(t.scale),
+        value: scaleRange.toSlider(t.scale),
         min: 0,
         max: 1,
         accent: context.colors.teal,
@@ -1098,7 +1114,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
           // stays where it is.
           _snapped(
             layer,
-            t.copyWith(scale: layerScaleFromSlider(v)),
+            t.copyWith(scale: scaleRange.fromSlider(v)),
             snapScale: true,
           ),
         ),
@@ -2357,7 +2373,9 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
           GradientButton(
             label: label,
             icon: Icons.auto_awesome,
-            busy: _removingBg,
+            // Busy through a Resize image too: a cut-out made for the photo
+            // being swapped out must not land on the new one.
+            busy: _removingBg || _resizing,
             gradient: removed ? null : context.tokens.cutoutGradient,
             solidColor: removed ? context.colors.neutralButton : null,
             foreground: removed
@@ -2667,8 +2685,13 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
   /// engine, clean up the mask, persist it and apply it to the layer (undoable
   /// via the controller's history). Gracefully reports when no engine can run.
   Future<void> _removeBackground(ImageLayer image, {bool refine = true}) async {
+    // A Resize image swaps this photo for one of another size, and a cut-out
+    // made for the old one must not land on it - the button shows busy then.
+    if (_resizing) return;
     if (!await _ensureAiAllowed()) return;
     setState(() => _removingBg = true);
+    final settled = Completer<void>();
+    _bgRemovalSettled = settled.future;
     try {
       final registry = ref.read(segmentationRegistryProvider);
       final preferred =
@@ -2718,6 +2741,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         _toast(_l10n.bgRemovalFailed, ok: false);
       }
     } finally {
+      settled.complete();
       if (mounted) setState(() => _removingBg = false);
     }
   }
@@ -3232,7 +3256,8 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     if (_workingMask != null &&
         _workingImageSize != null &&
         _workingMaskLayerId == layer.id &&
-        _workingMaskPath == layer.maskPath) {
+        _workingMaskPath == layer.maskPath &&
+        _workingAssetPath == layer.assetPath) {
       return true;
     }
     final size = await MaskStore.decodeImageSize(layer.assetPath);
@@ -3244,6 +3269,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     _workingMask = mask;
     _workingMaskLayerId = layer.id;
     _workingMaskPath = layer.maskPath;
+    _workingAssetPath = layer.assetPath;
     return true;
   }
 
@@ -4201,8 +4227,8 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     _controller.rename(name);
   }
 
-  /// Opens the canvas-size sheet (presets / custom + optional resample) and
-  /// applies the chosen dimensions.
+  /// Opens the size sheet - Canvas (presets / custom + optional layer scaling)
+  /// or Image (scale the whole picture) - and applies what it returns.
   Future<void> _showCanvasSize() async {
     final project = ref.read(editorControllerProvider).project;
     final result = await showCanvasSizeSheet(
@@ -4211,14 +4237,77 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       initialWidth: project.canvasWidth,
       initialHeight: project.canvasHeight,
       allowScaleContent: true,
+      allowImageResize: true,
       confirmLabel: _l10n.apply,
     );
     if (result == null) return;
+    if (result.resample case final method?) {
+      await _resizeImage(result.width, result.height, method);
+      return;
+    }
     _controller.setCanvasSize(
       result.width,
       result.height,
       scaleContent: result.scaleContent,
     );
+  }
+
+  /// Resize image: resamples every photo to the size it will be drawn at, then
+  /// commits the whole resize as one undo step.
+  ///
+  /// The pixels first and the document second, so a failure part-way leaves
+  /// the picture exactly as it was rather than half resized; the files already
+  /// written are unreferenced and the cold-launch sweep takes them.
+  ///
+  /// Never alongside other work on a photo's pixels. A cut-out, a brush stroke
+  /// or a fill that landed after the resize would set a mask made for the OLD
+  /// photo onto the new one - drawn correctly, since the renderer normalises a
+  /// mask, but the next erase stroke would then paint at the wrong pixels. So
+  /// it waits for a cut-out in flight and queues on the same lock as strokes
+  /// and object removal; while it runs, the overlay keeps new taps off the
+  /// canvas and Remove background shows busy.
+  Future<void> _resizeImage(
+    int width,
+    int height,
+    ResampleMethod method,
+  ) async {
+    if (_resizing) return;
+    setState(() => _resizing = true);
+    try {
+      await _bgRemovalSettled;
+      final job = _strokeLock.then(
+        (_) => _runResizeImage(width, height, method),
+      );
+      _strokeLock = job.catchError((Object _) {});
+      await job;
+    } catch (_) {
+      if (mounted) _toast(_l10n.imageResizeFailed, ok: false);
+    } finally {
+      if (mounted) setState(() => _resizing = false);
+    }
+  }
+
+  Future<void> _runResizeImage(
+    int width,
+    int height,
+    ResampleMethod method,
+  ) async {
+    if (!mounted) return;
+    final project = ref.read(editorControllerProvider).project;
+    final photos = await ref
+        .read(photoResamplerProvider)
+        .resample(project, width: width, height: height, method: method);
+    if (!mounted) return;
+    _controller.resizeImage(width, height, photos: photos);
+    // The masks it replaced are now reachable only through undo; let the GC
+    // reclaim each once it drops out of history, as a brush stroke's would.
+    for (final photo in photos.values) {
+      if (photo.maskPath case final mask?) {
+        _maskGc.supersede(photo.fromMask, mask);
+      }
+    }
+    final resized = ref.read(editorControllerProvider).project;
+    _toast(_l10n.imageResizedTo(resized.canvasWidth, resized.canvasHeight));
   }
 
   /// Crop tool sheet - center-crops the canvas to a common aspect ratio.
@@ -5384,7 +5473,7 @@ class _TopBar extends StatelessWidget {
         ),
         IconButton(
           onPressed: onCanvasSize,
-          tooltip: AppLocalizations.of(context).canvasSize,
+          tooltip: AppLocalizations.of(context).canvasAndImageSize,
           style: _secondaryIconStyle,
           icon: Icon(
             Icons.aspect_ratio,

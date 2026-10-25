@@ -1075,6 +1075,63 @@ class AppLocalizationsEs extends AppLocalizations {
   String get canvasSize => 'Tamaño del lienzo';
 
   @override
+  String get canvasAndImageSize => 'Tamaño del lienzo y de la imagen';
+
+  @override
+  String get sizeModeCanvas => 'Lienzo';
+
+  @override
+  String get sizeModeImage => 'Imagen';
+
+  @override
+  String get imageSize => 'Tamaño de la imagen';
+
+  @override
+  String get imageSizeExplainer =>
+      'Escala toda la imagen. Cada foto se remuestrea a su nuevo tamaño; el texto y los bocadillos se vuelven a dibujar, así que siguen nítidos. El ancho y el alto mantienen la proporción.';
+
+  @override
+  String get resamplingSection => 'REMUESTREO';
+
+  @override
+  String get resampleNearest => 'Vecino más cercano';
+
+  @override
+  String get resampleBilinear => 'Bilineal';
+
+  @override
+  String get resampleBicubic => 'Bicúbica';
+
+  @override
+  String get resampleLanczos => 'Lanczos';
+
+  @override
+  String get resampleNearestSub =>
+      'Bordes de píxel duros y ningún color nuevo. Para pixel art y capturas de pantalla.';
+
+  @override
+  String get resampleBilinearSub => 'Un resultado suave, sin halos.';
+
+  @override
+  String get resampleBicubicSub =>
+      'Más nítida que la bilineal. Una buena opción para la mayoría de las fotos.';
+
+  @override
+  String get resampleLanczosSub =>
+      'La más nítida y la mejor para reducir. Puede dejar un halo leve en los bordes marcados.';
+
+  @override
+  String get resizingImage => 'Cambiando el tamaño de la imagen…';
+
+  @override
+  String imageResizedTo(int width, int height) {
+    return 'Imagen redimensionada a $width×$height';
+  }
+
+  @override
+  String get imageResizeFailed => 'No se pudo cambiar el tamaño de la imagen';
+
+  @override
   String get addLayer => 'Foto';
 
   @override

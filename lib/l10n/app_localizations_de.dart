@@ -1079,6 +1079,63 @@ class AppLocalizationsDe extends AppLocalizations {
   String get canvasSize => 'Leinwandgröße';
 
   @override
+  String get canvasAndImageSize => 'Leinwand- und Bildgröße';
+
+  @override
+  String get sizeModeCanvas => 'Leinwand';
+
+  @override
+  String get sizeModeImage => 'Bild';
+
+  @override
+  String get imageSize => 'Bildgröße';
+
+  @override
+  String get imageSizeExplainer =>
+      'Skaliert das ganze Bild. Jedes Foto wird auf seine neue Größe neu berechnet; Text und Sprechblasen werden neu gezeichnet und bleiben scharf. Breite und Höhe behalten ihr Seitenverhältnis.';
+
+  @override
+  String get resamplingSection => 'INTERPOLATION';
+
+  @override
+  String get resampleNearest => 'Pixelwiederholung';
+
+  @override
+  String get resampleBilinear => 'Bilinear';
+
+  @override
+  String get resampleBicubic => 'Bikubisch';
+
+  @override
+  String get resampleLanczos => 'Lanczos';
+
+  @override
+  String get resampleNearestSub =>
+      'Harte Pixelkanten, keine neuen Farben. Für Pixel-Art und Screenshots.';
+
+  @override
+  String get resampleBilinearSub => 'Weich und glatt, ohne Säume.';
+
+  @override
+  String get resampleBicubicSub =>
+      'Schärfer als bilinear. Eine gute Wahl für die meisten Fotos.';
+
+  @override
+  String get resampleLanczosSub =>
+      'Am schärfsten und am besten zum Verkleinern. Kann an harten Kanten einen leichten Saum zeigen.';
+
+  @override
+  String get resizingImage => 'Bildgröße wird geändert…';
+
+  @override
+  String imageResizedTo(int width, int height) {
+    return 'Bildgröße auf $width×$height geändert';
+  }
+
+  @override
+  String get imageResizeFailed => 'Die Bildgröße konnte nicht geändert werden';
+
+  @override
   String get addLayer => 'Foto';
 
   @override

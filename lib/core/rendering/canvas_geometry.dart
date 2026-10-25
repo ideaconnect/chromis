@@ -16,6 +16,15 @@ import 'dart:ui';
 /// paths agree by construction rather than by coincidence.
 const double kLayerFitBoxSide = 440.0;
 
+/// The longest side, in pixels, of any photo the app writes: the gallery and
+/// camera import downscale to it, and Resize image never resamples past it.
+///
+/// One number for both, because a resize that could produce a photo the import
+/// would have refused is a second way to reach the memory cost this cap exists
+/// to bound. A 4096 x 3072 photo is 50 MB decoded, four times what 2048 was,
+/// and the AI tools decode their input in full.
+const int kMaxPhotoSide = 4096;
+
 /// The layer scale that fits a [pixels]-sized photo inside a
 /// [canvasWidth]×[canvasHeight] canvas (BoxFit.contain). An image layer renders
 /// into a [kLayerFitBoxSide]-square box at scale 1, so we scale that fitted box

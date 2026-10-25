@@ -1062,6 +1062,63 @@ class AppLocalizationsEn extends AppLocalizations {
   String get canvasSize => 'Canvas size';
 
   @override
+  String get canvasAndImageSize => 'Canvas and image size';
+
+  @override
+  String get sizeModeCanvas => 'Canvas';
+
+  @override
+  String get sizeModeImage => 'Image';
+
+  @override
+  String get imageSize => 'Image size';
+
+  @override
+  String get imageSizeExplainer =>
+      'Scales the whole picture. Every photo is resampled to its new size; text and bubbles are redrawn, so they stay sharp. Width and height keep their proportions.';
+
+  @override
+  String get resamplingSection => 'RESAMPLING';
+
+  @override
+  String get resampleNearest => 'Nearest neighbour';
+
+  @override
+  String get resampleBilinear => 'Bilinear';
+
+  @override
+  String get resampleBicubic => 'Bicubic';
+
+  @override
+  String get resampleLanczos => 'Lanczos';
+
+  @override
+  String get resampleNearestSub =>
+      'Hard pixel edges and no new colours. For pixel art and screenshots.';
+
+  @override
+  String get resampleBilinearSub => 'Smooth and soft, with no halos.';
+
+  @override
+  String get resampleBicubicSub =>
+      'Sharper than bilinear. A good choice for most photos.';
+
+  @override
+  String get resampleLanczosSub =>
+      'The sharpest, and the best for shrinking. Can leave a faint halo along hard edges.';
+
+  @override
+  String get resizingImage => 'Resizing image…';
+
+  @override
+  String imageResizedTo(int width, int height) {
+    return 'Image resized to $width×$height';
+  }
+
+  @override
+  String get imageResizeFailed => 'Could not resize the image';
+
+  @override
   String get addLayer => 'Add layer';
 
   @override
