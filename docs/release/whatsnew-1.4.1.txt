@@ -1,0 +1,36 @@
+<en-US>
+• Resize the whole image, not just the canvas: Image size scales every layer and resamples each photo with Nearest neighbour, Bilinear, Bicubic or Lanczos.
+• Remove object: choose how Fill in works - Best quality, or Low memory for phones with less RAM.
+• 12 new fonts for captions and bubbles, plus the fonts already on your phone, in one searchable list.
+• The app now tells you when a pinch, a canvas size or bubble text reaches its limit.
+</en-US>
+<pl-PL>
+• Zmieniaj rozmiar całego obrazu, nie tylko płótna: Rozmiar obrazu skaluje każdą warstwę i przelicza zdjęcia metodą Najbliższy sąsiad, Dwuliniowa, Dwusześcienna lub Lanczos.
+• Usuń obiekt: wybierz, jak działa Wypełnij - Najlepsza jakość albo Mniej pamięci dla telefonów z mniejszą ilością RAM.
+• 12 nowych czcionek do napisów i dymków oraz czcionki z telefonu, na jednej liście z wyszukiwarką.
+• Aplikacja mówi, gdy gest, rozmiar płótna lub tekst w dymku osiągnie limit.
+</pl-PL>
+<de-DE>
+• Das ganze Bild skalieren, nicht nur die Leinwand: Bildgröße skaliert jede Ebene und rechnet Fotos mit Pixelwiederholung, Bilinear, Bikubisch oder Lanczos neu.
+• Objekt entfernen: Wähle, wie Füllen arbeitet - Beste Qualität oder Wenig Speicher für Geräte mit wenig RAM.
+• 12 neue Schriften für Texte und Sprechblasen, dazu die Schriften deines Geräts, in einer durchsuchbaren Liste.
+• Die App zeigt jetzt an, wenn eine Geste, die Leinwandgröße oder Blasentext an die Grenze stößt.
+</de-DE>
+<es-ES>
+• Cambia el tamaño de toda la imagen, no solo del lienzo: Tamaño de la imagen escala cada capa y remuestrea las fotos con Vecino más cercano, Bilineal, Bicúbica o Lanczos.
+• Quitar objeto: elige cómo funciona Rellenar - Mejor calidad o Poca memoria para móviles con menos RAM.
+• 12 fuentes nuevas para textos y globos, más las fuentes de tu móvil, en una lista con búsqueda.
+• La app avisa cuando un gesto, el tamaño del lienzo o el texto de un globo llega al límite.
+</es-ES>
+<fr-FR>
+• Taille de l'image redimensionne toute l'image, calques compris, et rééchantillonne les photos : Au plus proche, Bilinéaire, Bicubique ou Lanczos.
+• Supprimer l'objet : Remplir en Meilleure qualité, ou en Peu de mémoire pour les téléphones avec moins de RAM.
+• 12 nouvelles polices pour les légendes et les bulles, plus celles de votre téléphone, dans une liste avec recherche.
+• L'appli vous prévient quand un geste, la taille de la toile ou le texte d'une bulle atteint sa limite.
+</fr-FR>
+<cs-CZ>
+• Nově můžeš měnit velikost celého obrázku, nejen plátna: Velikost obrázku přizpůsobí každou vrstvu a fotky přepočítá metodou Nejbližší soused, Bilineární, Bikubická nebo Lanczos.
+• Odstranit objekt: vyber, jak funguje Vyplnit - Nejlepší kvalita, nebo Méně paměti pro telefony s menší RAM.
+• 12 nových písem pro popisky a bubliny a k tomu písma z telefonu, v jednom seznamu s hledáním.
+• Aplikace teď ukáže, když gesto, velikost plátna nebo text v bublině narazí na limit.
+</cs-CZ>
