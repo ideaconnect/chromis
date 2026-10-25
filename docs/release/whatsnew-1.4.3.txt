@@ -1,0 +1,42 @@
+<en-US>
+• Image size scales the whole picture, not just the canvas.
+• Remove object: choose how Fill in works - Best quality, or Low memory for phones with less RAM.
+• 12 new fonts for captions and bubbles, plus the fonts already on your phone.
+• Fixed Remove object saying its AI is unavailable, and crashes on the newest Snapdragon chips and after leaving the app with Back.
+• The AI tools give their memory back when they finish, so phones with 2 GB of RAM stay responsive.
+</en-US>
+<pl-PL>
+• Rozmiar obrazu skaluje cały obraz, nie tylko płótno.
+• Usuń obiekt: wybierz, jak działa Wypełnij - Najlepsza jakość albo Mniej pamięci dla telefonów z mniejszą ilością RAM.
+• 12 nowych czcionek do napisów i dymków oraz czcionki z telefonu.
+• Naprawiono błąd „AI niedostępne” w Usuń obiekt oraz awarie na najnowszych układach Snapdragon i po wyjściu przyciskiem Wstecz.
+• Narzędzia AI zwalniają pamięć po zakończeniu pracy, więc telefony z 2 GB RAM działają płynnie.
+</pl-PL>
+<de-DE>
+• Bildgröße skaliert das ganze Bild, nicht nur die Leinwand.
+• Objekt entfernen: Wähle, wie Füllen arbeitet - Beste Qualität oder Wenig Speicher für Geräte mit wenig RAM.
+• 12 neue Schriften für Texte und Sprechblasen, dazu die Schriften deines Geräts.
+• Behoben: Objekt entfernen meldete die KI als nicht verfügbar; dazu Abstürze auf den neuesten Snapdragon-Chips und beim Verlassen mit Zurück.
+• Die KI-Werkzeuge geben Speicher nach der Arbeit frei, sodass Geräte mit 2 GB RAM flüssig bleiben.
+</de-DE>
+<es-ES>
+• Tamaño de la imagen escala toda la imagen, no solo el lienzo.
+• Quitar objeto: elige cómo funciona Rellenar - Mejor calidad o Poca memoria para móviles con menos RAM.
+• 12 fuentes nuevas para textos y globos, más las fuentes de tu móvil.
+• Corregido Quitar objeto, que decía que la IA no estaba disponible, y los cierres en los Snapdragon más recientes y al salir con Atrás.
+• Las herramientas de IA liberan la memoria al terminar, así que los móviles con 2 GB de RAM siguen fluidos.
+</es-ES>
+<fr-FR>
+• Taille de l'image redimensionne toute l'image, pas seulement la toile.
+• Supprimer l'objet : Remplir en Meilleure qualité, ou Peu de mémoire si le téléphone a peu de RAM.
+• 12 nouvelles polices pour légendes et bulles, plus celles de votre téléphone.
+• Supprimer l'objet ne dit plus que l'IA est indisponible. Plantages corrigés sur les derniers Snapdragon et après une sortie avec Retour.
+• Les outils IA libèrent leur mémoire après usage : les téléphones à 2 Go de RAM restent fluides.
+</fr-FR>
+<cs-CZ>
+• Velikost obrázku přizpůsobí celý obrázek, nejen plátno.
+• Odstranit objekt: vyber, jak funguje Vyplnit - Nejlepší kvalita, nebo Méně paměti pro telefony s menší RAM.
+• 12 nových písem pro popisky a bubliny a k tomu písma z telefonu.
+• Opravili jsme chybu „AI není dostupná“ v Odstranit objekt a pády na nejnovějších čipech Snapdragon a po opuštění aplikace tlačítkem Zpět.
+• AI nástroje po dokončení uvolní paměť, takže telefony se 2 GB RAM zůstávají svižné.
+</cs-CZ>

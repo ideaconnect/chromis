@@ -16,7 +16,26 @@ import 'package:flutter_onnxruntime/flutter_onnxruntime.dart';
 /// It costs nothing anywhere else: MLAS only installs KleidiAI on SME CPUs in
 /// the first place, so every other phone was already on the NEON kernels this
 /// falls back to.
-const Map<String, String> kOrtSessionConfigs = {'mlas.disable_kleidiai': '1'};
+///
+/// **The Gelu fusions are off.** MobileSAM ships as fp16, and its GELUs are
+/// written out as `Erf` arithmetic. ORT 1.28's graph optimizer fuses that into
+/// one `com.microsoft.Gelu` node typed fp16 - on an ARM CPU with fp16
+/// arithmetic, which is nearly every phone sold since 2018 - and then finds no
+/// fp16 kernel for the node it made, so the encoder session refuses to
+/// create: `ORT_NOT_IMPLEMENTED: Failed to find kernel for com.microsoft.Gelu`.
+/// 1.4.2 shipped that, and Remove object read as "not available on this
+/// device" on a Xiaomi 15 Ultra. An x86 emulator has no fp16 path, so the
+/// fusion never fires there and every device test passed. Unfused, ORT runs
+/// the `Erf` steps as it did on 1.23. The other models are fp32 with at most
+/// one `Erf`, so they lose nothing measurable.
+///
+/// The list is split on `;`, not `,` - ORT's `SplitString(..., ";")`. With a
+/// comma the whole value is one unknown name, nothing is disabled, and nothing
+/// says so.
+const Map<String, String> kOrtSessionConfigs = {
+  'mlas.disable_kleidiai': '1',
+  'optimization.disable_specified_optimizers': 'GeluFusionL1;GeluFusionL2',
+};
 
 /// The options for every ORT session - the one place they are defined, so no
 /// model can be loaded without them. `test/segmentation/ort_session_options_test.dart`

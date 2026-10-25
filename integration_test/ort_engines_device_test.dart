@@ -12,6 +12,11 @@
 // the process dying rather than a red test. MI-GAN has its own file,
 // inpaint_device_test.dart.
 //
+// Run it on an ARM phone, not only the emulator. An x86 emulator has no fp16
+// arithmetic, so ORT takes a different path through an fp16 model there: 1.4.2
+// passed this file on the emulator while MobileSAM would not even create a
+// session on a Xiaomi 15 Ultra (see ort_session_options.dart).
+//
 // Run: flutter test integration_test/ort_engines_device_test.dart -d <deviceId>
 import 'dart:io';
 

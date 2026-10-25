@@ -1083,6 +1083,22 @@ the process peak drops from 1.6 GB to 1.0 GB. Nothing else shows the cost: the
 fill still works, just as fast, so `inpaint_device_test.dart` asserts on the
 resident size directly and fails with the arena on (+1,171 MB).
 
+**`ortSessionOptions()` also turns ORT's Gelu fusions off, and 1.4.2 shipped
+without that: Remove object's AI did not work on most phones.** MobileSAM is
+fp16 with its GELUs written out as `Erf` arithmetic. ORT 1.28 fuses that into
+one fp16 `com.microsoft.Gelu` on any ARM CPU with fp16 arithmetic - nearly every
+phone since 2018 - then has no fp16 kernel for it, so the encoder session will
+not create (`ORT_NOT_IMPLEMENTED`), and the editor says the AI "isn't available
+on this device". Found on a Xiaomi 15 Ultra; every device test had passed,
+because **an x86 emulator has no fp16 path and never takes the fusion**. So the
+device tests must run on an ARM phone after any ORT bump - side by side with
+the Play install, never over it: a temporary `applicationIdSuffix` on the
+debug build type keeps the user's projects safe, and HyperOS needs "Install via
+USB" plus a confirmation per install. The setting is
+`optimization.disable_specified_optimizers`, and **its list is split on `;`** -
+written with a comma it disables nothing, silently, which is what the first
+attempt at this fix did; `ort_session_options_test.dart` now pins both.
+
 ## Monetization
 
 `google_mobile_ads` (banner + **rewarded interstitial** + UMP; there is no

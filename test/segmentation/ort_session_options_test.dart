@@ -11,9 +11,21 @@ import 'package:flutter_test/flutter_test.dart';
 /// can observe.
 void main() {
   test('the session options turn KleidiAI off', () {
-    expect(ortSessionOptions().toMap()['sessionConfigs'], {
-      'mlas.disable_kleidiai': '1',
-    });
+    final configs = ortSessionOptions().toMap()['sessionConfigs'] as Map;
+    expect(configs['mlas.disable_kleidiai'], '1');
+  });
+
+  // ORT 1.28 fuses MobileSAM's fp16 Erf arithmetic into a com.microsoft.Gelu
+  // it has no fp16 kernel for on ARM, so the encoder will not create there -
+  // and an x86 emulator never takes that path. ORT splits this list on ';':
+  // written with a comma it is one unknown name and disables nothing, which
+  // is exactly what the first attempt at this fix did.
+  test('the session options turn both Gelu fusions off', () {
+    final configs = ortSessionOptions().toMap()['sessionConfigs'] as Map;
+    final value =
+        configs['optimization.disable_specified_optimizers'] as String;
+    expect(value, isNot(contains(',')));
+    expect(value.split(';'), containsAll(['GeluFusionL1', 'GeluFusionL2']));
   });
 
   // #66: with the arena on, sessions that live for the whole process keep
