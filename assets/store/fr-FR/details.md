@@ -32,7 +32,7 @@ COULEUR ET LUMIÈRE
 • Rien n'est figé : l'original n'est jamais modifié.
 
 TEXTE ET BULLES DE BD
-• Légendes en cinq polices d'affichage, ou importez votre fichier .ttf ou .otf.
+• Légendes en 17 polices, celles de votre téléphone ou votre fichier .ttf ou .otf.
 • Réglez taille et couleur, et ajoutez un contour d'épaisseur et de couleur libres.
 • Cinq formes de bulle : Dialogue, Pensée, Cri, Cartouche et Chuchotement. Tirez la queue vers qui parle.
 

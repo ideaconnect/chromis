@@ -168,6 +168,41 @@ void main() {
     await tester.enterText(imageWidth, '9000');
     await tester.pump();
     expect(tester.widget<FilledButton>(confirm).onPressed, isNull);
+    // And says why - a greyed-out Apply on its own does not say which number
+    // is wrong, or that any number is.
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('size-limit-message')),
+        matching: find.text('Too large - at most 8192 px per side'),
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('the Canvas tab says where its limits are', (tester) async {
+    await open(tester);
+    final width = find.widgetWithText(TextField, 'Width');
+    final message = find.byKey(const ValueKey('size-limit-message'));
+    expect(message, findsNothing);
+
+    await tester.enterText(width, '9000');
+    await tester.pump();
+    expect(find.text('Too large - at most 8192 px per side'), findsOneWidget);
+    expect(tester.widget<FilledButton>(confirm).onPressed, isNull);
+
+    await tester.enterText(width, '8');
+    await tester.pump();
+    expect(find.text('Too small - at least 16 px per side'), findsOneWidget);
+
+    // Half-typed is not an error: an empty field only means "not yet".
+    await tester.enterText(width, '');
+    await tester.pump();
+    expect(message, findsNothing);
+
+    await tester.enterText(width, '8192');
+    await tester.pump();
+    expect(message, findsNothing);
+    expect(tester.widget<FilledButton>(confirm).onPressed, isNotNull);
   });
 
   // Prose, four chips and two tabs, each up to a third longer in German.

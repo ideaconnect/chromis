@@ -35,7 +35,7 @@ the only thing a browsing user reads.
 Every number in the captions is verified against the source, not the website,
 by `tool/check_store_listings.py`: 14 filter looks (`PhotoFilter` lists 15
 including "Original"), 16 blend modes (`LayerBlend`), 18 grid layouts
-(`gridTemplatesFor`, 4+4+5+5), 5 bundled caption fonts
+(`gridTemplatesFor`, 4+4+5+5), 17 bundled caption fonts
 (`AppFonts.bundledFonts`). `python tool/store_copy.py` separately measures every
 caption line against the width it is drawn into - a caption is a picture, so a
 line that does not fit runs off the edge rather than wrapping.

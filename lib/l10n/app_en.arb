@@ -332,7 +332,6 @@
   },
   "textEmptyHint": "Select a text layer, or add one.",
   "addText": "Add text",
-  "tapFontToPreview": "Tap a font to preview",
   "typeYourCaption": "Type your caption…",
   "outlineSection": "OUTLINE",
   "@outlineSection": {
@@ -354,6 +353,33 @@
       }
     }
   },
+  "searchFonts": "Search fonts",
+  "fontsInApp": "In the app",
+  "fontsImported": "Your fonts",
+  "fontsOnDevice": "On this device",
+  "fontsSearchingDevice": "Looking for fonts on this device…",
+  "importFontFile": "Import a font file",
+  "importFontFileSub": ".ttf or .otf",
+  "noFontsMatch": "No fonts match your search",
+  "scaleLimitMax": "Maximum size",
+  "scaleLimitMin": "Minimum size",
+  "sizeTooLarge": "Too large - at most {max} px per side",
+  "@sizeTooLarge": {
+    "placeholders": {
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "sizeTooSmall": "Too small - at least {min} px per side",
+  "@sizeTooSmall": {
+    "placeholders": {
+      "min": {
+        "type": "int"
+      }
+    }
+  },
+  "bubbleTextFills": "The text already fills the bubble. To make it bigger, pinch the bubble.",
   "comicBubble": "Comic bubble",
   "bubble": "Bubble",
   "bubbleTextHint": "Bubble text…",

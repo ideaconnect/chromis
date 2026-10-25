@@ -1198,12 +1198,6 @@ abstract class AppLocalizations {
   /// **'Add text'**
   String get addText;
 
-  /// No description provided for @tapFontToPreview.
-  ///
-  /// In en, this message translates to:
-  /// **'Tap a font to preview'**
-  String get tapFontToPreview;
-
   /// No description provided for @typeYourCaption.
   ///
   /// In en, this message translates to:
@@ -1251,6 +1245,84 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Added font · {family}'**
   String fontAdded(String family);
+
+  /// No description provided for @searchFonts.
+  ///
+  /// In en, this message translates to:
+  /// **'Search fonts'**
+  String get searchFonts;
+
+  /// No description provided for @fontsInApp.
+  ///
+  /// In en, this message translates to:
+  /// **'In the app'**
+  String get fontsInApp;
+
+  /// No description provided for @fontsImported.
+  ///
+  /// In en, this message translates to:
+  /// **'Your fonts'**
+  String get fontsImported;
+
+  /// No description provided for @fontsOnDevice.
+  ///
+  /// In en, this message translates to:
+  /// **'On this device'**
+  String get fontsOnDevice;
+
+  /// No description provided for @fontsSearchingDevice.
+  ///
+  /// In en, this message translates to:
+  /// **'Looking for fonts on this device…'**
+  String get fontsSearchingDevice;
+
+  /// No description provided for @importFontFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Import a font file'**
+  String get importFontFile;
+
+  /// No description provided for @importFontFileSub.
+  ///
+  /// In en, this message translates to:
+  /// **'.ttf or .otf'**
+  String get importFontFileSub;
+
+  /// No description provided for @noFontsMatch.
+  ///
+  /// In en, this message translates to:
+  /// **'No fonts match your search'**
+  String get noFontsMatch;
+
+  /// No description provided for @scaleLimitMax.
+  ///
+  /// In en, this message translates to:
+  /// **'Maximum size'**
+  String get scaleLimitMax;
+
+  /// No description provided for @scaleLimitMin.
+  ///
+  /// In en, this message translates to:
+  /// **'Minimum size'**
+  String get scaleLimitMin;
+
+  /// No description provided for @sizeTooLarge.
+  ///
+  /// In en, this message translates to:
+  /// **'Too large - at most {max} px per side'**
+  String sizeTooLarge(int max);
+
+  /// No description provided for @sizeTooSmall.
+  ///
+  /// In en, this message translates to:
+  /// **'Too small - at least {min} px per side'**
+  String sizeTooSmall(int min);
+
+  /// No description provided for @bubbleTextFills.
+  ///
+  /// In en, this message translates to:
+  /// **'The text already fills the bubble. To make it bigger, pinch the bubble.'**
+  String get bubbleTextFills;
 
   /// No description provided for @comicBubble.
   ///

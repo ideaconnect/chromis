@@ -16,6 +16,7 @@ import '../../../core/theme/app_tokens.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/layer_effects_box.dart';
 import '../../../core/widgets/text_caption.dart';
+import '../../fonts/device_fonts.dart';
 import 'bubble_view.dart';
 
 /// Renders a [Frame]'s layers in z-order (bottom → top), mapping the model's
@@ -107,6 +108,12 @@ class ProjectCanvas extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // A caption in one of the device's fonts names a family the engine does
+    // not know until it is loaded, and nothing else would load it: the picker
+    // did, in the session that chose it, but not in this one. Started here
+    // because every live surface - the editor, Home's tiles, the frame strip -
+    // draws through this widget; the text re-lays itself out when it lands.
+    DeviceFonts.instance.prefetch(frame.layers);
     return LayoutBuilder(
       builder: (context, constraints) {
         final logicalW = width.toDouble();

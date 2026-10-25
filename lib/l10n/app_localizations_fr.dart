@@ -623,9 +623,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String get addText => 'Ajouter du texte';
 
   @override
-  String get tapFontToPreview => 'Touchez pour l\'aperçu';
-
-  @override
   String get typeYourCaption => 'Saisissez votre texte…';
 
   @override
@@ -650,6 +647,50 @@ class AppLocalizationsFr extends AppLocalizations {
   String fontAdded(String family) {
     return 'Police ajoutée · $family';
   }
+
+  @override
+  String get searchFonts => 'Rechercher une police';
+
+  @override
+  String get fontsInApp => 'Dans l\'app';
+
+  @override
+  String get fontsImported => 'Vos polices';
+
+  @override
+  String get fontsOnDevice => 'Sur cet appareil';
+
+  @override
+  String get fontsSearchingDevice => 'Recherche des polices de l\'appareil…';
+
+  @override
+  String get importFontFile => 'Importer un fichier de police';
+
+  @override
+  String get importFontFileSub => '.ttf ou .otf';
+
+  @override
+  String get noFontsMatch => 'Aucune police ne correspond à la recherche';
+
+  @override
+  String get scaleLimitMax => 'Taille maximale';
+
+  @override
+  String get scaleLimitMin => 'Taille minimale';
+
+  @override
+  String sizeTooLarge(int max) {
+    return '$max px maximum par côté';
+  }
+
+  @override
+  String sizeTooSmall(int min) {
+    return '$min px minimum par côté';
+  }
+
+  @override
+  String get bubbleTextFills =>
+      'Le texte remplit déjà la bulle. Pour l\'agrandir, écartez deux doigts sur la bulle.';
 
   @override
   String get comicBubble => 'Bulle BD';

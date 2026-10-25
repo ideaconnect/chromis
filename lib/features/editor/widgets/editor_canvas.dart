@@ -6,6 +6,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart' show listEquals, setEquals;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show HapticFeedback;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/models/frame.dart';
@@ -90,6 +91,26 @@ class _EditorCanvasState extends ConsumerState<EditorCanvas> {
   final Map<String, Size> _imageDims = {};
   final Set<String> _dimsLoading = {};
 
+  @override
+  void initState() {
+    super.initState();
+    PaintingBinding.instance.systemFonts.addListener(_onFontsChanged);
+  }
+
+  @override
+  void dispose() {
+    PaintingBinding.instance.systemFonts.removeListener(_onFontsChanged);
+    super.dispose();
+  }
+
+  /// A caption's hit box and selection frame are measured in build, against
+  /// whatever face its family resolved to then. A device or imported font that
+  /// lands after the first frame re-lays the caption out by itself, but not
+  /// the frame around it - so build again when one does.
+  void _onFontsChanged() {
+    if (mounted) setState(() {});
+  }
+
   LayerTransform? _startTransform;
   Offset? _startFocal;
   String? _gestureLayerId;
@@ -138,6 +159,23 @@ class _EditorCanvasState extends ConsumerState<EditorCanvas> {
   /// rather than drawn a line through: they are somewhere else on the canvas
   /// entirely, and what happened is "you are now like that one".
   Set<String> _snapMatchIds = const {};
+
+  /// Which end of [LayerScaleRange] the current pinch is pressing against, or
+  /// null while it is anywhere inside.
+  ///
+  /// The range clamps silently, so a layer at its limit simply stops growing
+  /// under the fingers - which looks exactly like the gesture having been
+  /// dropped. Gesture-scoped, like the snap feedback: cleared in
+  /// [_onScaleEnd].
+  _ScaleLimit? _scaleLimit;
+
+  void _setScaleLimit(_ScaleLimit? limit) {
+    if (limit == _scaleLimit) return;
+    // One tick on arriving at a limit, none on leaving it - the badge says
+    // where you are, the tick says the moment you got there.
+    if (limit != null) unawaited(HapticFeedback.lightImpact());
+    setState(() => _scaleLimit = limit);
+  }
 
   void _setSnapFeedback(SnapResult? result) {
     final guides = result?.guides ?? const <SnapGuide>[];
@@ -312,6 +350,7 @@ class _EditorCanvasState extends ConsumerState<EditorCanvas> {
                     ),
                   ),
                 ..._matchOutlines(editor.layers, scale),
+                if (_scaleLimit case final limit?) _scaleLimitBadge(limit),
                 if (selected != null && editor.tool != EditorTool.frames) ...[
                   _selectionOverlay(selected, scale),
                   // Bubbles get a draggable knob at the tail tip (#78) - except
@@ -450,6 +489,66 @@ class _EditorCanvasState extends ConsumerState<EditorCanvas> {
         child: Transform.rotate(
           angle: math.atan2(along.dy, along.dx),
           child: ColoredBox(color: context.colors.magenta),
+        ),
+      ),
+    );
+  }
+
+  /// Says the pinch has reached the smallest or largest a layer may be.
+  ///
+  /// Pinned to the canvas's top edge rather than to the layer: a layer at its
+  /// maximum is usually bigger than the canvas, so anything attached to it is
+  /// off screen at exactly the moment it is needed. On the photo, so it is
+  /// drawn in [AppScrim] - a photo has no theme to follow.
+  Widget _scaleLimitBadge(_ScaleLimit limit) {
+    final l10n = AppLocalizations.of(context);
+    final max = limit == _ScaleLimit.max;
+    return Positioned(
+      key: const ValueKey('scale-limit-badge'),
+      top: 10,
+      left: 8,
+      right: 8,
+      child: IgnorePointer(
+        child: Center(
+          child: Semantics(
+            liveRegion: true,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: AppScrim.fillStrong,
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      max ? Icons.open_in_full : Icons.close_fullscreen,
+                      size: 14,
+                      color: AppScrim.ink,
+                    ),
+                    const SizedBox(width: 6),
+                    Flexible(
+                      child: Text(
+                        max ? l10n.scaleLimitMax : l10n.scaleLimitMin,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontFamily: AppFonts.ui,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: AppScrim.ink,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
         ),
       ),
     );
@@ -769,16 +868,29 @@ class _EditorCanvasState extends ConsumerState<EditorCanvas> {
       editor.project.canvasWidth.toDouble(),
       editor.project.canvasHeight.toDouble(),
     );
+    final proposedScale = start.scale * d.scale;
+    // Shared with the Adjust panel's Scale slider rather than repeated, so the
+    // two ways of resizing a layer cannot disagree about how small or large
+    // one may get - a gesture that reached a size the slider refuses to
+    // represent would be a state with no way back. Widened to where the pinch
+    // started, so a layer already outside it does not jump.
+    final layerScale = LayerScaleRange.forCanvas(
+      canvasSize,
+    ).clampGesture(proposedScale, start: start.scale);
+    // Asked with the pinch slop, for the reason `snapScale` is below: two
+    // fingers never hold a span exactly, so a plain two-finger MOVE of a layer
+    // already at the limit would otherwise flash the badge on every wobble.
+    final overshoot = proposedScale / layerScale - 1;
+    _setScaleLimit(
+      overshoot > kSnapPinchSlop
+          ? _ScaleLimit.max
+          : overshoot < -kSnapPinchSlop
+          ? _ScaleLimit.min
+          : null,
+    );
     var next = LayerTransform(
       position: start.position + delta,
-      // Shared with the Adjust panel's Scale slider rather than repeated, so
-      // the two ways of resizing a layer cannot disagree about how small or
-      // large one may get - a gesture that reached a size the slider refuses
-      // to represent would be a state with no way back. Widened to where the
-      // pinch started, so a layer already outside it does not jump.
-      scale: LayerScaleRange.forCanvas(
-        canvasSize,
-      ).clampGesture(start.scale * d.scale, start: start.scale),
+      scale: layerScale,
       rotation: start.rotation + d.rotation,
     );
     if (layer != null) {
@@ -887,6 +999,7 @@ class _EditorCanvasState extends ConsumerState<EditorCanvas> {
     final id = _gestureLayerId;
     _setGestureLayer(null);
     _setSnapFeedback(null);
+    _setScaleLimit(null);
     _controller.endEdit();
     if (id != null) _dropIntoCell(id);
   }
@@ -973,6 +1086,8 @@ class _EditorCanvasState extends ConsumerState<EditorCanvas> {
     );
   }
 }
+
+enum _ScaleLimit { min, max }
 
 /// Wins the gesture arena on pointer-down, so a drag that starts on the tail
 /// knob can never lose to the canvas-wide scale recognizer (#78).

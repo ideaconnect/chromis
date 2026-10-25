@@ -32,7 +32,7 @@ FARBE UND LICHT
 • Nichts wird eingebrannt: das Original bleibt unverändert.
 
 TEXT UND COMIC-BLASEN
-• Texte in fünf Display-Schriften, oder importiere deine .ttf- oder .otf-Datei.
+• Texte in 17 Schriften, jeder Geräteschrift oder deiner .ttf- oder .otf-Datei.
 • Größe und Farbe einstellen, dazu eine Kontur mit eigener Stärke und Farbe.
 • Fünf Blasenformen: Sprechblase, Denkblase, Rufblase, Textkasten und Flüsterblase. Zieh den Zipfel auf den, der spricht.
 

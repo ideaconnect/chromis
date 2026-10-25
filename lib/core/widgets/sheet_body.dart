@@ -55,7 +55,7 @@ class SheetBody extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const _GrabHandle(),
+              const SheetGrabHandle(),
               const SizedBox(height: 16),
               ...children,
             ],
@@ -66,8 +66,10 @@ class SheetBody extends StatelessWidget {
   }
 }
 
-class _GrabHandle extends StatelessWidget {
-  const _GrabHandle();
+/// The pill at the top of every sheet. Public for the one sheet that cannot
+/// use [SheetBody] - a list too long to build eagerly.
+class SheetGrabHandle extends StatelessWidget {
+  const SheetGrabHandle({super.key});
 
   @override
   Widget build(BuildContext context) {

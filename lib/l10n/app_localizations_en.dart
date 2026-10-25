@@ -611,9 +611,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get addText => 'Add text';
 
   @override
-  String get tapFontToPreview => 'Tap a font to preview';
-
-  @override
   String get typeYourCaption => 'Type your caption…';
 
   @override
@@ -638,6 +635,50 @@ class AppLocalizationsEn extends AppLocalizations {
   String fontAdded(String family) {
     return 'Added font · $family';
   }
+
+  @override
+  String get searchFonts => 'Search fonts';
+
+  @override
+  String get fontsInApp => 'In the app';
+
+  @override
+  String get fontsImported => 'Your fonts';
+
+  @override
+  String get fontsOnDevice => 'On this device';
+
+  @override
+  String get fontsSearchingDevice => 'Looking for fonts on this device…';
+
+  @override
+  String get importFontFile => 'Import a font file';
+
+  @override
+  String get importFontFileSub => '.ttf or .otf';
+
+  @override
+  String get noFontsMatch => 'No fonts match your search';
+
+  @override
+  String get scaleLimitMax => 'Maximum size';
+
+  @override
+  String get scaleLimitMin => 'Minimum size';
+
+  @override
+  String sizeTooLarge(int max) {
+    return 'Too large - at most $max px per side';
+  }
+
+  @override
+  String sizeTooSmall(int min) {
+    return 'Too small - at least $min px per side';
+  }
+
+  @override
+  String get bubbleTextFills =>
+      'The text already fills the bubble. To make it bigger, pinch the bubble.';
 
   @override
   String get comicBubble => 'Comic bubble';

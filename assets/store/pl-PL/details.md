@@ -32,7 +32,7 @@ KOLOR I ŚWIATŁO
 • Nic nie jest wypalane na stałe: oryginał się nie zmienia.
 
 TEKST I DYMKI KOMIKSOWE
-• Napisy w pięciu krojach ozdobnych albo zaimportuj własny plik .ttf lub .otf.
+• Napisy w 17 krojach ozdobnych, czcionkach z telefonu albo z pliku .ttf lub .otf.
 • Ustaw rozmiar i kolor, dodaj obrys o własnej grubości i kolorze.
 • Pięć kształtów dymków: Mowa, Myśl, Krzyk, Narracja i Szept. Przeciągnij ogonek, aby wskazał mówiącego.
 

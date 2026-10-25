@@ -111,6 +111,18 @@ class BubbleView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // The fit below is measured here in build, not by the Text it sizes, so a
+    // font that finishes loading after the first frame - an imported font at
+    // startup, a device font on a reopened project - would re-lay the caption
+    // out in the right face at the WRONG size. The engine announces every font
+    // load; measuring again on it is what keeps the caption inside the body.
+    return ListenableBuilder(
+      listenable: PaintingBinding.instance.systemFonts,
+      builder: (context, _) => _bubble(),
+    );
+  }
+
+  Widget _bubble() {
     final size = kBubbleBaseSize * scale;
     // The caption sits inside the body (upper ~68% of the box), padded.
     final bodyRect = bubbleBodyRect(size);

@@ -38,7 +38,8 @@ import '../../core/widgets/text_caption.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/localized_labels.dart';
 import '../ads/ad_gate.dart';
-import '../fonts/custom_fonts.dart';
+import '../fonts/device_fonts.dart';
+import '../fonts/font_picker.dart';
 import '../go_pro/iap.dart';
 import '../grid/grid_templates.dart';
 import '../grid/widgets/grid_template_strip.dart';
@@ -68,6 +69,7 @@ import 'state/editor_controller.dart';
 import 'state/editor_state.dart';
 import 'state/editor_tool.dart';
 import 'widgets/bubble_shape_sheet.dart';
+import 'widgets/bubble_view.dart';
 import 'widgets/canvas_size_sheet.dart';
 import 'widgets/crop_overlay.dart';
 import 'widgets/editor_canvas.dart';
@@ -1402,15 +1404,11 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       );
     }
     final id = selected.id;
-    final fonts = ref.watch(availableFontsProvider);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _panelHeader(
-          EditorTool.text,
-          trailing: _PanelHint(_l10n.tapFontToPreview),
-        ),
+        _panelHeader(EditorTool.text),
         TextField(
           controller: _textController,
           onChanged: (v) => _controller.updateTextLayer(id, text: v),
@@ -1438,37 +1436,10 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
           ),
         ),
         const SizedBox(height: 12),
-        SizedBox(
-          height: 42,
-          child: ListView.separated(
-            // Keyed so a test can hold on to the row while it scrolls: an
-            // anchor chip scrolls out of the tree and takes the finder with it.
-            key: const ValueKey('font-row'),
-            scrollDirection: Axis.horizontal,
-            itemCount: fonts.length + 1,
-            separatorBuilder: (_, _) => const SizedBox(width: 9),
-            itemBuilder: (_, i) {
-              if (i == fonts.length) {
-                return _importFontChip(() => _importFontFor(id, bubble: false));
-              }
-              final f = fonts[i];
-              final active = selected.fontFamily == f;
-              return PillChip(
-                label: f,
-                accent: context.colors.pink,
-                selected: active,
-                radius: 12,
-                onTap: () => _controller.updateTextLayer(id, fontFamily: f),
-                labelStyle: TextStyle(
-                  fontFamily: f,
-                  fontSize: 16,
-                  color: active
-                      ? context.colors.textPrimary
-                      : context.colors.textSecondary,
-                ),
-              );
-            },
-          ),
+        FontField(
+          key: const ValueKey('font-field'),
+          family: selected.fontFamily,
+          onTap: () => _pickFont(id, selected.fontFamily, bubble: false),
         ),
         const SizedBox(height: 8),
         LabeledSlider(
@@ -1563,48 +1534,50 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     );
   }
 
-  // ------------------------------------------------------------ Bubble
-  /// Imports a user font file and applies it to the layer being edited.
-  Future<void> _importFontFor(String layerId, {required bool bubble}) async {
-    final family = await ref.read(customFontsProvider.notifier).importFont();
-    if (family == null || !mounted) return;
+  /// Opens the font picker for the caption or bubble [layerId] and applies
+  /// what comes back - including a font imported from inside the picker.
+  Future<void> _pickFont(
+    String layerId,
+    String current, {
+    required bool bubble,
+  }) async {
+    final pick = await showFontPicker(
+      context,
+      current: current,
+      accent: context.colors.pink,
+    );
+    if (pick == null || !mounted) return;
+    // A device font is registered before the layer names it, so the first
+    // frame that draws the layer draws it in that face - and the bubble's
+    // auto-fit measures those glyphs rather than the fallback's.
+    await ref.read(deviceFontsProvider).ensure(pick.family);
+    if (!mounted) return;
     if (bubble) {
-      _controller.updateBubbleLayer(layerId, fontFamily: family);
+      _controller.updateBubbleLayer(layerId, fontFamily: pick.family);
     } else {
-      _controller.updateTextLayer(layerId, fontFamily: family);
+      _controller.updateTextLayer(layerId, fontFamily: pick.family);
     }
-    _toast(_l10n.fontAdded(family));
+    if (pick.imported) _toast(_l10n.fontAdded(pick.family));
   }
 
-  /// The "+ Font" chip at the end of a font row - opens the .ttf/.otf picker.
-  Widget _importFontChip(VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 13),
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: context.colors.border),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.add, size: 15, color: context.colors.textSecondary),
-            const SizedBox(width: 5),
-            Text(
-              _l10n.font,
-              style: TextStyle(
-                fontFamily: AppFonts.ui,
-                fontSize: 12.5,
-                fontWeight: FontWeight.w700,
-                color: context.colors.textSecondary,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+  // ------------------------------------------------------------ Bubble
+  /// Whether the bubble's auto-fit is drawing [bubble]'s caption smaller than
+  /// its Size asks for.
+  ///
+  /// Past that point the Size slider still moves and nothing on the canvas
+  /// does, which reads as the control being broken. The fit is relative to the
+  /// bubble's own box - the layer's scale enlarges both together - so it is
+  /// measured at the base size; [bubbleFitFontSize] returns the requested size
+  /// exactly whenever it fits, so any shortfall is the cap.
+  bool _bubbleCaptionCapped(BubbleLayer bubble) {
+    final bounds = bubbleBodyRect(kBubbleBaseSize).deflate(10).size;
+    return bubbleFitFontSize(
+          text: bubble.text,
+          fontFamily: bubble.fontFamily,
+          maxSize: bubble.fontSize,
+          bounds: bounds,
+        ) <
+        bubble.fontSize;
   }
 
   Widget _bubblePanel(EditorState editor) {
@@ -1624,7 +1597,6 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       if (entered) _revealBubbleFormat(bubble.shape);
     }
     final id = bubble.id;
-    final fonts = ref.watch(availableFontsProvider);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -1695,37 +1667,10 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         // Font & size were model-supported but UI-locked to Bangers 26 (#81).
         // The chosen size acts as a maximum - the auto-fit (#79) may shrink
         // long captions to keep them inside the bubble.
-        SizedBox(
-          height: 42,
-          child: ListView.separated(
-            // Keyed so a test can hold on to the row while it scrolls: an
-            // anchor chip scrolls out of the tree and takes the finder with it.
-            key: const ValueKey('bubble-font-row'),
-            scrollDirection: Axis.horizontal,
-            itemCount: fonts.length + 1,
-            separatorBuilder: (_, _) => const SizedBox(width: 9),
-            itemBuilder: (_, i) {
-              if (i == fonts.length) {
-                return _importFontChip(() => _importFontFor(id, bubble: true));
-              }
-              final f = fonts[i];
-              final active = bubble.fontFamily == f;
-              return PillChip(
-                label: f,
-                accent: context.colors.pink,
-                selected: active,
-                radius: 12,
-                onTap: () => _controller.updateBubbleLayer(id, fontFamily: f),
-                labelStyle: TextStyle(
-                  fontFamily: f,
-                  fontSize: 16,
-                  color: active
-                      ? context.colors.textPrimary
-                      : context.colors.textSecondary,
-                ),
-              );
-            },
-          ),
+        FontField(
+          key: const ValueKey('bubble-font-field'),
+          family: bubble.fontFamily,
+          onTap: () => _pickFont(id, bubble.fontFamily, bubble: true),
         ),
         const SizedBox(height: 4),
         LabeledSlider(
@@ -1739,6 +1684,35 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
           onChanged: (v) => _controller.updateBubbleLayer(id, fontSize: v),
           onChangeEnd: _endSliderEdit,
         ),
+        if (_bubbleCaptionCapped(bubble))
+          Padding(
+            key: const ValueKey('bubble-text-capped'),
+            padding: const EdgeInsets.only(top: 2, bottom: 4),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(top: 1),
+                  child: Icon(
+                    Icons.info_outline,
+                    size: 14,
+                    color: context.colors.textMuted,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    _l10n.bubbleTextFills,
+                    style: TextStyle(
+                      fontFamily: AppFonts.ui,
+                      fontSize: 11.5,
+                      color: context.colors.textMuted,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         const SizedBox(height: 4),
         _swatchRow(
           _l10n.fill,

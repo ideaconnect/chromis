@@ -9,6 +9,7 @@ import 'package:chromis/features/editor/widgets/bubble_shape_sheet.dart';
 import 'package:chromis/features/editor/widgets/canvas_size_sheet.dart';
 import 'package:chromis/features/editor/widgets/fill_quality_sheet.dart';
 import 'package:chromis/features/editor/widgets/project_canvas.dart';
+import 'package:chromis/features/fonts/font_picker.dart';
 import 'package:chromis/features/go_pro/iap.dart';
 import 'package:chromis/features/grid/widgets/grid_setup_sheet.dart';
 import 'package:chromis/features/home/home_screen.dart';
@@ -216,6 +217,24 @@ void main() {
         expect(tester.takeException(), isNull);
         expect(
           find.byKey(const ValueKey('fill-quality-continue')),
+          findsOneWidget,
+        );
+      });
+
+      // A fixed-height sheet (title, search field, then a lazy list), not a
+      // SheetBody - so it is the one sheet whose header must fit in whatever
+      // height is left, with only the list giving way.
+      testWidgets('font picker sheet', (tester) async {
+        await pumpSheet(
+          tester,
+          size,
+          (context) =>
+              showFontPicker(context, current: 'Bangers', accent: Colors.pink),
+        );
+        expect(tester.takeException(), isNull);
+        expect(find.byKey(const ValueKey('font-search')), findsOneWidget);
+        expect(
+          find.byKey(const ValueKey('font-option-Bangers')),
           findsOneWidget,
         );
       });

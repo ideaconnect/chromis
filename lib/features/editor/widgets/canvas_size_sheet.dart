@@ -202,6 +202,61 @@ class _CanvasSizeSheetState extends State<_CanvasSizeSheet> {
       h >= Project.minCanvasDimension &&
       h <= Project.maxCanvasDimension;
 
+  /// Why [w] × [h] cannot be applied, or null when it can or when there is
+  /// nothing to say yet.
+  ///
+  /// Without it a size past the cap just greys Apply out, and the sheet gives
+  /// no hint whether it is the number, the other field, or something else
+  /// entirely. An empty or half-typed field is not an error to shout about:
+  /// a 0 only means "not a number yet".
+  String? _boundsMessage(AppLocalizations l10n, int w, int h) {
+    if (w > Project.maxCanvasDimension || h > Project.maxCanvasDimension) {
+      return l10n.sizeTooLarge(Project.maxCanvasDimension);
+    }
+    if ((w > 0 && w < Project.minCanvasDimension) ||
+        (h > 0 && h < Project.minCanvasDimension)) {
+      return l10n.sizeTooSmall(Project.minCanvasDimension);
+    }
+    return null;
+  }
+
+  Widget _limitNote(AppLocalizations l10n, int w, int h) {
+    final message = _boundsMessage(l10n, w, h);
+    if (message == null) return const SizedBox.shrink();
+    return Padding(
+      key: const ValueKey('size-limit-message'),
+      padding: const EdgeInsets.only(top: 8),
+      child: Semantics(
+        liveRegion: true,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(top: 1),
+              child: Icon(
+                Icons.error_outline,
+                size: 15,
+                color: context.colors.rose,
+              ),
+            ),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                message,
+                style: TextStyle(
+                  fontFamily: AppFonts.ui,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: context.colors.rose,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   bool get _valid => switch (_mode) {
     _Mode.canvas => _inBounds(_wv, _hv),
     // The size it already is would change nothing but the photos' pixels,
@@ -338,6 +393,7 @@ class _CanvasSizeSheetState extends State<_CanvasSizeSheet> {
         Expanded(child: _numField(_h, l10n.height)),
       ],
     ),
+    _limitNote(l10n, _wv, _hv),
     if (widget.allowScaleContent) ...[
       const SizedBox(height: 6),
       SwitchListTile(
@@ -413,6 +469,7 @@ class _CanvasSizeSheetState extends State<_CanvasSizeSheet> {
         ),
       ],
     ),
+    _limitNote(l10n, _iwv, _ihv),
     const SizedBox(height: 18),
     _sectionLabel(l10n.resamplingSection),
     const SizedBox(height: 8),

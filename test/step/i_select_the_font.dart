@@ -5,37 +5,21 @@ import '_e2e_support.dart';
 
 /// Usage: I select the {'Rubik'} font
 Future<void> iSelectTheFont(WidgetTester tester, String param1) async {
-  final f = find.text(param1);
-  if (f.evaluate().isEmpty) {
-    // The font row is a lazy horizontal ListView, so a chip past the right
-    // edge is not in the tree yet - scroll until it builds.
-    //
-    // Found by the row's OWN key. Two earlier attempts each failed on the
-    // device: "the first horizontal scrollable" is the caption TextField,
-    // which sits above the row and carries one of its own; and "an ancestor of
-    // a font chip" evaporates on the first drag, because the anchor chip is
-    // exactly what scrolls out of the tree.
-    final row = find.descendant(
-      of: find.byKey(const ValueKey('font-row')),
-      matching: find.byType(Scrollable),
-    );
-    if (row.evaluate().isNotEmpty) {
-      // And the row has to be on screen before it can be dragged: the panel
-      // scrolls too, and a horizontal drag aimed at a row that has scrolled out
-      // of it lands on whatever is behind.
-      await scrollIntoView(tester, row.first);
-      try {
-        await tester.scrollUntilVisible(
-          f,
-          100,
-          scrollable: row.first,
-          maxScrolls: 15,
-        );
-      } catch (_) {}
-      await settle(tester);
-    }
-  }
-  await scrollIntoView(tester, f.first);
-  await tester.tap(f.first);
+  // The panel shows one font field, not a strip of chips: it opens a sheet
+  // with a search field over every font. Searching rather than scrolling,
+  // because the list is lazy and on a device its length depends on how many
+  // fonts the phone itself ships - a scroll distance that finds Rubik on one
+  // phone overshoots it on the next.
+  final field = find.byKey(const ValueKey('font-field'));
+  await scrollIntoView(tester, field.first);
+  await tester.tap(field.first);
+  await settle(tester);
+  await tester.enterText(find.byKey(const ValueKey('font-search')), param1);
+  await settle(tester);
+  final row = find.descendant(
+    of: find.byKey(const ValueKey('font-list')),
+    matching: find.text(param1),
+  );
+  await tester.tap(row.first);
   await settle(tester);
 }

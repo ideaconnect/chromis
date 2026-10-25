@@ -115,7 +115,6 @@ void main() {
     'toolEffects': (max: 11, slot: 'editor dock'),
     'toolLayers': (max: 11, slot: 'editor dock'),
     // _PanelHint as a _panelHeader trailing - shares the row with the title.
-    'tapFontToPreview': (max: 28, slot: 'panel header hint'),
     'brushOverCanvas': (max: 28, slot: 'panel header hint'),
     // The three export format chips are Expanded, so each gets a third.
     'formatPngSub': (max: 18, slot: 'export format chip'),

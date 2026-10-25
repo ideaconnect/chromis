@@ -32,7 +32,7 @@ COLOUR AND LIGHT
 • Nothing is baked in. Your original file is never modified.
 
 TEXT AND COMIC BUBBLES
-• Captions in five display fonts, or import your own .ttf or .otf file.
+• Captions in 17 display fonts, your phone's own fonts, or a .ttf or .otf file.
 • Set size and colour, and outline the text with its own thickness and colour.
 • Five bubble shapes: Speech, Thought, Shout, Caption and Whisper. Drag the tail to aim it at whoever is talking.
 

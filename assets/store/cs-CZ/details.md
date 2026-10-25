@@ -32,7 +32,7 @@ BARVA A SVĚTLO
 • Nic se nezapéká natrvalo. Původní soubor se nikdy nemění.
 
 TEXT A KOMIKSOVÉ BUBLINY
-• Popisky v pěti ozdobných písmech, nebo si naimportujte vlastní soubor .ttf či .otf.
+• Popisky v 17 ozdobných písmech, v písmech z telefonu nebo ze souboru .ttf či .otf.
 • Nastavte velikost a barvu a dejte textu obrys s vlastní tloušťkou a barvou.
 • Pět tvarů bublin: Promluva, Myšlenka, Výkřik, Popisek a Šepot. Přetažením ocásku zamiřte na toho, kdo mluví.
 

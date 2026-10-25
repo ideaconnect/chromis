@@ -170,6 +170,19 @@ readout stays the true percentage; `LabeledSlider` now also feeds `valueLabel`
 to `semanticFormatterCallback`, because otherwise a screen reader announces the
 thumb's position - "25%" for a layer at 100%.
 
+**A pinch that reaches either end of the range says so** - a
+`scale-limit-badge` pinned to the canvas's top edge and one light haptic tick on
+arrival. The clamp is silent, so a layer at its limit just stops following the
+fingers, which looks like the gesture was dropped. The badge is pinned to the
+canvas rather than to the layer because a layer at its maximum is usually
+bigger than the canvas, and it is asked with `kSnapPinchSlop` for the same
+reason `snapScale` is: two fingers never hold a span exactly, so a two-finger
+*move* of a layer already at the limit would flash it on every wobble. The size
+sheet does the same for a typed canvas size past `Project.maxCanvasDimension`,
+which used to grey Apply out with no reason given, and the Bubble panel says
+when the auto-fit is drawing the caption smaller than Size asks for - past that
+point the slider moves and nothing on the canvas does.
+
 Rotation is shown wrapped into (-180°, 180°] because
 the canvas ACCUMULATES it across pinches and a layer really can sit at 400°, and
 it snaps to straight over the last couple of degrees, which a slider cannot hit
@@ -437,6 +450,57 @@ A 4096 x 3072 photo is 50 MB decoded, four times what 2048 was, and the AI tools
 decode their input in full; every memory and timing figure elsewhere in this
 file was measured on 2048 px photos, so re-measure before trusting them at the
 new cap.
+
+### Caption fonts
+
+Three sources, one picker: the bundled set (`AppFonts.bundledFonts`, 17), the
+user's imported .ttf/.otf files (`features/fonts/custom_fonts.dart`), and the
+device's own fonts (`features/fonts/device_fonts.dart`). The panels show one
+`FontField` that opens `showFontPicker` - a searchable, sectioned list - where
+there used to be a horizontal strip of chips, which stopped working once the
+list stopped being five long.
+
+**Every bundled caption face maps the full alphabet of all six app languages.**
+A missing ą or ř falls back to the system font mid-word, which is worse than
+not offering the face. Permanent Marker, Chewy, Creepster, Lilita One and
+Bubblegum Sans were left out for exactly that. Captions and bubbles always draw
+at w700, so a family that ships a real Bold bundles that file declared
+`weight: 700` - undeclared it counts as 400 and is emboldened on top. A family
+key is identity (projects persist it), so the picker shows `AppFonts.nameOf`.
+
+**Device fonts are read straight out of `/system/fonts`, `/product/fonts` and
+`/system_ext/fonts`** - world-readable, so no permission and no channel.
+`font_file_info.dart` reads only the `name`, `OS/2` and `cmap` tables of each
+file, because a scan that loaded whole files would read the CJK collections.
+Kept: Latin-capable (all of A-Z/a-z - most of the directory is Noto script
+fallbacks the engine reaches anyway), upright, under `kMaxDeviceFontBytes`,
+and **offered by a NAMED family in `/system/etc/fonts.xml`** (or a vendor's
+`/product/etc/fonts_customization.xml`). The Latin check alone is not enough:
+on the API 37 emulator it kept Noto Sans Hebrew, Khmer, Tamil UI and Serif
+Hentaigana - script fallbacks that carry a plain Latin - and a duplicate
+`RobotoStatic`, 14 families of which 9 were real choices. Since Android 15 the
+fallbacks live in a `font_fallback.xml` apps cannot read, so "listed only as a
+fallback" cannot be asked; "listed by name" can. No readable config means no
+filter, which over-offers rather than hiding the phone's fonts.
+`integration_test/device_fonts_device_test.dart` is the only check that runs
+any of this against a real font directory - run it after touching the scan.
+**One face per family is registered, the one nearest w700**, because a font
+registered with the engine stays for the life of the process and on a 2 GB
+phone a picker that pinned a family's six weights - or a 30 MB CJK font - by
+being scrolled past is how the editor gets killed in the background. The list
+is lazy for the same reason: building a row is what loads its font.
+
+**A device font must be registered before anything draws it, and three paths
+see to that:** the picker awaits it before writing the layer; `ProjectCanvas`
+prefetches every family its frame names (a reopened project, Home's tiles);
+`ProjectRenderer._render` awaits them, because an export has no second frame to
+correct a fallback face. Text re-lays itself out when a font lands -
+`loadFontFromList` broadcasts a fonts change - but **anything measured in
+`build` does not**: `BubbleView`'s auto-fit and the canvas's hit boxes listen to
+`PaintingBinding.instance.systemFonts` and rebuild. A family that is bundled or
+imported is `reserve`d and never looked up as a device font - registered under
+the same name, a device file would join that family as a second face. An import
+is named unique against all three sources for the same reason.
 
 ### Object removal: which pixels, and what goes there
 

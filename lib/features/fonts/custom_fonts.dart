@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../../core/theme/app_typography.dart';
+import 'device_fonts.dart';
 
 /// A user-imported font: its registered [family] name and the [fileName] of the
 /// copied .ttf/.otf inside the app's fonts directory.
@@ -54,6 +55,9 @@ class CustomFontStore {
   }
 
   static Future<void> _register(String family, Uint8List bytes) async {
+    // Claimed before it loads, so a device font of the same name can never be
+    // registered into this family as a second face.
+    DeviceFonts.instance.reserve(family);
     final loader = FontLoader(family)
       ..addFont(
         Future.value(
@@ -95,10 +99,19 @@ class CustomFontStore {
     if (bytes == null) return null;
     final existing = await _read();
     final ext = (picked.extension ?? 'ttf').toLowerCase();
-    final family = _uniqueFamily(
-      _familyFromName(picked.name),
-      existing.map((c) => c.family).toSet(),
-    );
+    // Unique against every name the picker shows, not only the other imports:
+    // registered under a device family's name the file would merge into that
+    // family, and under a bundled one's label it would be a second row
+    // reading the same as the first.
+    final device = await DeviceFonts.instance.families();
+    final family = _uniqueFamily(_familyFromName(picked.name), {
+      for (final c in existing) c.family.toLowerCase(),
+      for (final d in device) d.family.toLowerCase(),
+      for (final b in AppFonts.bundledFonts) ...[
+        b.toLowerCase(),
+        AppFonts.nameOf(b).toLowerCase(),
+      ],
+    });
     final fileName = '$family.$ext';
     await File('${(await _dir()).path}/$fileName').writeAsBytes(bytes);
     await _register(family, bytes);
@@ -115,10 +128,11 @@ class CustomFontStore {
     return s.isEmpty ? 'Custom font' : s;
   }
 
+  /// [base], numbered if need be so it is not in [taken] (lower-cased).
   static String _uniqueFamily(String base, Set<String> taken) {
-    if (!taken.contains(base)) return base;
+    if (!taken.contains(base.toLowerCase())) return base;
     var n = 2;
-    while (taken.contains('$base $n')) {
+    while (taken.contains('$base $n'.toLowerCase())) {
       n++;
     }
     return '$base $n';
@@ -149,10 +163,3 @@ final customFontsProvider =
     AsyncNotifierProvider<CustomFontsController, List<CustomFont>>(
       CustomFontsController.new,
     );
-
-/// Family names available to the Text/Bubble pickers: bundled first, then the
-/// user's imported fonts.
-final availableFontsProvider = Provider<List<String>>((ref) {
-  final custom = ref.watch(customFontsProvider).asData?.value ?? const [];
-  return [...AppFonts.bundledFonts, for (final c in custom) c.family];
-});

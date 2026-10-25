@@ -621,9 +621,6 @@ class AppLocalizationsDe extends AppLocalizations {
   String get addText => 'Text hinzufügen';
 
   @override
-  String get tapFontToPreview => 'Antippen für Vorschau';
-
-  @override
   String get typeYourCaption => 'Schreibe deinen Text…';
 
   @override
@@ -648,6 +645,50 @@ class AppLocalizationsDe extends AppLocalizations {
   String fontAdded(String family) {
     return 'Schrift hinzugefügt · $family';
   }
+
+  @override
+  String get searchFonts => 'Schriften durchsuchen';
+
+  @override
+  String get fontsInApp => 'In der App';
+
+  @override
+  String get fontsImported => 'Deine Schriften';
+
+  @override
+  String get fontsOnDevice => 'Auf diesem Gerät';
+
+  @override
+  String get fontsSearchingDevice => 'Suche Schriften auf dem Gerät…';
+
+  @override
+  String get importFontFile => 'Schriftdatei importieren';
+
+  @override
+  String get importFontFileSub => '.ttf oder .otf';
+
+  @override
+  String get noFontsMatch => 'Keine Schrift passt zur Suche';
+
+  @override
+  String get scaleLimitMax => 'Maximale Größe';
+
+  @override
+  String get scaleLimitMin => 'Minimale Größe';
+
+  @override
+  String sizeTooLarge(int max) {
+    return 'Höchstens $max px pro Seite';
+  }
+
+  @override
+  String sizeTooSmall(int min) {
+    return 'Mindestens $min px pro Seite';
+  }
+
+  @override
+  String get bubbleTextFills =>
+      'Der Text füllt die Sprechblase schon aus. Zieh die Sprechblase mit zwei Fingern auf, um ihn zu vergrößern.';
 
   @override
   String get comicBubble => 'Comic-Sprechblase';

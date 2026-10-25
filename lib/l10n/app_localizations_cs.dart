@@ -618,9 +618,6 @@ class AppLocalizationsCs extends AppLocalizations {
   String get addText => 'Přidat text';
 
   @override
-  String get tapFontToPreview => 'Klepni na písmo pro náhled';
-
-  @override
   String get typeYourCaption => 'Napiš popisek…';
 
   @override
@@ -645,6 +642,50 @@ class AppLocalizationsCs extends AppLocalizations {
   String fontAdded(String family) {
     return 'Přidáno písmo · $family';
   }
+
+  @override
+  String get searchFonts => 'Hledej písmo';
+
+  @override
+  String get fontsInApp => 'V aplikaci';
+
+  @override
+  String get fontsImported => 'Tvoje písma';
+
+  @override
+  String get fontsOnDevice => 'V tomto zařízení';
+
+  @override
+  String get fontsSearchingDevice => 'Hledám písma v zařízení…';
+
+  @override
+  String get importFontFile => 'Importovat soubor písma';
+
+  @override
+  String get importFontFileSub => '.ttf nebo .otf';
+
+  @override
+  String get noFontsMatch => 'Hledání neodpovídá žádné písmo';
+
+  @override
+  String get scaleLimitMax => 'Maximální velikost';
+
+  @override
+  String get scaleLimitMin => 'Minimální velikost';
+
+  @override
+  String sizeTooLarge(int max) {
+    return 'Nejvýše $max px na stranu';
+  }
+
+  @override
+  String sizeTooSmall(int min) {
+    return 'Nejméně $min px na stranu';
+  }
+
+  @override
+  String get bubbleTextFills =>
+      'Text už vyplňuje celou bublinu. Chceš-li ho zvětšit, roztáhni bublinu dvěma prsty.';
 
   @override
   String get comicBubble => 'Komiksová bublina';

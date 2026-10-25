@@ -13,6 +13,7 @@ import '../../core/rendering/image_decode.dart';
 import '../../core/rendering/layer_effects_painter.dart';
 import '../../core/widgets/text_caption.dart';
 import '../editor/widgets/bubble_view.dart';
+import '../fonts/device_fonts.dart';
 
 /// Flattens a project [Frame] to a transparent raster image at an arbitrary
 /// target size, matching the on-canvas rendering (ProjectCanvas). This is the
@@ -53,6 +54,10 @@ abstract final class ProjectRenderer {
     Size logicalCanvas,
     GridSpec? grid,
   ) async {
+    // Painted once, with no second frame to correct it, so a device font still
+    // loading would be baked into the file in the fallback face. Every export,
+    // flatten and crop preview comes through here.
+    await DeviceFonts.instance.ensureFor(frame.layers);
     final decoded = await _decodeImages(frame, scale);
     try {
       final recorder = ui.PictureRecorder();

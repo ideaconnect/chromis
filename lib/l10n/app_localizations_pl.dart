@@ -622,9 +622,6 @@ class AppLocalizationsPl extends AppLocalizations {
   String get addText => 'Dodaj tekst';
 
   @override
-  String get tapFontToPreview => 'Dotknij dla podglądu';
-
-  @override
   String get typeYourCaption => 'Wpisz swój tekst…';
 
   @override
@@ -649,6 +646,50 @@ class AppLocalizationsPl extends AppLocalizations {
   String fontAdded(String family) {
     return 'Dodano czcionkę · $family';
   }
+
+  @override
+  String get searchFonts => 'Szukaj czcionki';
+
+  @override
+  String get fontsInApp => 'W aplikacji';
+
+  @override
+  String get fontsImported => 'Twoje czcionki';
+
+  @override
+  String get fontsOnDevice => 'Na tym urządzeniu';
+
+  @override
+  String get fontsSearchingDevice => 'Szukam czcionek na urządzeniu…';
+
+  @override
+  String get importFontFile => 'Importuj plik czcionki';
+
+  @override
+  String get importFontFileSub => '.ttf lub .otf';
+
+  @override
+  String get noFontsMatch => 'Żadna czcionka nie pasuje do wyszukiwania';
+
+  @override
+  String get scaleLimitMax => 'Maksymalny rozmiar';
+
+  @override
+  String get scaleLimitMin => 'Minimalny rozmiar';
+
+  @override
+  String sizeTooLarge(int max) {
+    return 'Maksymalnie $max px na bok';
+  }
+
+  @override
+  String sizeTooSmall(int min) {
+    return 'Minimalnie $min px na bok';
+  }
+
+  @override
+  String get bubbleTextFills =>
+      'Tekst wypełnia już cały dymek. Aby go powiększyć, rozciągnij dymek dwoma palcami.';
 
   @override
   String get comicBubble => 'Dymek komiksowy';

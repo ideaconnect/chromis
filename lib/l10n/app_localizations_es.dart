@@ -618,9 +618,6 @@ class AppLocalizationsEs extends AppLocalizations {
   String get addText => 'Añadir texto';
 
   @override
-  String get tapFontToPreview => 'Toca una fuente para verla';
-
-  @override
   String get typeYourCaption => 'Escribe tu texto…';
 
   @override
@@ -645,6 +642,50 @@ class AppLocalizationsEs extends AppLocalizations {
   String fontAdded(String family) {
     return 'Fuente añadida · $family';
   }
+
+  @override
+  String get searchFonts => 'Buscar fuentes';
+
+  @override
+  String get fontsInApp => 'En la app';
+
+  @override
+  String get fontsImported => 'Tus fuentes';
+
+  @override
+  String get fontsOnDevice => 'En este dispositivo';
+
+  @override
+  String get fontsSearchingDevice => 'Buscando fuentes en el dispositivo…';
+
+  @override
+  String get importFontFile => 'Importar archivo de fuente';
+
+  @override
+  String get importFontFileSub => '.ttf u .otf';
+
+  @override
+  String get noFontsMatch => 'Ninguna fuente coincide con la búsqueda';
+
+  @override
+  String get scaleLimitMax => 'Tamaño máximo';
+
+  @override
+  String get scaleLimitMin => 'Tamaño mínimo';
+
+  @override
+  String sizeTooLarge(int max) {
+    return 'Como máximo $max px por lado';
+  }
+
+  @override
+  String sizeTooSmall(int min) {
+    return 'Como mínimo $min px por lado';
+  }
+
+  @override
+  String get bubbleTextFills =>
+      'El texto ya llena el globo. Para agrandarlo, amplía el globo con dos dedos.';
 
   @override
   String get comicBubble => 'Globo de cómic';

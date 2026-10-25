@@ -32,7 +32,7 @@ COLOR Y LUZ
 • Nada queda fijado: el original nunca se modifica.
 
 TEXTO Y BOCADILLOS DE CÓMIC
-• Textos en cinco tipografías de titular, o importa tu archivo .ttf u .otf.
+• Textos en 17 tipografías, las fuentes de tu móvil o tu archivo .ttf u .otf.
 • Ajusta tamaño y color, y dale al texto un contorno con su grosor y color.
 • Cinco formas de bocadillo: Diálogo, Pensamiento, Grito, Narración y Susurro. Arrastra el rabito hacia quien habla.
 

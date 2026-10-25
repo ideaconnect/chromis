@@ -24,6 +24,20 @@ const bundledLicenses = <BundledLicense>[
   ], 'assets/fonts/LICENSE-LuckiestGuy-Apache.txt'),
   BundledLicense(['Pacifico'], 'assets/fonts/OFL-Pacifico.txt'),
   BundledLicense(['Rubik'], 'assets/fonts/OFL-Rubik.txt'),
+  BundledLicense(['Comic Neue'], 'assets/fonts/OFL-ComicNeue.txt'),
+  BundledLicense(['Kalam'], 'assets/fonts/OFL-Kalam.txt'),
+  BundledLicense(['Patrick Hand'], 'assets/fonts/OFL-PatrickHand.txt'),
+  BundledLicense(['Caveat Brush'], 'assets/fonts/OFL-CaveatBrush.txt'),
+  BundledLicense(['Mali'], 'assets/fonts/OFL-Mali.txt'),
+  BundledLicense(['Titan One'], 'assets/fonts/OFL-TitanOne.txt'),
+  BundledLicense(['Bungee'], 'assets/fonts/OFL-Bungee.txt'),
+  BundledLicense(['Anton'], 'assets/fonts/OFL-Anton.txt'),
+  BundledLicense(['Lobster'], 'assets/fonts/OFL-Lobster.txt'),
+  BundledLicense(['Shrikhand'], 'assets/fonts/OFL-Shrikhand.txt'),
+  BundledLicense(['Press Start 2P'], 'assets/fonts/OFL-PressStart2P.txt'),
+  BundledLicense([
+    'Special Elite',
+  ], 'assets/fonts/LICENSE-SpecialElite-Apache.txt'),
   // Bundled on-device AI models: MobileSAM (tap-to-remove) and U²-Netp
   // (background removal), both Apache-2.0 - attribution + license text ship
   // in-app as the license requires.
