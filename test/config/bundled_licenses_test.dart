@@ -7,9 +7,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// Guards that [registerBundledLicenses] streams exactly one
-/// [LicenseEntryWithLineBreaks] per bundled asset (the six OFL/Apache fonts plus
-/// the combined MobileSAM / U²-Netp Apache-2.0 model notice), reading each
-/// license text from the injected [AssetBundle].
+/// [LicenseEntryWithLineBreaks] per bundled asset (one per OFL/Apache font, the
+/// combined MobileSAM / U²-Netp Apache-2.0 model notice, and MI-GAN's MIT one),
+/// reading each license text from the injected [AssetBundle].
 class _FakeAssetBundle extends CachingAssetBundle {
   /// Distinct stub text per asset so we can prove each entry was loaded from its
   /// own asset key.
@@ -52,7 +52,7 @@ void main() {
     }
   });
 
-  test('covers the six bundled fonts and all three AI models', () async {
+  test('covers every bundled font and all three AI models', () async {
     final entries = await drain();
     final allPackages = <String>{for (final e in entries) ...e.packages};
     expect(
@@ -64,6 +64,18 @@ void main() {
         'Luckiest Guy',
         'Pacifico',
         'Rubik',
+        'Comic Neue',
+        'Kalam',
+        'Patrick Hand',
+        'Caveat Brush',
+        'Mali',
+        'Titan One',
+        'Bungee',
+        'Anton',
+        'Lobster',
+        'Shrikhand',
+        'Press Start 2P',
+        'Special Elite',
         'MobileSAM',
         'U²-Netp',
         'MI-GAN',
@@ -118,6 +130,33 @@ void main() {
         registered,
         contains(name),
         reason: '$model ships with no entry in bundledLicenses',
+      );
+    }
+
+    // Fonts the same way. The OFL and Apache 2.0 both make shipping the
+    // licence text with the font a condition of redistributing it, so a font
+    // in the build with no registered licence is not a missing credit - it is
+    // a font the app has no right to ship. Each family's licence file is named
+    // after it (OFL-<Family>.txt, LICENSE-<Family>-Apache.txt).
+    final fontsSection = flutter.split(RegExp(r'^  fonts:$', multiLine: true));
+    expect(fontsSection, hasLength(2), reason: 'pubspec declares fonts');
+    final families = RegExp(
+      r'^\s+-\s+family:\s+(\S+)\s*$',
+      multiLine: true,
+    ).allMatches(fontsSection.last).map((m) => m.group(1)!).toList();
+    expect(families, isNotEmpty);
+    final licenceAssets = [for (final e in bundledLicenses) e.asset];
+    for (final family in families) {
+      expect(
+        licenceAssets.where(
+          (a) =>
+              a.endsWith('/OFL-$family.txt') ||
+              a.endsWith('/LICENSE-$family-Apache.txt'),
+        ),
+        hasLength(1),
+        reason:
+            'font $family is bundled with no licence registered in '
+            'bundledLicenses - the OFL and Apache 2.0 require shipping it',
       );
     }
 
